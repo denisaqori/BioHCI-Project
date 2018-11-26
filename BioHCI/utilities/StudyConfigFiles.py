@@ -1,10 +1,10 @@
 from configparser import ConfigParser
-from definition.StudyParameters import StudyParameters
+from BioHCI.definition.StudyParameters import StudyParameters
 import os
 import errno
 
 
-class StudyConifigFiles:
+class StudyConfigFiles:
 
 	def __init__(self, root_dir_path, study_parameters):
 		self.root_dir = self.create_root_dir(root_dir_path)
@@ -38,6 +38,6 @@ if __name__ == "__main__":
 	print(parameters.__dict__)
 	root_dir = "Resources/ConfigFiles"
 
-	config = StudyConifigFiles(root_dir, parameters)
+	config = StudyConfigFiles(root_dir, parameters)
 	config.generate_study_config_file()
 
