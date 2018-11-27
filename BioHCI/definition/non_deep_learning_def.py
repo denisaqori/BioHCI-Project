@@ -1,4 +1,4 @@
-from BioHCI.definition.LearningDefinition import LearningDefinition
+from BioHCI.definition.learning_def import LearningDefinition
 from sklearn.svm import SVC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 import sys

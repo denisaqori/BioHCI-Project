@@ -1,14 +1,13 @@
 import seaborn as sns
-from BioHCI.utilities import Utilities as util
-from BioHCI.data.DataConstructor import DataConstructor
-from BioHCI.definition.StudyParameters import StudyParameters
+from BioHCI.helpers import utilities as util
+from BioHCI.data.data_constructor import DataConstructor
+from BioHCI.definition.study_parameters import StudyParameters
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from PIL import Image
 import pandas as pd
 import os
 import math
-import errno
 
 
 # this class takes as input a dictionary of subjects and has options to visualize that data in various ways

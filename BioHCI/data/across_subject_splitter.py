@@ -1,6 +1,6 @@
 from typing import List, Any
 
-from data.DataSplitter import DataSplitter
+from BioHCI.data.data_splitter import DataSplitter
 import math
 
 

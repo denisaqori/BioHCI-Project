@@ -87,7 +87,7 @@ def create_dir(root_dir_path, subdir_name_list=None):
 
 	'''
 	# parent directory
-	root_dir = os.path.abspath(os.path.join(os.pardir, os.pardir, root_dir_path))
+	root_dir = os.path.join(get_project_root_path(), root_dir_path)
 	if not os.path.exists(root_dir):
 		try:
 			os.makedirs(root_dir)
@@ -98,7 +98,7 @@ def create_dir(root_dir_path, subdir_name_list=None):
 	# create subdirectories if there is subdir_name_list passed as a parameter
 	if subdir_name_list is not None:
 		for subdir_path in subdir_name_list:
-			subdir = os.path.abspath(os.path.join(root_dir, subdir_path))
+			subdir = os.path.join(root_dir, subdir_path)
 			if not os.path.exists(subdir):
 				try:
 					os.makedirs(subdir)

@@ -2,21 +2,21 @@ import argparse
 
 import torch
 
-from BioHCI.data.AcrossSubjectSplitter import AcrossSubjectSplitter
-from BioHCI.data.WithinSubjectSplitter import WithinSubjectSplitter
-from BioHCI.data.DataConstructor import DataConstructor
-from BioHCI.data.DatasetProcessor import DatasetProcessor
-from BioHCI.data.WIthinSubjectOversampler import WithinSubjectOversampler
-from BioHCI.definition.DeepLearningDefinition import DeepLearningDefinition
-from BioHCI.definition.NonDeepLearningDefinition import NonDeepLearningDefinition
-from BioHCI.definition.StudyParameters import StudyParameters
-from BioHCI.model.DeepLearningCV import DeepLearningCV
-from BioHCI.model.NonDeepLearningCV import NonDeepLearningCV
-from BioHCI.utilities.Logging import Logging
-from BioHCI.data.FeatureConstructor import FeatureConstructor
-from BioHCI.data.DataAugmenter import DataAugmenter
+from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
+from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
+from BioHCI.data.data_constructor import DataConstructor
+from BioHCI.data.dataset_processor import DatasetProcessor
+from BioHCI.data.within_subject_oversampler import WithinSubjectOversampler
+from BioHCI.definition.deep_learning_def import DeepLearningDefinition
+from BioHCI.definition.non_deep_learning_def import NonDeepLearningDefinition
+from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.model.deep_learning_cv import DeepLearningCV
+from BioHCI.model.non_deep_learning_cv import NonDeepLearningCV
+from BioHCI.helpers.result_logger import Logging
+from BioHCI.data.feature_constructor import FeatureConstructor
+from BioHCI.data.data_augmenter import DataAugmenter
 
-from BioHCI.utilities.RawDataVisualizer import RawDataVisualizer
+from BioHCI.helpers.raw_data_visualizer import RawDataVisualizer
 
 
 def main():

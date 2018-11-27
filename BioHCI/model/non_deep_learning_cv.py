@@ -1,5 +1,5 @@
-from BioHCI.model.CrossValidation import CrossValidation
-import BioHCI.utilities.Utilities as utils
+from BioHCI.model.cross_validator import CrossValidation
+import BioHCI.helpers.utilities as utils
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 

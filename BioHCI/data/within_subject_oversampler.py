@@ -1,4 +1,4 @@
-from BioHCI.data.CategoryBalancer import CategoryBalancer
+from BioHCI.data.category_balancer import CategoryBalancer
 import numpy as np
 from copy import copy
 

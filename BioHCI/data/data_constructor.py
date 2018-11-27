@@ -5,7 +5,7 @@ import sys
 
 from scipy import stats
 
-from BioHCI.data.Subject import Subject
+from BioHCI.data.subject import Subject
 
 
 # TODO: add standardization option within feature for every subject - maybe entails building a dataframe first and

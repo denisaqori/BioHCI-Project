@@ -2,7 +2,7 @@ import torch
 from abc import ABC, abstractmethod
 import numpy as np
 import time
-import BioHCI.utilities.Utilities as utils
+import BioHCI.helpers.utilities as utils
 
 class CrossValidation(ABC):
 	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, num_categories):

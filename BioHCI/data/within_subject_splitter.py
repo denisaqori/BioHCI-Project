@@ -1,4 +1,4 @@
-from data.DataSplitter import DataSplitter
+from BioHCI.data.data_splitter import DataSplitter
 from copy import copy
 import math
 import numpy as np

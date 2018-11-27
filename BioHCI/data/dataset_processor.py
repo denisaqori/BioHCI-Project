@@ -224,7 +224,7 @@ class DatasetProcessor:
 		return compacted_subj_dict
 
 	# To run doctests on any function/method of this module, open the terminal and type:
-	# python -m doctest -v DataSplitter.py
+	# python -m doctest -v data_splitter.py
 	def find_indices_of_duplicates(self, ls):
 		"""
 		Calculates the indices of every unique value of the list.

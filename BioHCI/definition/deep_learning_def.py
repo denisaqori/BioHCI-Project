@@ -1,7 +1,7 @@
-from BioHCI.network.CNN_LSTM import CNN_LSTM
-from BioHCI.network.CNN import CNN
-from BioHCI.network.LSTM import LSTM
-from BioHCI.definition.LearningDefinition import LearningDefinition
+from BioHCI.network.cnn_lstm import CNN_LSTM
+from BioHCI.network.cnn import CNN
+from BioHCI.network.lstm import LSTM
+from BioHCI.definition.learning_def import LearningDefinition
 import torch
 import torch.nn as nn
 import sys

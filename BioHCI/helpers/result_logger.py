@@ -1,6 +1,7 @@
 import os
 import datetime
 import platform
+from BioHCI.utilities import utilities as util
 
 
 class Logging:
@@ -20,7 +21,7 @@ class Logging:
 
 		log_file_path = os.path.join(self._log_dir_path, self._data.get_dataset_name() +
 									 self._learning_def.get_model_name() + "_Log")
-		log_file_path = os.path.abspath(os.path.join(os.pardir, log_file_path))
+		log_file_path = os.path.join(util.get_project_root_path(), log_file_path)
 		if os.path.exists(log_file_path):
 			append_write = 'a'
 		else:

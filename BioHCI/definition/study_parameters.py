@@ -1,5 +1,5 @@
 import os
-from BioHCI.utilities import Utilities as util
+from BioHCI.helpers import utilities as util
 
 # TODO: get rid of getters and setters? Can use Python's inherent getattr, setattr maybe - look into properties too
 class StudyParameters:

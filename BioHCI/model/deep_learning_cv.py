@@ -1,8 +1,8 @@
-from BioHCI.model.CrossValidation import CrossValidation
+from BioHCI.model.cross_validator import CrossValidation
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
-from BioHCI.model.Trainer import Trainer
-from BioHCI.model.Evaluator import Evaluator
+from BioHCI.model.trainer import Trainer
+from BioHCI.model.evaluator import Evaluator
 import torch
 import os
 

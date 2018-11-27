@@ -1,5 +1,5 @@
 from configparser import ConfigParser
-from BioHCI.definition.StudyParameters import StudyParameters
+from BioHCI.definition.study_parameters import StudyParameters
 import os
 import errno
 
