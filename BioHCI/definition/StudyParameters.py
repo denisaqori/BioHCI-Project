@@ -1,5 +1,5 @@
 import os
-
+from BioHCI.utilities import Utilities as util
 
 # TODO: get rid of getters and setters? Can use Python's inherent getattr, setattr maybe - look into properties too
 class StudyParameters:
@@ -7,7 +7,6 @@ class StudyParameters:
 		# directory where the text data to be processed is found (all files in there are used)
 		# 'Resources/fNIRS_boredom_data' correspond to boredom data
 		self.__dir_path = 'Resources/EEG_workload_data'
-		self.__full_dir_path = self.build_directory_path()
 
 		self.__file_format = ".csv"
 
@@ -54,14 +53,12 @@ class StudyParameters:
 		self.__sensor_type = "EEG"
 
 	# getters used by the program to obtain parameters
-	def build_directory_path(self):
-		return os.path.abspath(os.path.join(os.pardir, self.__dir_path))
+	def get_full_dir_path(self):
+		project_root_path = util.get_project_root_path()
+		return os.path.abspath(os.path.join(project_root_path, self.__dir_path))
 
 	def get_dir_path(self):
 		return self.__dir_path
-
-	def get_full_dir_path(self):
-		return self.__full_dir_path
 
 	def get_file_format(self):
 		return self.__file_format

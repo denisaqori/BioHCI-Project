@@ -7,16 +7,16 @@ from BioHCI.data.WithinSubjectSplitter import WithinSubjectSplitter
 from BioHCI.data.DataConstructor import DataConstructor
 from BioHCI.data.DatasetProcessor import DatasetProcessor
 from BioHCI.data.WIthinSubjectOversampler import WithinSubjectOversampler
-from definition.DeepLearningDefinition import DeepLearningDefinition
-from definition.NonDeepLearningDefinition import NonDeepLearningDefinition
-from definition.StudyParameters import StudyParameters
-from model.DeepLearningCV import DeepLearningCV
-from model.NonDeepLearningCV import NonDeepLearningCV
-from utilities.Logging import Logging
+from BioHCI.definition.DeepLearningDefinition import DeepLearningDefinition
+from BioHCI.definition.NonDeepLearningDefinition import NonDeepLearningDefinition
+from BioHCI.definition.StudyParameters import StudyParameters
+from BioHCI.model.DeepLearningCV import DeepLearningCV
+from BioHCI.model.NonDeepLearningCV import NonDeepLearningCV
+from BioHCI.utilities.Logging import Logging
 from BioHCI.data.FeatureConstructor import FeatureConstructor
 from BioHCI.data.DataAugmenter import DataAugmenter
 
-from utilities.RawDataVisualizer import RawDataVisualizer
+from BioHCI.utilities.RawDataVisualizer import RawDataVisualizer
 
 
 def main():

@@ -1,7 +1,7 @@
 import seaborn as sns
 from BioHCI.utilities import Utilities as util
 from BioHCI.data.DataConstructor import DataConstructor
-from definition.StudyParameters import StudyParameters
+from BioHCI.definition.StudyParameters import StudyParameters
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from PIL import Image
@@ -271,8 +271,6 @@ class RawDataVisualizer:
 if __name__ == "__main__":
 
 	parameters = StudyParameters()
-	project_root_path = util.get_project_root_path()
-	parameters._StudyParameters__full_dir_path = os.path.join(project_root_path, parameters.get_dir_path())
 
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
