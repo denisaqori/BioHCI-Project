@@ -266,6 +266,7 @@ class RawDataVisualizer:
 				coordinate_list.append((xoffset, yoffset))
 		return coordinate_list
 
+
 #TODO: ensure the real study data is received
 if __name__ == "__main__":
 
