@@ -18,7 +18,7 @@ class DataConstructor:
 		self.__study_name = parameter.get_study_name()
 		print("Name of the study used for data collection: ", self.__study_name)
 
-		self._file_format = parameter.get_file_format()
+		self._file_format = parameter.file_format
 		print("All files expected in", self._file_format, "format")
 
 		# number of files to be included in the dataset where each file contains fNIRS data for one subject
@@ -33,9 +33,9 @@ class DataConstructor:
 
 		print("The data start row on each file is: ", parameter.get_start_row())
 
-		# the function get_full_dir_path() determines the location of the data files, to be found within separate
+		# parameter's dir_path property determines the location of the data files, to be found within separate
 		# directories for each subject. These are sub-directories of this path.
-		self.__dir_path = parameter.get_full_dir_path()
+		self.__dir_path = parameter.dir_path
 		print("\nData to be obtained from base directory: ", self.__dir_path)
 
 		self.subj_dir_list = self.get_subj_dir_list()

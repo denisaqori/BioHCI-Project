@@ -87,7 +87,7 @@ def create_dir(root_dir_path, subdir_name_list=None):
 
 	'''
 	# parent directory
-	root_dir = os.path.join(get_project_root_path(), root_dir_path)
+	root_dir = os.path.join(get_root_path("main"), root_dir_path)
 	if not os.path.exists(root_dir):
 		try:
 			os.makedirs(root_dir)
@@ -108,5 +108,17 @@ def create_dir(root_dir_path, subdir_name_list=None):
 
 	return root_dir
 
-def get_project_root_path():
-	return os.path.abspath(os.path.join(os.pardir, os.pardir))
+def get_root_path(val):
+	if val.lower() == "main":
+		path = '/home/denisa/GitHub/BioHCI Project/'
+	elif val.lower() == "resources":
+		path = '/home/denisa/GitHub/BioHCI Project/Resources'
+	elif val.lower() == "Results":
+		path = '/home/denisa/GitHub/BioHCI Project/Results'
+	elif val.lower() == "src":
+		path = '/home/denisa/GitHub/BioHCI Project/BioHCI'
+	else:
+		path = None
+		print("Path set to None...")
+	# path = os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir))
+	return path

@@ -26,7 +26,7 @@ class Subject:
 		# get all the files where this subject's data is found
 
 		for filename in os.listdir(self.__subj_data_path):
-			if filename.endswith((self.__parameter.get_file_format())):
+			if filename.endswith((self.__parameter.file_format)):
 				self.__filename_list.append(filename)
 
 		subj_category_data = []
@@ -61,7 +61,7 @@ class Subject:
 		if not self.__parameter.is_labels_in():
 			for filename in self.__filename_list:
 				# keep the filename only to assign the category, and remove the file extension (format)
-				category_name = filename[:-len(self.__parameter.get_file_format())]
+				category_name = filename[:-len(self.__parameter.file_format)]
 				categories.append(category_name)
 		return categories
 

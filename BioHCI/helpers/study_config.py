@@ -16,6 +16,11 @@ class StudyConfigFiles:
 	def generate_study_config_file(self):
 		config = ConfigParser()
 		config['DEFAULT'] = self.study_parameters.__dict__
+		config['Format'] = {}
+		# config['Format'][self.study_parameters.]
+		config['Data Information'] = {}
+		config['Data Processing Decisions'] = {}
+		config['Run Information'] = {}
 
 		configfile_name = os.path.join(self.root_dir, self.study_parameters.get_study_name())
 		with open(configfile_name + '.ini', 'w') as configfile:
@@ -24,7 +29,7 @@ class StudyConfigFiles:
 
 	def create_root_dir(self, root_dir_path):
 
-		config_dir = os.path.join(util.get_project_root_path(), root_dir_path)
+		config_dir = os.path.join(util.get_root_path("main"), root_dir_path)
 		if not os.path.exists(config_dir):
 			try:
 				os.makedirs(config_dir)

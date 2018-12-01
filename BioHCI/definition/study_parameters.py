@@ -6,7 +6,7 @@ class StudyParameters:
 	def __init__(self):
 		# directory where the text data to be processed is found (all files in there are used)
 		# 'Resources/fNIRS_boredom_data' correspond to boredom data
-		self.__dir_path = 'Resources/EEG_workload_data'
+		self.dir_path = 'EEG_workload_data'
 
 		self.__file_format = ".csv"
 
@@ -24,10 +24,13 @@ class StudyParameters:
 		self.__num_subj = 12
 		# whether the file for each subject contains labels in the last column (only!!)
 		self.__labels_in = False
+
+
+		# data processing information
+
 		# whether the dataset is to be standardized (default is per subject per column)
 		self.__standardize = False
 
-		# data processing information
 		self.__samples_per_chunk = 30  # when chunking the dataset, the number of instances/samples in one chunk
 		self.__interval_overlap = True  # determining whether to overlap instances while chunking
 
@@ -52,15 +55,23 @@ class StudyParameters:
 		# the type of sensor data used - currently not being used anywhere but for bookkeeping
 		self.__sensor_type = "EEG"
 
-	# getters used by the program to obtain parameters
-	def get_full_dir_path(self):
-		project_root_path = util.get_project_root_path()
-		return os.path.abspath(os.path.join(project_root_path, self.__dir_path))
-
-	def get_dir_path(self):
+	@property
+	def dir_path(self):
 		return self.__dir_path
 
-	def get_file_format(self):
+	@dir_path.setter
+	def dir_path(self, dir_path):
+		project_root_path = util.get_root_path("Resources")
+		path = os.path.abspath(os.path.join(project_root_path, dir_path))
+
+		assert(os.path.exists(path)), "The directory \'" + path + "\' does not exist. Ensure the dataset is " \
+																	   "properly placed."
+		self.__dir_path = path
+		return
+
+
+	@property
+	def file_format(self):
 		return self.__file_format
 
 	def get_relevant_columns(self):
@@ -109,6 +120,7 @@ class StudyParameters:
 	def get_sensor_type(self):
 		return self.__sensor_type
 
+'''
 	# setters - for later use, especially if a UI gets built on top
 	def set_dir_path(self, dir_path):
 		self.__dir_path = dir_path
@@ -162,3 +174,4 @@ class StudyParameters:
 
 	def set_sensor_type(self, sensor_type):
 		self.__sensor_type = sensor_type
+'''

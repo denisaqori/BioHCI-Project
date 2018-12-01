@@ -1,7 +1,7 @@
 import os
 import datetime
 import platform
-from BioHCI.utilities import utilities as util
+from BioHCI.helpers import utilities as util
 
 
 class Logging:
