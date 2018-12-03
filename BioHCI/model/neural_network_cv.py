@@ -7,7 +7,7 @@ import torch
 import os
 
 
-class DeepLearningCV(CrossValidation):
+class NeuralNetworkCV(CrossValidation):
 
 	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def,
 				 num_categories):
@@ -16,10 +16,10 @@ class DeepLearningCV(CrossValidation):
 		# elements in this list after all training is done
 		self._all_epoch_train_accuracies = []
 
-		super(DeepLearningCV, self).__init__(subject_dict, data_splitter, dataset_processor, parameter, learning_def,
-											 num_categories)
-		assert (parameter.is_deep_learning() is True), "In StudyParameters, deep_learning is set to False and you are " \
-													   "trying to instantiate a DeepLearningCV object!"
+		super(NeuralNetworkCV, self).__init__(subject_dict, data_splitter, dataset_processor, parameter, learning_def,
+											  num_categories)
+		assert (parameter.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
+													   "trying to instantiate a NeuralNetworkCV object!"
 
 	# implement the abstract method from the parent class CrossValidation; returns a dataset with labels wrapped in
 	# the PyTorch DataLoader format
@@ -66,7 +66,7 @@ class DeepLearningCV(CrossValidation):
 
 		evaluator = Evaluator(test_data_loader=val_dataset, model_to_eval=model_to_eval,
 							  categories=self._data.get_categories(),
-							  confusion=self._confusion, deep_learning_def=self._learning_def)
+							  confusion=self._confusion, neural_network_def=self._learning_def)
 
 		fold_accuracy = evaluator.get_accuracy()
 		self._all_val_accuracies.append(fold_accuracy)

@@ -8,7 +8,7 @@ class FeatureConstructor:
 			  "splitting, slicing, balancing.")
 
 		self.parameters = parameters
-		self.feature_window = parameters.get_feature_window()
+		self.feature_window = parameters.feature_window
 
 	def build_features(self, subj_dataset):
 		return self.feature_window

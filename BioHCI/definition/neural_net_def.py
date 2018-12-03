@@ -7,7 +7,7 @@ import torch.nn as nn
 import sys
 
 
-class DeepLearningDefinition(LearningDefinition):
+class NeuralNetworkDefinition(LearningDefinition):
 	def __init__(self, model_name, num_features, output_size, use_cuda):
 		# hyper-parameters
 		self.__num_hidden = 120  # number of nodes per hidden layer
@@ -31,7 +31,7 @@ class DeepLearningDefinition(LearningDefinition):
 
 		self._all_train_losses = []
 
-		super(DeepLearningDefinition, self).__init__(model_name)
+		super(NeuralNetworkDefinition, self).__init__(model_name)
 
 		# model definition
 		# self.model = self.__build_model(self.model_name)
@@ -83,7 +83,7 @@ class DeepLearningDefinition(LearningDefinition):
 								num_layers=self.__num_layers, dropout_rate=self.__dropout_rate,
 								use_cuda=self._use_cuda)
 		else:
-			print("Model specified in DeepLearningDefinition object is currently undefined!")
+			print("Model specified in NeuralNetworkDefinition object is currently undefined!")
 			sys.exit()
 
 		return model

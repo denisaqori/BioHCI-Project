@@ -11,7 +11,7 @@ class CrossValidation(ABC):
 		self._dataset_processor = dataset_processor
 		self._learning_def = learning_def
 		self._parameter = parameter
-		self._num_folds = parameter.get_num_folds()
+		self._num_folds = parameter.num_folds
 		self._num_categories = num_categories
 
 		self._all_val_accuracies = []

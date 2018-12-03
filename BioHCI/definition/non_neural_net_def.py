@@ -3,10 +3,10 @@ from sklearn.svm import SVC
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 import sys
 
-class NonDeepLearningDefinition(LearningDefinition):
+class NonNeuralNetworkDefinition(LearningDefinition):
 	def __init__(self, model_name):
 
-		super(NonDeepLearningDefinition, self).__init__(model_name)
+		super(NonNeuralNetworkDefinition, self).__init__(model_name)
 		self.__svm_gamma = 0.001
 		self.__svm_C = 100
 
@@ -16,7 +16,7 @@ class NonDeepLearningDefinition(LearningDefinition):
 		elif name == "SVM":
 			model = SVC(gamma=self.__svm_gamma, C=self.__svm_C)
 		else:
-			print("Model specified in NonDeepLearningDefinition object is currently undefined!")
+			print("Model specified in NonNeuralNetworkDefinition object is currently undefined!")
 			sys.exit()
 
 		return model

@@ -3,16 +3,16 @@ import BioHCI.helpers.utilities as utils
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 
-class NonDeepLearningCV(CrossValidation):
+class NonNeuralNetworkCV(CrossValidation):
 
 	# the number for samples per step needs to not be magic (but should be able to be different from samples_per_step)
 	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, num_categories):
 
-		super(NonDeepLearningCV, self).__init__(subject_dict, data_splitter, dataset_processor, parameter, learning_def,
-												num_categories)
+		super(NonNeuralNetworkCV, self).__init__(subject_dict, data_splitter, dataset_processor, parameter, learning_def,
+												 num_categories)
 
-		assert (parameter.is_deep_learning() is False), "In StudyParameters, deep_learning is set to True and you are " \
-														"trying to instantiate a NonDeepLearningCV object!"
+		assert (parameter.neural_net is False), "In StudyParameters, neural_net is set to True and you are " \
+														"trying to instantiate a NonNeuralNetworkCV object!"
 
 		self.model = learning_def.get_model()
 		# if we want to input in the algorithm measurements without specifically creating features, we can use the
@@ -20,7 +20,7 @@ class NonDeepLearningCV(CrossValidation):
 		# Otherwise, we should build features over the time window defined by one 'chunk' or samples_per_step
 		# In either case, the input arguments are tensors, as returned from data_processor, while the output values
 		# are numpy arrays as expected form scikit-learn
-		self.__construct_features = parameter.is_construct_features()
+		self.__construct_features = parameter.construct_features
 
 	def _get_data_and_labels(self, python_dataset):
 		data, labels = self._data_processor.get_shuffled_dataset_and_labels(python_dataset)

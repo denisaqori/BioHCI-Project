@@ -40,10 +40,10 @@ class Logging:
 		self._log_file.write("Model: " + self._learning_def.get_model_name() + "\n")
 		self._log_file.write(str(self._learning_def.get_model()) + "\n\n")
 
-		self._log_file.write("Number of features: " + str(self._parameter.get_num_features()) + "\n")
-		self._log_file.write("Columns used: " + str(self._parameter.get_relevant_columns()) + "\n\n")
+		self._log_file.write("Number of features: " + str(self._parameter.num_features) + "\n")
+		self._log_file.write("Columns used: " + str(self._parameter.relevant_columns) + "\n\n")
 
-		if self._parameter.is_deep_learning():
+		if self._parameter.neural_net:
 			self._log_file.write("Was cuda used? - " + str(self._learning_def.is_use_cuda()) + "\n")
 			self._log_file.write("Number of Epochs per cross-validation pass: " +
 								 str(self._learning_def.get_num_epochs()) + "\n")
@@ -56,7 +56,7 @@ class Logging:
 		self._log_file.write("Training loss of last epoch (avg over cross-validation folds): {0}\n".format(str(
 			self._cross_validation.get_avg_train_losses()[-1])))
 
-		if self._parameter.is_deep_learning():
+		if self._parameter.neural_net:
 			self._log_file.write("All fold train accuracies (all epochs): " +
 							 str(self._cross_validation.get_all_epoch_train_accuracies()) + "\n\n")
 
@@ -70,7 +70,7 @@ class Logging:
 		self._log_file.write("Performance Metrics:\n")
 		self._log_file.write("Number of threads: " + str(self._parameter.get_num_threads()) + "\n")
 		self._log_file.write("Program time: " + str(self._cross_validation.get_total_cv_time()) + "\n")
-		self._log_file.write("Total cross-validation time (" + str(self._parameter.get_num_folds()) + " Fold): " +
+		self._log_file.write("Total cross-validation time (" + str(self._parameter.num_folds) + " Fold): " +
 							 str(self._cross_validation.get_total_cv_time()) + "\n")
 		self._log_file.write("Train time (over last cross-validation pass): " +
 							 str(self._cross_validation.get_train_time()) + "\n")

@@ -22,7 +22,7 @@ class StudyConfigFiles:
 		config['Data Processing Decisions'] = {}
 		config['Run Information'] = {}
 
-		configfile_name = os.path.join(self.root_dir, self.study_parameters.get_study_name())
+		configfile_name = os.path.join(self.root_dir, self.study_parameters.study_name)
 		with open(configfile_name + '.ini', 'w') as configfile:
 			config.write(configfile)
 		return

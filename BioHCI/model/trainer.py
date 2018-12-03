@@ -7,17 +7,17 @@ import os
 
 
 class Trainer:
-	def __init__(self, train_data_loader, data, deep_learning_def):
+	def __init__(self, train_data_loader, data, neural_network_def):
 		print("\nInitializing Training...")
 
-		self._model = deep_learning_def.get_model()
+		self._model = neural_network_def.get_model()
 		self._data = data
-		self.__optimizer = deep_learning_def.get_optimizer()
-		self.__criterion = deep_learning_def.get_criterion()
-		self.__num_epochs = deep_learning_def.get_num_epochs()
-		self.__samples_per_step = deep_learning_def.get_samples_per_step()
-		self._batch_size = deep_learning_def.get_batch_size()
-		self._use_cuda = deep_learning_def.is_use_cuda()
+		self.__optimizer = neural_network_def.get_optimizer()
+		self.__criterion = neural_network_def.get_criterion()
+		self.__num_epochs = neural_network_def.get_num_epochs()
+		self.__samples_per_step = neural_network_def.get_samples_per_step()
+		self._batch_size = neural_network_def.get_batch_size()
+		self._use_cuda = neural_network_def.is_use_cuda()
 
 		self.__train_data_loader = train_data_loader
 		self._categories = data.get_categories()

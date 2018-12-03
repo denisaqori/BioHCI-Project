@@ -15,23 +15,23 @@ class DataConstructor:
 
 		self.__parameter = parameter
 
-		self.__study_name = parameter.get_study_name()
+		self.__study_name = parameter.study_name
 		print("Name of the study used for data collection: ", self.__study_name)
 
 		self._file_format = parameter.file_format
 		print("All files expected in", self._file_format, "format")
 
 		# number of files to be included in the dataset where each file contains fNIRS data for one subject
-		self.__num_subj = parameter.get_num_subj()
+		self.__num_subj = parameter.num_subj
 
-		self.__relevant_columns = parameter.get_relevant_columns()
+		self.__relevant_columns = parameter.relevant_columns
 		print("The relevant channels to be used in our processing correspond to columns: ", self.__relevant_columns)
 
 		# number of features with which to be built the dataset
 		self.__num_features = len(self.__relevant_columns)
 		print("Number of features: ", self.__num_features)
 
-		print("The data start row on each file is: ", parameter.get_start_row())
+		print("The data start row on each file is: ", parameter.start_row)
 
 		# parameter's dir_path property determines the location of the data files, to be found within separate
 		# directories for each subject. These are sub-directories of this path.
@@ -58,7 +58,7 @@ class DataConstructor:
 		# of the particular category
 		self.index_labeled_dataset = []
 
-	# if parameter.is_standardize() is True:
+	# if parameter.standardize is True:
 	# 	create standardized dataset
 	# self.dataset = self.standardize(dataset=self.index_labeled_dataset, std_type='PerSubjPerColumn')
 	# print("Dataset (standardized):")
