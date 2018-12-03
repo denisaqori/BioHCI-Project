@@ -7,11 +7,11 @@ from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data.dataset_processor import DatasetProcessor
 from BioHCI.data.within_subject_oversampler import WithinSubjectOversampler
-from BioHCI.definition.deep_learning_def import DeepLearningDefinition
-from BioHCI.definition.non_deep_learning_def import NonDeepLearningDefinition
+from BioHCI.definition.neural_net_def import NeuralNetworkDefinition
+from BioHCI.definition.non_neural_net_def import NonNeuralNetworkDefinition
 from BioHCI.definition.study_parameters import StudyParameters
-from BioHCI.model.deep_learning_cv import DeepLearningCV
-from BioHCI.model.non_deep_learning_cv import NonDeepLearningCV
+from BioHCI.model.neural_network_cv import NeuralNetworkCV
+from BioHCI.model.non_neural_network_cv import NonNeuralNetworkCV
 from BioHCI.helpers.result_logger import Logging
 from BioHCI.data.feature_constructor import FeatureConstructor
 from BioHCI.data.data_augmenter import DataAugmenter
@@ -66,11 +66,11 @@ def main():
 	dataset_processor = DatasetProcessor(parameters.get_samples_per_chunk(), parameters.is_interval_overlap(),
 										 category_balancer, feature_constructor, data_augmenter)
 
-	# if we want a deep definition model, define it specifically in the DeepLearningDefinition class
+	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	num_categories = len(data.get_all_dataset_categories())
-	if parameters.is_deep_learning() is True:
-		learning_def = DeepLearningDefinition(model_name="CNN_LSTM", num_features=parameters.get_num_features(),
-											  output_size=num_categories, use_cuda=args.cuda)
+	if parameters.neural_net is True:
+		learning_def = NeuralNetworkDefinition(model_name="CNN_LSTM", num_features=parameters.num_features,
+											   output_size=num_categories, use_cuda=args.cuda)
 
 		model = learning_def.get_model()
 		print("\nNetwork Architecture: \n", model)
@@ -78,14 +78,14 @@ def main():
 		if args.cuda:
 			model.cuda()
 	else:
-		learning_def = NonDeepLearningDefinition(model_name="SVM")
+		learning_def = NonNeuralNetworkDefinition(model_name="SVM")
 
 	# cross-validation
-	if parameters.is_deep_learning() is True:
-		cv = DeepLearningCV(subject_dict, data_splitter, dataset_processor, parameters, learning_def, num_categories)
+	if parameters.neural_net is True:
+		cv = NeuralNetworkCV(subject_dict, data_splitter, dataset_processor, parameters, learning_def, num_categories)
 	else:
-		cv = NonDeepLearningCV(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
-							   num_categories)
+		cv = NonNeuralNetworkCV(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
+								num_categories)
 
 	# results of run
 	log_dir_path = "Results/" + parameters.get_study_name() + "/run summaries"

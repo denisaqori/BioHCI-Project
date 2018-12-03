@@ -6,15 +6,15 @@ from torch.autograd import Variable
 
 
 class Evaluator:
-	def __init__(self, test_data_loader, model_to_eval, categories, confusion, deep_learning_def):
+	def __init__(self, test_data_loader, model_to_eval, categories, confusion, neural_network_def):
 		print("\n\nInitializing Evaluation...")
 
 		self._model_to_eval = model_to_eval
 		self._categories = categories
-		self._batch_size = deep_learning_def.get_batch_size()
+		self._batch_size = neural_network_def.get_batch_size()
 		
 		self._test_data_loader = test_data_loader
-		self._use_cuda = deep_learning_def.is_use_cuda()
+		self._use_cuda = neural_network_def.is_use_cuda()
 
 		# accuracy of evaluation
 		self._accuracy = self.evaluate(self._test_data_loader, confusion)

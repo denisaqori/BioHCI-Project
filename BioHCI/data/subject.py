@@ -47,8 +47,8 @@ class Subject:
 				file_lines = np.asarray(file_lines)
 
 				# keep info only from the relevant columns and rows
-				file_lines = (file_lines[self.__parameter.get_start_row():,
-							  self.__parameter.get_relevant_columns()]).astype(np.float32)
+				file_lines = (file_lines[self.__parameter.start_row:,
+							  self.__parameter.relevant_columns]).astype(np.float32)
 				subj_category_data.append(file_lines)
 				i = i + 1
 
@@ -58,7 +58,7 @@ class Subject:
 	# acquired from the dataset, otherwise from the file names within the subject directory
 	def __create_subject_categories(self):
 		categories = []
-		if not self.__parameter.is_labels_in():
+		if self.__parameter.labels_col is None:
 			for filename in self.__filename_list:
 				# keep the filename only to assign the category, and remove the file extension (format)
 				category_name = filename[:-len(self.__parameter.file_format)]
