@@ -35,7 +35,7 @@ class StudyParameters:
 		self.samples_per_chunk = 30  # when chunking the dataset, the number of instances/samples in one chunk
 		self.interval_overlap = True  # determining whether to overlap instances while chunking
 
-		self.construct_features = False  # determining whether to construct features
+		self.construct_features = True  # determining whether to construct features
 		self.feature_window = 10  # the number of measurements over which to define features (collapsing all to 1)
 
 		self.num_folds = 5  # The number of folds for cross-validation
@@ -92,8 +92,8 @@ class StudyParameters:
 
 	@start_row.setter
 	def start_row(self, start_row):
-		assert (isinstance(start_row, int) and (int(start_row) >= 0)), "Number of subjects needs to be a positive " \
-																	   "integer or zero."
+		assert (isinstance(start_row, int) and (
+				int(start_row) >= 0)), "Number of subjects needs to be a positive integer or zero."
 		self.__start_row = start_row
 
 	@property
@@ -102,8 +102,7 @@ class StudyParameters:
 
 	@num_subj.setter
 	def num_subj(self, num_subj):
-		assert (isinstance(num_subj, int) and (int(num_subj) > 0)), "Number of subjects needs to be a positive " \
-																	"integer."
+		assert (isinstance(num_subj, int) and (int(num_subj) > 0)), "Number of subjects needs to be a positive integer."
 		self.__num_subj = num_subj
 
 	@property
@@ -112,15 +111,17 @@ class StudyParameters:
 
 	@property
 	def labels_col(self):
+		if self.__labels_col is "None":
+			self.__labels_col = None
 		return self.__labels_col
 
 	@labels_col.setter
 	def labels_col(self, labels_col):
 		if labels_col is not "None":
-			assert (isinstance(labels_col, int)), "The label column should be an integer."
-			assert int(labels_col) >= 0, "Label column should be 0 or a positive integer if labels are " \
-										 "included with the data, and None otherwise."
-			self.__labels_col = labels_col
+			assert (isinstance(labels_col, int) and int(labels_col)) >= 0, "Label column should be 0 or a positive " \
+																		   "integer if labels are included with the " \
+																		   "data, and \"None\" otherwise."
+		self.__labels_col = labels_col
 
 	@property
 	def standardize(self):
@@ -138,8 +139,7 @@ class StudyParameters:
 
 	@num_threads.setter
 	def num_threads(self, num_threads):
-		assert (isinstance(num_threads, int) and (num_threads > 0)), "Number of threads needs to be a positive " \
-																	 "integer."
+		assert (isinstance(num_threads, int) and (num_threads > 0)), "Number of threads needs to be a positive integer."
 		self.__num_threads = num_threads
 
 	@property
@@ -177,8 +177,8 @@ class StudyParameters:
 
 	@feature_window.setter
 	def feature_window(self, feature_window):
-		assert (isinstance(feature_window, int) and (feature_window > 0)), "Feature window needs to be a positive " \
-																		   "integer."
+		assert (isinstance(feature_window, int) and (int(feature_window) > 0)), "Feature window needs to be a " \
+																				"positive integer."
 		self.__feature_window = feature_window
 
 	@property
