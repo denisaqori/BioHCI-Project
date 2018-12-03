@@ -3,7 +3,6 @@ import argparse
 import torch
 
 from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
-from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data.dataset_processor import DatasetProcessor
 from BioHCI.data.within_subject_oversampler import WithinSubjectOversampler
@@ -16,7 +15,7 @@ from BioHCI.helpers.result_logger import Logging
 from BioHCI.data.feature_constructor import FeatureConstructor
 from BioHCI.data.data_augmenter import DataAugmenter
 
-from BioHCI.helpers.raw_data_visualizer import RawDataVisualizer
+from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 
 
 def main():

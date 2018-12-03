@@ -1,13 +1,11 @@
-'''
-Created: 11/30/18
+"""
 © Denisa Qori McDonald 2018 All Rights Reserved
-'''
+"""
 
 import os
 from BioHCI.helpers import utilities as util
 
 
-# TODO: get rid of getters and setters? Can use Python's inherent getattr, setattr maybe - look into properties too
 class StudyParameters:
 	def __init__(self):
 		# directory where the text data to be processed is found (all files in there are used)
