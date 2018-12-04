@@ -4,9 +4,9 @@ import os
 import toml
 
 
-class StudyConfigFiles:
+class StudyConfig:
 
-	def __init__(self, root_dir_path, study_parameters):
+	def __init__(self, root_dir_path):
 		self.root_dir = util.create_dir(root_dir_path)
 		print("Complete path to dir: ", self.root_dir)
 
@@ -14,7 +14,16 @@ class StudyConfigFiles:
 		self.settings_dict = None
 		self.__loaded = False
 
-	def load(self, toml_config_file):
+	def _load(self, toml_config_file):
+		"""
+		Parses a toml configuration file and saves its key-value pairs in a dictionary internal to the class
+
+		Args:
+			toml_config_file (str): the name of the configuration file to be loaded
+
+		Returns:
+
+		"""
 		assert toml_config_file.endswith('.toml'), "The configuration file to loads needs to have a .toml extension."
 		if not self.__loaded:
 			abs_configfile = os.path.join(self.root_dir, toml_config_file)
@@ -24,7 +33,17 @@ class StudyConfigFiles:
 				self.configFileUsed = abs_configfile
 				self.__loaded = True
 
-	def save(self, study_parameters, toml_config_file):
+	def dump(self, study_parameters, toml_config_file):
+		"""
+		Creates a configuration file based on the attributes of the StudyParameters object passed.
+
+		Args:
+			study_parameters (StudyParameters): a StudyParameters instance containing key-value pairs
+			toml_config_file (str): the name of the configuraition file to be created based on the previous argument
+
+		Returns:
+
+		"""
 		assert toml_config_file.endswith('.toml'), "The configuration file to save to needs to have a .toml extension."
 		abs_configfile = os.path.join(self.root_dir, toml_config_file)
 		with open(abs_configfile, 'w') as configfile:
@@ -32,23 +51,56 @@ class StudyConfigFiles:
 			# variables with NoneType, unlike __dict__. toml.dump() however, optimizes them out - workaround: assign
 			# "None" to those variables and convert to NoneType when reading config file.
 			toml.dump(attr_val, configfile)
-		return
 
-	# TODO: populate and return a study parameters object
-	def populate_study_parameters(self):
-		return
+	def populate_study_parameters(self, toml_config_file):
+		"""
+		Creates, populates, and returns a StudyParameters instance object, based on the key-value pairs from the
+		internally specified configuration file.
 
-	# TODO: return a toml config file with all the necessary attributes empty/set to None by default
+		Returns:
+
+		"""
+
+		self._load(toml_config_file)
+
+		sp = StudyParameters()  # TODO should edit creation to assign everything to None
+		# ensure a configuration file has been loaded and its key-value pairs have been stored in the dictionary
+		assert self.__loaded is True, "There was no configuraiton file loaded to populate the StudyParameters object."
+		# sets the attributes of the instance of the StudyParameters class according to the internal dictionary
+		for attribute, value in self.settings_dict.items():
+			sp.__setattr__(attribute, value)
+		print("The StudyParameters object has been populated using the configuration file: ", self.configFileUsed)
+
+		return sp
+
 	def create_config_file_template(self):
-		return
+		"""
+		Creates a configuration file with every attribute of the StudyParameters class set to "None",
+		without changing the attributes of the only (Singleton) StudyParameters instance in use. The purpose of this
+		file is to help users write configuration files.
+
+		Returns:
+
+		"""
+		sp = StudyParameters()
+		new_dict = {}
+		for attr, val in vars(sp).items():
+			new_dict[attr] = "None"
+
+		abs_configfile = os.path.join(self.root_dir, "template_config.toml")
+		with open(abs_configfile, 'w') as configfile:
+			toml.dump(new_dict, configfile)
+
 
 if __name__ == "__main__":
 	print("Testing StudyConfigFile")
 
-	parameters = StudyParameters()
+	# parameters = StudyParameters()
 
 	config_dir = "config_files"
-	config = StudyConfigFiles(config_dir, parameters)
+	config = StudyConfig(config_dir)
 
-	config.save(parameters, "example2_save.toml")
-	config.load("example2_save.toml")
+	# config.dump(parameters, parameters.study_name + ".toml")
+	sp = config.populate_study_parameters("EEG_Workload" + ".toml")
+	# config.create_config_file_template()
+	print ("Done")

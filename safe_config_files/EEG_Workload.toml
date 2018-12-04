@@ -1,0 +1,17 @@
+_StudyParameters__dir_path = "/home/denisa/GitHub/BioHCI Project/Resources/EEG_workload_data"
+_StudyParameters__file_format = ".csv"
+_StudyParameters__relevant_columns = [ 0, 1, 2, 3,]
+_StudyParameters__start_row = 0
+_StudyParameters__num_subj = 12
+_StudyParameters__labels_col = "None"
+_StudyParameters__standardize = false
+_StudyParameters__samples_per_chunk = 30
+_StudyParameters__interval_overlap = true
+_StudyParameters__construct_features = true
+_StudyParameters__feature_window = 10
+_StudyParameters__num_folds = 5
+_StudyParameters__num_threads = 32
+_StudyParameters__neural_net = true
+_StudyParameters__calibration_free = true
+_StudyParameters__study_name = "EEG_Workload"
+_StudyParameters__sensor_name = "EEG"

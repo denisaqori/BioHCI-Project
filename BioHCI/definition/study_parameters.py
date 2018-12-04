@@ -10,51 +10,51 @@ class StudyParameters:
 	def __init__(self):
 		# directory where the text data to be processed is found (all files in there are used)
 		# 'Resources/fNIRS_boredom_data' correspond to boredom data
-		self.dir_path = 'EEG_workload_data'
+		self.__dir_path = None
 
-		self.file_format = ".csv"
+		self.__file_format = None
 
 		# data information
 
 		# these values represent column indices to retain from the data in each file
 		# self.__relevant_columns = [1, 5, 9, 13, 17, 21]
-		self.relevant_columns = [0, 1, 2, 3]
+		self.__relevant_columns = None
 		# this value represents the beginning of valid rows in the file
-		self.start_row = 0
+		self.__start_row = None
 
 		# the total number of subjects
-		self.num_subj = 12
+		self.__num_subj = None
 		# the column in which the file for each subject contains labels. If set to None, there are no labels.
-		self.labels_col = "None"
+		self.__labels_col = None
 
 		# data processing information
 
 		# whether the dataset is to be standardized (default is per subject per column)
-		self.standardize = False
+		self.__standardize = None
 
-		self.samples_per_chunk = 30  # when chunking the dataset, the number of instances/samples in one chunk
-		self.interval_overlap = True  # determining whether to overlap instances while chunking
+		self.__samples_per_chunk = None  # when chunking the dataset, the number of instances/samples in one chunk
+		self.__interval_overlap = None  # determining whether to overlap instances while chunking
 
-		self.construct_features = True  # determining whether to construct features
-		self.feature_window = 10  # the number of measurements over which to define features (collapsing all to 1)
+		self.__construct_features = None  # determining whether to construct features
+		self.__feature_window = None  # the number of measurements over which to define features (collapsing all to 1)
 
-		self.num_folds = 5  # The number of folds for cross-validation
+		self.__num_folds = None  # The number of folds for cross-validation
 
 		# run information
-		self.num_threads = 32  # The number of threads to be used during training (for gradient computing and
+		self.__num_threads = None  # The number of threads to be used during training (for gradient computing and
 		# loading)
 		# num_features = data.num_features  # number of features which determines input size
-		self.neural_net = True
+		self.__neural_net = None
 
 		# this variable determines whether training and testing happens within the same subject (therefore needing
 		# calibration data to place data from any new subject), or is subject-independent (probably harder to get
 		# higher accuracy)
-		self.calibration_free = True
+		self.__calibration_free = None
 
 		# the name of the study
-		self.study_name = "EEG_Workload"
+		self.__study_name = None
 		# the type of sensor data used - currently not being used anywhere but for bookkeeping
-		self.sensor_name = "EEG"
+		self.__sensor_name = None
 
 	@property
 	def dir_path(self):
@@ -75,6 +75,7 @@ class StudyParameters:
 
 	@file_format.setter
 	def file_format(self, file_format):
+		assert file_format.startswith('.'), "The file ending name should start with a '.'"
 		self.__file_format = file_format
 
 	@property
@@ -84,6 +85,9 @@ class StudyParameters:
 	@relevant_columns.setter
 	def relevant_columns(self, relevant_columns):
 		assert (isinstance(relevant_columns, list)), "The relevant columns to process need to be passed in a list."
+		for elem in relevant_columns:
+			assert (isinstance(elem, int) and int(elem) >= 0), "Each element of the list needs to be a positive " \
+															   "integer or zero."
 		self.__relevant_columns = relevant_columns
 
 	@property
@@ -227,3 +231,13 @@ class StudyParameters:
 	@sensor_name.setter
 	def sensor_name(self, sensor_name):
 		self.__sensor_name = sensor_name
+
+	def clear_attribute_values(self):
+		"""
+		Sets each attribute of the sole StudyParameters instance object in use to 'None'.
+
+		"""
+		print ("Setting every attribute in the sole StudyParameter instance to 'None'.")
+		for attr, val in vars(self).items():
+			self.__setattr__(attr, "None")
+		print (vars(self))
