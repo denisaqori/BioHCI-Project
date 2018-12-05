@@ -95,12 +95,11 @@ class StudyConfig:
 if __name__ == "__main__":
 	print("Testing StudyConfigFile")
 
-	# parameters = StudyParameters()
+	parameters = StudyParameters()
 
 	config_dir = "config_files"
 	config = StudyConfig(config_dir)
 
-	# config.dump(parameters, parameters.study_name + ".toml")
 	sp = config.populate_study_parameters("EEG_Workload" + ".toml")
-	# config.create_config_file_template()
-	print("Done")
+	config.create_config_file_template()
+	config.dump(parameters, parameters.study_name + ".toml")

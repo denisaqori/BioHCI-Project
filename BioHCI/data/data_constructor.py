@@ -15,28 +15,12 @@ class DataConstructor:
 
 		self.__parameter = parameter
 
-		self.__study_name = parameter.study_name
-		print("Name of the study used for data collection: ", self.__study_name)
-
-		self._file_format = parameter.file_format
-		print("All files expected in", self._file_format, "format")
-
 		# number of files to be included in the dataset where each file contains fNIRS data for one subject
 		self.__num_subj = parameter.num_subj
-
-		self.__relevant_columns = parameter.relevant_columns
-		print("The relevant channels to be used in our processing correspond to columns: ", self.__relevant_columns)
-
-		# number of features with which to be built the dataset
-		self.__num_features = len(self.__relevant_columns)
-		print("Number of features: ", self.__num_features)
-
-		print("The data start row on each file is: ", parameter.start_row)
 
 		# parameter's dir_path property determines the location of the data files, to be found within separate
 		# directories for each subject. These are sub-directories of this path.
 		self.__dir_path = parameter.dir_path
-		print("\nData to be obtained from base directory: ", self.__dir_path)
 
 		self.subj_dir_list = self.get_subj_dir_list()
 		assert self.__num_subj == len(self.subj_dir_list), "Not as many subject directories found as declared in " \
@@ -51,21 +35,6 @@ class DataConstructor:
 
 		self.print_all_subj_dataset()
 
-		# the index_labeled_dataset is declared below and assigned to an empty python list
-		# After self.index_dataset_by_label is called (implemented in each subclass), the list will contain
-		# as many elements as there are categories of the subclass where each element will be
-		# 3-D numpy array of shape = (x, inst_per_subj, num_attr) - where x is the number of files/subjects
-		# of the particular category
-		self.index_labeled_dataset = []
-
-	# if parameter.standardize is True:
-	# 	create standardized dataset
-	# self.dataset = self.standardize(dataset=self.index_labeled_dataset, std_type='PerSubjPerColumn')
-	# print("Dataset (standardized):")
-	# else:
-	# 	self.dataset = self.index_labeled_dataset
-	# 	print("Dataset (not standardized: ):")
-	# self.print_dataset(self.dataset)
 
 	# this method determines the path to the directory with each subject's data files and returns a list of names of
 	# directories which should be of each subject
@@ -172,5 +141,3 @@ class DataConstructor:
 		# return the unique values in flat_list
 		return categories
 
-	def get_num_features(self):
-		return self.__num_features

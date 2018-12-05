@@ -58,6 +58,7 @@ class Subject:
 	# acquired from the dataset, otherwise from the file names within the subject directory
 	def __create_subject_categories(self):
 		categories = []
+		print("labels_col: ", type(self.__parameter.labels_col))
 		if self.__parameter.labels_col is None:
 			for filename in self.__filename_list:
 				# keep the filename only to assign the category, and remove the file extension (format)

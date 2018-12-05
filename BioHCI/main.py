@@ -16,6 +16,7 @@ from BioHCI.data.feature_constructor import FeatureConstructor
 from BioHCI.data.data_augmenter import DataAugmenter
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
+from BioHCI.helpers.study_config import StudyConfig
 
 
 def main():
@@ -32,9 +33,16 @@ def main():
 
 	torch.manual_seed(1)  # reproducible Results for testing purposes
 
-	parameters = StudyParameters()  # contains definitions of run parameters (independent of deep definition vs not
-	# model)
-	# the main place to define variables, including data description
+	config_dir = "config_files"
+	config = StudyConfig(config_dir)
+
+	# create a template of a configuration file with all the fields initialized to None
+	config.create_config_file_template()
+
+	# the object with variable definition based on the specified configuration file. It includes data description,
+	# definitions of run parameters (independent of deep definition vs not)
+	parameters = config.populate_study_parameters("EEG_Workload.toml")
+	print(parameters)
 
 	# generating the data from files
 	data = DataConstructor(parameters)
