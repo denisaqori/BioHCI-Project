@@ -63,7 +63,7 @@ class StudyConfig:
 
 		self._load(toml_config_file)
 
-		sp = StudyParameters()  # TODO should edit creation to assign everything to None
+		sp = StudyParameters()
 		# ensure a configuration file has been loaded and its key-value pairs have been stored in the dictionary
 		assert self.__loaded is True, "There was no configuraiton file loaded to populate the StudyParameters object."
 		# sets the attributes of the instance of the StudyParameters class according to the internal dictionary
@@ -82,9 +82,9 @@ class StudyConfig:
 		Returns:
 
 		"""
-		sp = StudyParameters()
+		study_params = StudyParameters()
 		new_dict = {}
-		for attr, val in vars(sp).items():
+		for attr, val in vars(study_params).items():
 			new_dict[attr] = "None"
 
 		abs_configfile = os.path.join(self.root_dir, "template_config.toml")
@@ -103,4 +103,4 @@ if __name__ == "__main__":
 	# config.dump(parameters, parameters.study_name + ".toml")
 	sp = config.populate_study_parameters("EEG_Workload" + ".toml")
 	# config.create_config_file_template()
-	print ("Done")
+	print("Done")

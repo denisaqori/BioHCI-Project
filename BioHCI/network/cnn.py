@@ -8,8 +8,8 @@ class CNN (nn.Module):
 		self.name = "CNN"
 		self.hidden_size = hidden_size
 
-		self.conv1 = nn.Sequential(		# data_chunk_tensor has shape: (batch_size x samples_per_step x num_features)
-										# the actual input is (samples_per_step x num_features), batch_size is implicit
+		self.conv1 = nn.Sequential(		# data_chunk_tensor has shape: (batch_size x samples_per_step x num_attr)
+										# the actual input is (samples_per_step x num_attr), batch_size is implicit
 			nn.Conv1d(
 				in_channels = input_size,
 				out_channels = 16,		# number of filters

@@ -40,7 +40,7 @@ class Evaluator:
 		# Go through the test dataset and record which are correctly guessed
 		for step, (data_chunk_tensor, category_tensor) in enumerate(test_data_loader):
 
-			# data_chunk_tensor has shape (batch_size x samples_per_step x num_features)
+			# data_chunk_tensor has shape (batch_size x samples_per_step x num_attr)
 			# category_tensor has shape (batch_size)
 			# batch_size is passed as an argument to train_data_loader
 			category_tensor = category_tensor.long()

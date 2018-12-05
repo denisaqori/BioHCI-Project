@@ -54,7 +54,7 @@ class DataConstructor:
 		# the index_labeled_dataset is declared below and assigned to an empty python list
 		# After self.index_dataset_by_label is called (implemented in each subclass), the list will contain
 		# as many elements as there are categories of the subclass where each element will be
-		# 3-D numpy array of shape = (x, inst_per_subj, num_features) - where x is the number of files/subjects
+		# 3-D numpy array of shape = (x, inst_per_subj, num_attr) - where x is the number of files/subjects
 		# of the particular category
 		self.index_labeled_dataset = []
 

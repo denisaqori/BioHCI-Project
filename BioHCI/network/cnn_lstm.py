@@ -13,8 +13,8 @@ class CNN_LSTM (nn.Module):
 		self.batch_size = batch_size
 		self.batch_first = batch_first
 
-		self.conv1 = nn.Sequential(		# data_chunk_tensor has shape: (batch_size x samples_per_step x num_features)
-			# the actual input is (samples_per_step x num_features), batch_size is implicit
+		self.conv1 = nn.Sequential(		# data_chunk_tensor has shape: (batch_size x samples_per_step x num_attr)
+			# the actual input is (samples_per_step x num_attr), batch_size is implicit
 			# input size expected by Conv1d: (batch_size x number of channels x length of signal sequence)
 			# so in our case it needs to be (batch_size x input_size x samples_per_step)
 			nn.Conv1d(

@@ -40,7 +40,7 @@ class Logging:
 		self._log_file.write("Model: " + self._learning_def.get_model_name() + "\n")
 		self._log_file.write(str(self._learning_def.get_model()) + "\n\n")
 
-		self._log_file.write("Number of features: " + str(self._parameter.num_features) + "\n")
+		self._log_file.write("Number of features: " + str(self._parameter.num_attr) + "\n")
 		self._log_file.write("Columns used: " + str(self._parameter.relevant_columns) + "\n\n")
 
 		if self._parameter.neural_net:

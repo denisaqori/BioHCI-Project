@@ -1,13 +1,16 @@
 
 
 # TODO: implement FeatureConstructor Class
+# TODO: look into not passing all the parameters object - maybe only the feature window? Maybe not.
 class FeatureConstructor:
 	def __int__(self, parameters):
 
 		print("Feature construction not implemented yet.... Should be explicitlt called after done with data "
 			  "splitting, slicing, balancing.")
 
-		self.parameters = parameters
+		assert(parameters.construct_features is True), ""
+		assert(parameters.feature_window is not None), "In order for features to be created, the feature window attribute " \
+												 "should be set to an integer greater than 0, and not be of NoneType."
 		self.feature_window = parameters.feature_window
 
 	def build_features(self, subj_dataset):

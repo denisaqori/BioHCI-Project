@@ -12,6 +12,10 @@ class StudyParameters:
 		# 'Resources/fNIRS_boredom_data' correspond to boredom data
 		self.__dir_path = None
 
+		# the name of the study
+		self.__study_name = None
+		# the type of sensor data used - currently not being used anywhere but for bookkeeping
+		self.__sensor_name = None
 		self.__file_format = None
 
 		# data information
@@ -43,18 +47,31 @@ class StudyParameters:
 		# run information
 		self.__num_threads = None  # The number of threads to be used during training (for gradient computing and
 		# loading)
-		# num_features = data.num_features  # number of features which determines input size
 		self.__neural_net = None
 
-		# this variable determines whether training and testing happens within the same subject (therefore needing
-		# calibration data to place data from any new subject), or is subject-independent (probably harder to get
-		# higher accuracy)
-		self.__calibration_free = None
-
-		# the name of the study
-		self.__study_name = None
-		# the type of sensor data used - currently not being used anywhere but for bookkeeping
-		self.__sensor_name = None
+	def __str__(self):
+		s = "\nStudyParameters: \n"
+		s = s + "\n**********************************************************"
+		s = s + "\nData source directory: " + str(self.dir_path)
+		s = s + "\nStudy name: " + str(self.study_name)
+		s = s + "\nSensor type: " + str(self.sensor_name)
+		s = s + "\nFile format to process: " + str(self.file_format)
+		s = s + "\nColumns to keep from each file: " + str(self.relevant_columns)
+		s = s + "\nInitial row index: " + str(self.start_row)
+		s = s + "\nNumber of subjects: " + str(self.num_subj)
+		s = s + "\nLabels column index: " + str(self.labels_col)
+		s = s + "\nShould the data be standardized?: " + str(self.standardize)
+		s = s + "\nNumber of samples per chunk/window: " + str(self.samples_per_chunk)
+		s = s + "\nShould we create a chunk by overlapping previous and next chunks (half of each)?: " + str(
+			self.interval_overlap)
+		s = s + "\nShould we create features over these chunks?: " + str(self.construct_features)
+		s = s + "\nIf yes, over what interval (number of inst.)? If not, answer should be None: " + str(
+			self.feature_window)
+		s = s + "\nNumber of cross-validation folds: " + str(self.num_folds)
+		s = s + "\nNumber of threads: " + str(self.num_threads)
+		s = s + "\nAre we using neural networks?: " + str(self.neural_net)
+		s = s + "\n**********************************************************\n"
+		return s
 
 	@property
 	def dir_path(self):
@@ -68,6 +85,22 @@ class StudyParameters:
 		assert (os.path.exists(path)), "The directory \'" + path + "\' does not exist. Ensure the dataset is " \
 																   "properly placed."
 		self.__dir_path = path
+
+	@property
+	def study_name(self):
+		return self.__study_name
+
+	@study_name.setter
+	def study_name(self, study_name):
+		self.__study_name = study_name
+
+	@property
+	def sensor_name(self):
+		return self.__sensor_name
+
+	@sensor_name.setter
+	def sensor_name(self, sensor_name):
+		self.__sensor_name = sensor_name
 
 	@property
 	def file_format(self):
@@ -106,26 +139,27 @@ class StudyParameters:
 
 	@num_subj.setter
 	def num_subj(self, num_subj):
-		assert (isinstance(num_subj, int) and (int(num_subj) > 0)), "Number of subjects needs to be a positive integer."
+		assert (isinstance(num_subj, int) and (int(num_subj) > 0)), "Number of subjects needs to be a positive " \
+																	"integer."
 		self.__num_subj = num_subj
 
 	@property
-	def num_features(self):
+	def num_attr(self):
 		return len(self.__relevant_columns)
 
 	@property
 	def labels_col(self):
-		if self.__labels_col is "None":
-			self.__labels_col = None
 		return self.__labels_col
 
 	@labels_col.setter
 	def labels_col(self, labels_col):
-		if labels_col is not "None":
+		if labels_col is "None":
+			self.__labels_col = None
+		else:
 			assert (isinstance(labels_col, int) and int(labels_col)) >= 0, "Label column should be 0 or a positive " \
 																		   "integer if labels are included with the " \
 																		   "data, and \"None\" otherwise."
-		self.__labels_col = labels_col
+			self.__labels_col = labels_col
 
 	@property
 	def standardize(self):
@@ -143,7 +177,8 @@ class StudyParameters:
 
 	@num_threads.setter
 	def num_threads(self, num_threads):
-		assert (isinstance(num_threads, int) and (num_threads > 0)), "Number of threads needs to be a positive integer."
+		assert (isinstance(num_threads, int) and (num_threads > 0)), "Number of threads needs to be a positive " \
+																	 "integer."
 		self.__num_threads = num_threads
 
 	@property
@@ -157,15 +192,6 @@ class StudyParameters:
 		self.__neural_net = neural_net
 
 	@property
-	def calibration_free(self):
-		return self.__calibration_free
-
-	@calibration_free.setter
-	def calibration_free(self, calibration_free):
-		assert (isinstance(calibration_free, bool)), "The variable calibration_free needs to be a boolean."
-		self.__calibration_free = calibration_free
-
-	@property
 	def construct_features(self):
 		return self.__construct_features
 
@@ -176,14 +202,18 @@ class StudyParameters:
 
 	@property
 	def feature_window(self):
-		assert (self.__construct_features is True), "Features are not to be constructed in this configuration"
 		return self.__feature_window
 
 	@feature_window.setter
 	def feature_window(self, feature_window):
-		assert (isinstance(feature_window, int) and (int(feature_window) > 0)), "Feature window needs to be a " \
-																				"positive integer."
-		self.__feature_window = feature_window
+		if self.construct_features is True:
+			assert (isinstance(feature_window, int) and (int(feature_window) > 0)), "Feature window needs to be a " \
+																					"positive integer."
+			self.__feature_window = feature_window
+		else:
+			assert (feature_window is "None"), "If the construct_features attribute is set to False, " \
+											   "the feature_window attribute needs to be set to \"None\"."
+			self.__feature_window = None
 
 	@property
 	def samples_per_chunk(self):
@@ -213,31 +243,15 @@ class StudyParameters:
 	@num_folds.setter
 	def num_folds(self, num_folds):
 		assert (isinstance(num_folds, int) and (int(num_folds) > 0)), "Number of folds for cross validation needs to " \
+																	  "" \
 																	  "be a positive integer."
 		self.__num_folds = num_folds
-
-	@property
-	def study_name(self):
-		return self.__study_name
-
-	@study_name.setter
-	def study_name(self, study_name):
-		self.__study_name = study_name
-
-	@property
-	def sensor_name(self):
-		return self.__sensor_name
-
-	@sensor_name.setter
-	def sensor_name(self, sensor_name):
-		self.__sensor_name = sensor_name
 
 	def clear_attribute_values(self):
 		"""
 		Sets each attribute of the sole StudyParameters instance object in use to 'None'.
 
 		"""
-		print ("Setting every attribute in the sole StudyParameter instance to 'None'.")
+		print("Setting every attribute in the sole StudyParameter instance to 'None'.")
 		for attr, val in vars(self).items():
-			self.__setattr__(attr, "None")
-		print (vars(self))
+			self.__setattr__(attr, None)

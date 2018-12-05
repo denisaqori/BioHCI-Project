@@ -85,7 +85,7 @@ class Trainer:
 			# goes through the whole training dataset in tensor chunks and batches computing output and loss
 			for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader): # gives batch data
 
-				# data_chunk_tensor has shape (batch_size x samples_per_step x num_features)
+				# data_chunk_tensor has shape (batch_size x samples_per_step x num_attr)
 				# category_tensor has shape (batch_size)
 				# batch_size is passed as an argument to train_data_loader
 				category_tensor = category_tensor.long()

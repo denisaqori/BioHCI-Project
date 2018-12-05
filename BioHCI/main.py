@@ -68,7 +68,7 @@ def main():
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	num_categories = len(data.get_all_dataset_categories())
 	if parameters.neural_net is True:
-		learning_def = NeuralNetworkDefinition(model_name="CNN_LSTM", num_features=parameters.num_features,
+		learning_def = NeuralNetworkDefinition(model_name="CNN_LSTM", num_features=parameters.num_attr,
 											   output_size=num_categories, use_cuda=args.cuda)
 
 		model = learning_def.get_model()
