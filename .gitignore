@@ -5,4 +5,5 @@ Practice
 Resources
 Results
 UML Diagrams
-*__pycache__*
+__pycache__
+*.pyc
