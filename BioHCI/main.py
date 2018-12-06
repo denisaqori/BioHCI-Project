@@ -42,6 +42,7 @@ def main():
 	# the object with variable definition based on the specified configuration file. It includes data description,
 	# definitions of run parameters (independent of deep definition vs not)
 	parameters = config.populate_study_parameters("EEG_Workload.toml")
+	# config.dump(parameters, parameters.study_name + ".toml")
 	print(parameters)
 
 	# generating the data from files

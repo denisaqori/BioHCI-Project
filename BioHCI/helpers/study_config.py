@@ -65,11 +65,13 @@ class StudyConfig:
 
 		sp = StudyParameters()
 		# ensure a configuration file has been loaded and its key-value pairs have been stored in the dictionary
-		assert self.__loaded is True, "There was no configuraiton file loaded to populate the StudyParameters object."
+		assert self.__loaded is True, "There was no configuration file loaded to populate the StudyParameters object."
 		# sets the attributes of the instance of the StudyParameters class according to the internal dictionary
 		for attribute, value in self.settings_dict.items():
+			if value == "None":
+				value = None
 			sp.__setattr__(attribute, value)
-		print("The StudyParameters object has been populated using the configuration file: ", self.configFileUsed)
+		print("\nThe StudyParameters object has been populated using the configuration file: ", self.configFileUsed)
 
 		return sp
 
