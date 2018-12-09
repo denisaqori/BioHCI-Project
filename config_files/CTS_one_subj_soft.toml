@@ -1,0 +1,19 @@
+_StudyParameters__dir_path = "/home/denisa/GitHub/BioHCI Project/Resources/CTS_one_subj_soft"
+_StudyParameters__study_name = "CTS_one_subj_soft"
+_StudyParameters__sensor_name = "Capacitor"
+_StudyParameters__file_format = ".csv"
+_StudyParameters__relevant_columns = [1, 2]
+_StudyParameters__column_names = ["A", "B"]
+_StudyParameters__start_row = 1
+_StudyParameters__num_subj = 1
+_StudyParameters__labels_col = "None"
+_StudyParameters__plot_labels = ["Time", "Voltage"]
+_StudyParameters__standardize = false
+_StudyParameters__samples_per_chunk = 30
+_StudyParameters__interval_overlap = true
+_StudyParameters__construct_features = false
+_StudyParameters__feature_window = "None"
+_StudyParameters__num_folds = 5
+_StudyParameters__num_threads = 32
+_StudyParameters__neural_net = true
+

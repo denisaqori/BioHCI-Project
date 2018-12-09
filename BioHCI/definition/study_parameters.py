@@ -23,6 +23,7 @@ class StudyParameters:
 		# these values represent column indices to retain from the data in each file
 		# self.__relevant_columns = [1, 5, 9, 13, 17, 21]
 		self.__relevant_columns = None
+		self.__column_names = None
 		# this value represents the beginning of valid rows in the file
 		self.__start_row = None
 
@@ -30,7 +31,7 @@ class StudyParameters:
 		self.__num_subj = None
 		# the column in which the file for each subject contains labels. If set to None, there are no labels.
 		self.__labels_col = None
-
+		self.__plot_labels = None
 		# data processing information
 
 		# whether the dataset is to be standardized (default is per subject per column)
@@ -57,9 +58,11 @@ class StudyParameters:
 		s = s + "\nSensor type: " + str(self.sensor_name)
 		s = s + "\nFile format to process: " + str(self.file_format)
 		s = s + "\nColumns to keep from each file: " + str(self.relevant_columns)
+		s = s + "\nColumns names: " + str(self.column_names)
 		s = s + "\nInitial row index: " + str(self.start_row)
 		s = s + "\nNumber of subjects: " + str(self.num_subj)
 		s = s + "\nLabels column index: " + str(self.labels_col)
+		s = s + "\nPlot Labels: " + str(self.plot_labels)
 		s = s + "\nShould the data be standardized?: " + str(self.standardize)
 		s = s + "\nNumber of samples per chunk/window: " + str(self.samples_per_chunk)
 		s = s + "\nShould we create a chunk by overlapping previous and next chunks (half of each)?: " + str(
@@ -117,11 +120,25 @@ class StudyParameters:
 
 	@relevant_columns.setter
 	def relevant_columns(self, relevant_columns):
+		self.__relevant_columns = []
 		assert (isinstance(relevant_columns, list)), "The relevant columns to process need to be passed in a list."
 		for elem in relevant_columns:
 			assert (isinstance(elem, int) and int(elem) >= 0), "Each element of the list needs to be a positive " \
 															   "integer or zero."
-		self.__relevant_columns = relevant_columns
+			self.__relevant_columns.append(int(elem))
+
+	@property
+	def column_names(self):
+		return self.__column_names
+
+	@column_names.setter
+	def column_names(self, column_names):
+		assert (isinstance(column_names, list)), "The column names need to be passed in a list."
+		assert len(column_names) == len(self.__relevant_columns), "There needs to be a column name for each relevant " \
+																  "column."
+		for elem in column_names:
+			assert isinstance(elem, str), "Each element of the list needs to be a string."
+		self.__column_names = column_names
 
 	@property
 	def start_row(self):
@@ -160,6 +177,17 @@ class StudyParameters:
 																		   "integer if labels are included with the " \
 																		   "data, and \"None\" otherwise."
 			self.__labels_col = labels_col
+
+	@property
+	def plot_labels(self):
+		return self.__plot_labels
+
+	@plot_labels.setter
+	def plot_labels(self, plot_labels):
+		assert (isinstance(plot_labels, list)), "The plot labels to process need to be passed in a list."
+		for elem in plot_labels:
+			assert isinstance(elem, str), "Each element of the list needs to be a string."
+		self.__plot_labels = plot_labels
 
 	@property
 	def standardize(self):
