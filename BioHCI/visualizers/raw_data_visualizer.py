@@ -226,7 +226,6 @@ class RawDataVisualizer:
 
 		plt.close('all')
 
-	# TODO: instead of not creating any joint images for more than 25, just split them in multiple pictures
 	def combine_images(self, image_list, figure_names, img_per_fig=6):
 		assert isinstance(image_list, list) and isinstance(figure_names, list), "The parameters image_list and " \
 																				"figure_names should both be lists"
@@ -301,7 +300,6 @@ class RawDataVisualizer:
 		return coordinate_list
 
 
-# TODO: ensure the real study data is received
 if __name__ == "__main__":
 
 	config_dir = "config_files"
