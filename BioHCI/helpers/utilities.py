@@ -57,7 +57,7 @@ def get_root_path(val):
 		path = '/home/denisa/GitHub/BioHCI Project/'
 	elif val.lower() == "resources":
 		path = '/home/denisa/GitHub/BioHCI Project/Resources'
-	elif val.lower() == "Results":
+	elif val.lower() == "results":
 		path = '/home/denisa/GitHub/BioHCI Project/Results'
 	elif val.lower() == "src":
 		path = '/home/denisa/GitHub/BioHCI Project/BioHCI'
@@ -66,3 +66,15 @@ def get_root_path(val):
 		print("Path set to None...")
 	# path = os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir))
 	return path
+
+def get_files_in_dir(root_dir_path):
+	if root_dir_path is not None:
+
+		img_list = []
+		for dirName, subdirList, fileList in os.walk(root_dir_path):
+			for fname in fileList:
+				fpath = os.path.abspath(os.path.join(dirName, fname))
+				img_list.append(fpath)
+		return img_list
+	else:
+		return None

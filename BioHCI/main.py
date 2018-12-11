@@ -17,7 +17,6 @@ from BioHCI.data.data_augmenter import DataAugmenter
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
 
-
 def main():
 	parser = argparse.ArgumentParser(description='BioHCI arguments')
 	parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
