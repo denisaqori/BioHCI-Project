@@ -8,8 +8,6 @@ import os
 import math
 from BioHCI.helpers import utilities as util
 from BioHCI.helpers.study_config import StudyConfig
-import pprint as pp
-import fnmatch
 
 
 # this class takes as input a dictionary of subjects and has options to visualize that data in various ways
@@ -233,6 +231,7 @@ class RawDataVisualizer:
 		if type(img_per_fig) is tuple:
 			assert isinstance(img_per_fig[0], int) and isinstance(img_per_fig[1], int), "Values within the " \
 																						"img_per_fig tuple need to be " \
+																						"" \
 																						"integers"
 			img_per_col = img_per_fig[0]  # nrows
 			img_per_row = img_per_fig[1]  # ncol
@@ -256,7 +255,6 @@ class RawDataVisualizer:
 
 		for j, imgs in enumerate(list_of_img_lists):
 			self.create_figure(imgs, figure_names[j], img_per_col, img_per_row)
-
 
 	def create_figure(self, image_list, figure_name, img_per_col, img_per_row):
 		# ensure the list is composed of images with the same width and height
@@ -291,9 +289,61 @@ class RawDataVisualizer:
 				coordinate_list.append((xoffset, yoffset))
 		return coordinate_list
 
+	def get_CTS_column_view(self):
+		assert "CTS" in parameters.study_name, "This method is only valid for CTS dataset"
+
+		plot_dir_path = util.get_root_path("Results")
+		if plot_dir_path is not None:
+			plot_dir_path = plot_dir_path + "/" + parameters.study_name + "/dataset plots/subject_view"
+			img_list = util.get_files_in_dir(plot_dir_path)
+			# pp.pprint(img_list)
+
+			# figure_names_short = ["a", "b", "c", "d", "e"]
+			# figure_names = []
+			# for name in figure_names_short:
+			# 	figure_names.append("p1_" + name + "_all_categories.png")
+
+			dict = {}
+			dict['col1'] = (1, 13, 25)
+			dict['col2'] = (2, 14, 26)
+			dict['col3'] = (3, 15, 27)
+			dict['col4'] = (4, 16, 28)
+			dict['col5'] = (5, 17, 29)
+			dict['col6'] = (6, 18, 30)
+			dict['col7'] = (7, 19, 31)
+			dict['col8'] = (8, 20, 32)
+			dict['col9'] = (9, 21, 33)
+			dict['col10'] = (10, 22, 34)
+			dict['col11'] = (11, 23, 35)
+			dict['col12'] = (12, 24, 36)
+			figure_names = sorted(dict.keys())
+			print(figure_names)
+
+			print(len(img_list))
+			j = 0
+			for col, buttons in dict.items():
+				img_sub_list = []
+				for i, elem in enumerate(buttons):
+					pattern = '_' + str(elem) + '.png'
+					for entry in img_list:
+						if entry.endswith(pattern):
+							img_sub_list.append(entry)
+				print(figure_names[j])
+				self.create_figure(img_sub_list, figure_names[j] + ".png", 1, 3)
+				j = j + 1
+
+
+def get_subject_label_across_datasets(path_list):
+	plot_dir_path = util.get_root_path("Results")
+	if plot_dir_path is not None:
+		subj_label_list = []
+		for path in path_list:
+			path = plot_dir_path + "/" + path
+			assert os.path.exists(path), "Path " + path + " does not exist."
+			print(path)
+
 
 if __name__ == "__main__":
-
 	config_dir = "config_files"
 	config = StudyConfig(config_dir)
 
@@ -316,43 +366,11 @@ if __name__ == "__main__":
 	# visualizing data per category
 	# raw_data_vis.plot_each_category()
 
-	plot_dir_path = util.get_root_path("Results")
-	if plot_dir_path is not None:
-		plot_dir_path = plot_dir_path + "/" + parameters.study_name + "/dataset plots/subject_view"
+	# raw_data_vis.get_CTS_column_view()
 
-		img_list = util.get_files_in_dir(plot_dir_path)
-		# pp.pprint(img_list)
+	soft_path = "CTS_one_subj_soft/dataset plots/subject_view"
+	firm_path = "CTS_one_subj_firm/dataset plots/subject_view"
+	variable_path = "CTS_one_subj_variable/dataset plots/subject_view"
+	ls = [soft_path, firm_path, variable_path]
 
-		# figure_names_short = ["a", "b", "c", "d", "e"]
-		# figure_names = []
-		# for name in figure_names_short:
-		# 	figure_names.append("p1_" + name + "_all_categories.png")
-
-		dict = {}
-		dict['col1'] = (1, 13, 25)
-		dict['col2'] = (2, 14, 26)
-		dict['col3'] = (3, 15, 27)
-		dict['col4'] = (4, 16, 28)
-		dict['col5'] = (5, 17, 29)
-		dict['col6'] = (6, 18, 30)
-		dict['col7'] = (7, 19, 31)
-		dict['col8'] = (8, 20, 32)
-		dict['col9'] = (9, 21, 33)
-		dict['col10'] = (10, 22, 34)
-		dict['col11'] = (11, 23, 35)
-		dict['col12'] = (12, 24, 36)
-		figure_names = sorted(dict.keys())
-		print(figure_names)
-
-		print(len(img_list))
-		j = 0
-		for col, buttons in dict.items():
-			img_sub_list = []
-			for i,elem in enumerate(buttons):
-				pattern = '_'+ str(elem) + '.png'
-				for entry in img_list:
-					if entry.endswith(pattern):
-						img_sub_list.append(entry)
-			print(figure_names[j])
-			raw_data_vis.create_figure(img_sub_list, figure_names[j] + ".png", 1, 3)
-			j = j + 1
+	get_subject_label_across_datasets(ls)

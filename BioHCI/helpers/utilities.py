@@ -63,7 +63,7 @@ def get_root_path(val):
 		path = '/home/denisa/GitHub/BioHCI Project/BioHCI'
 	else:
 		path = None
-		print("Path set to None...")
+		print("Root path for " + val + " is set to None...")
 	# path = os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir))
 	return path
 
