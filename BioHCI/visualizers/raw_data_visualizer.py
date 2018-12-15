@@ -93,11 +93,12 @@ class RawDataVisualizer:
 
 		return compacted_dataframe
 
-	# this function creates a figure of category subplots per subject
 	def plot_all_subj_categories(self):
 		'''
-
-		Returns:
+		Creates a figure of feature subplots for each subject for each category. These figures are automatically
+		saved in "subject_view", a subdirectory of each study's dataset_plots, found in the Results directory of the
+		project. Moreover, for each subject the plots per category are combined and stored in "combined_plots" under
+		the same root directory.
 
 		'''
 		for subj_name, subject_dataframe in self.__dataframe_dict.items():
@@ -123,6 +124,19 @@ class RawDataVisualizer:
 			self.combine_images(subj_category_img_list, subj_name + "_all_categories.png", 5)
 
 	def plot_subj_category(self, data_to_plot, category, subj_name):
+		"""
+		Creates a figure with subplots from features of one category from one subject. Helper function for
+		plot_all_subj_categories() above.
+
+		Args:
+			data_to_plot: data to be plotted (from one subject)
+			category: name of category to plot
+			subj_name: name of subject
+
+		Returns:
+			fig: a figure with one subject's category data
+
+		"""
 
 		# default theme, scaling and color palate - uses the seaborn ones,but applied to matplotlib plots too
 		# try context set to 'talk' also
@@ -148,7 +162,6 @@ class RawDataVisualizer:
 			ax2 = fig.add_subplot(G[i, 1])
 			# g = sns.lineplot(data=data_to_plot[column], ax=ax2)
 			g = data_to_plot[column].plot(ax=ax2)  # same as above, but without some seaborn constraints
-
 			# change the colors and styles of the lines to match the ones in the graph where
 			# they are all plotted together for coherence's sake
 			g_line = g.get_lines()[0]
@@ -183,8 +196,14 @@ class RawDataVisualizer:
 		allsubj_dataframe = pd.concat(subject_dataframe_list)
 		return allsubj_dataframe
 
-	# this function generates a graph for each category with all subjects plotted under the same axis
 	def plot_each_category(self):
+		"""
+		Generates a graph for each category with all subjects plotted under the same axis for each feature. These
+		figures are automatically saved in "category_view", a subdirectory of each study's dataset_plots, found in the
+		Results directory of the project. Moreover, plots for all categories are combined and stored in
+		"combined_plots" under the same root directory.
+		"""
+
 		# default theme, scaling and color palate - uses the seaborn ones,but applied to matplotlib plots too
 		# try context set to 'talk' also
 		sns.set(context='notebook', style='darkgrid', palette='pastel', font='sans-serif', font_scale=1,
@@ -226,6 +245,20 @@ class RawDataVisualizer:
 		plt.close('all')
 
 	def combine_images(self, image_list, figure_names, img_per_fig=6):
+		"""
+		Combines a list of images into a smaller number of figures, where each figure is the collection of a subset
+		of the images passed in the list. Such images are stored in "combined_pltos", a subdirectory of
+		dataset_plots of
+		each dataset's results.
+
+		Args:
+			image_list: The list of images to combine
+			figure_names: The list of names to assign to the generated figures grouping the above images
+			img_per_fig: The number of images per figure. Default is 6.
+
+		Returns:
+
+		"""
 		assert isinstance(image_list, list) and isinstance(figure_names, list), "The parameters image_list and " \
 																				"figure_names should both be lists"
 		if type(img_per_fig) is tuple:
@@ -256,7 +289,21 @@ class RawDataVisualizer:
 		for j, imgs in enumerate(list_of_img_lists):
 			self.create_figure(imgs, figure_names[j], img_per_col, img_per_row)
 
-	def create_figure(self, image_list, figure_name, img_per_col, img_per_row):
+	def create_figure(self, image_list, figure_name, img_per_col, img_per_row, save_dir=None):
+		"""
+		Creates one figure out of all images passed in the image list.
+
+		Args:
+			image_list: the list of images to combine in one
+			figure_name: the name of the new figure
+			img_per_col: number of images per column
+			img_per_row: number of images per row
+			save_dir: the directory where to save the new figure. Default is None, in which case the figure is saved
+				in "combined_plots".
+
+		Returns:
+
+		"""
 		# ensure the list is composed of images with the same width and height
 		img0 = Image.open(image_list[0])
 		# create the image to be returned whose size is width of img0 * number of figures per row, and height is
@@ -264,7 +311,7 @@ class RawDataVisualizer:
 		new_img = Image.new('RGB', (img0.size[0] * img_per_row, img0.size[1] * img_per_col))
 
 		# generate coordinates to place each image in the new blank image
-		img_coordinates = self.generate_cordinate_list(img_per_row, img_per_col, img0.size[0], img0.size[1])
+		img_coordinates = self.generate_coordinate_list(img_per_row, img_per_col, img0.size[0], img0.size[1])
 
 		# paste each individual image into the new image to be combined
 		for i, im_name in enumerate(image_list):
@@ -272,15 +319,33 @@ class RawDataVisualizer:
 			assert (img.size == img0.size), "The sizes of images to be combined need to match."
 			new_img.paste(img, img_coordinates[i])
 
-		# save the combined image
-		figure_path = os.path.abspath(os.path.join(self.root_dir, self.__combined_plots, figure_name))
+		# save the combined image in the directory provided. If no directory is provided, save in combined_plots of
+		# dataset
+		if save_dir is None:
+			figure_path = os.path.abspath(os.path.join(self.root_dir, self.__combined_plots, figure_name))
+		else:
+			assert os.path.exists(save_dir)
+			figure_path = os.path.abspath(os.path.join(save_dir, figure_name))
+
 		if self.__verbose:
 			print("Plot-combination saved as: ", figure_path, "\n")
 		new_img.save(figure_path)
 
-	# this function returns a coordinate list to place images in a grid (helper for combine_images)
 	@staticmethod
-	def generate_cordinate_list(nimg_per_row, nimg_per_column, img_width, img_height):
+	def generate_coordinate_list(nimg_per_row, nimg_per_column, img_width, img_height):
+		"""
+		Creates a coordinate list to place images in a grid (helper for combine_images())
+
+		Args:
+			nimg_per_row: number of images per row
+			nimg_per_column: number of images per column
+			img_width: image width
+			img_height: image height
+
+		Returns:
+			coordinate_list: a list of coordinates according to which the position of images will be determined
+
+		"""
 		coordinate_list = []
 		for l in range(nimg_per_column):
 			yoffset = l * img_height
@@ -289,12 +354,22 @@ class RawDataVisualizer:
 				coordinate_list.append((xoffset, yoffset))
 		return coordinate_list
 
-	def get_CTS_column_view(self):
-		assert "CTS" in parameters.study_name, "This method is only valid for CTS dataset"
+	def get_CTS_column_view(self, study_name):
+		"""
+		Creates combined figure of images per column of a 3 x 12 button-pad, where the label is the identity of the
+		button. These plots are saved in "combined_plots".
+
+		Args:
+			study_name: the study name from where to get the subject_view plots
+
+		Returns:
+
+		"""
+		assert "CTS" in study_name, "This method is only valid for CTS dataset"
 
 		plot_dir_path = util.get_root_path("Results")
 		if plot_dir_path is not None:
-			plot_dir_path = plot_dir_path + "/" + parameters.study_name + "/dataset plots/subject_view"
+			plot_dir_path = plot_dir_path + "/" + study_name + "/dataset plots/subject_view"
 			img_list = util.get_files_in_dir(plot_dir_path)
 			# pp.pprint(img_list)
 
@@ -332,15 +407,37 @@ class RawDataVisualizer:
 				self.create_figure(img_sub_list, figure_names[j] + ".png", 1, 3)
 				j = j + 1
 
+	def get_conditions_across_datasets(self, path_list, label_list, save_dir):
+		"""
+		Combines images across datasets and saves them in a new directory under Results.
 
-def get_subject_label_across_datasets(path_list):
-	plot_dir_path = util.get_root_path("Results")
-	if plot_dir_path is not None:
-		subj_label_list = []
-		for path in path_list:
-			path = plot_dir_path + "/" + path
-			assert os.path.exists(path), "Path " + path + " does not exist."
-			print(path)
+		Args:
+			path_list: a list of paths of figures to combine
+			label_list: a list of labels to name figures by
+			save_dir: the path to the directory to save the images
+
+		Returns:
+
+		"""
+		plot_dir_path = util.get_root_path("Results")
+		if plot_dir_path is not None:
+			path_files = {}
+			for path in path_list:
+				path = plot_dir_path + "/" + path
+				assert os.path.exists(path), "Path " + path + " does not exist."
+				file_ls = util.get_files_in_dir(path)
+				path_files[path] = file_ls
+
+			for label in label_list:
+				img_sub_list = []
+				pattern = "_" + str(label) + ".png"
+				for paths, files in path_files.items():
+					for f in files:
+						fname = os.path.basename(f)
+						if fname.endswith(pattern):
+							img_sub_list.append(f)
+				fig_name = os.path.join(save_dir, "p1_all_cond_" + str(label) + ".png")
+				self.create_figure(img_sub_list, fig_name, 1, 3, save_dir)
 
 
 if __name__ == "__main__":
@@ -366,11 +463,14 @@ if __name__ == "__main__":
 	# visualizing data per category
 	# raw_data_vis.plot_each_category()
 
-	# raw_data_vis.get_CTS_column_view()
+	# raw_data_vis.get_CTS_column_view(parameters.study_name)
 
 	soft_path = "CTS_one_subj_soft/dataset plots/subject_view"
 	firm_path = "CTS_one_subj_firm/dataset plots/subject_view"
 	variable_path = "CTS_one_subj_variable/dataset plots/subject_view"
-	ls = [soft_path, firm_path, variable_path]
 
-	get_subject_label_across_datasets(ls)
+	path_list = [soft_path, firm_path, variable_path]
+	label_list = [i for i in range(1, 37)]  # keys 1 to 36 (inclusive)
+	plot_dir_path = util.get_root_path("Results")
+	save_dir = util.create_dir(os.path.join(plot_dir_path, "CTS_across_dataset_plots"))
+	raw_data_vis.get_conditions_across_datasets(path_list, label_list, save_dir)
