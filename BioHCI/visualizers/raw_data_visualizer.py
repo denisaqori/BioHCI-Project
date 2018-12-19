@@ -63,14 +63,6 @@ class RawDataVisualizer:
 
 	# this function puts the data from one subject in one dataframe (adding a column corresponding to category)
 	def __compact_subj_dataframe(self, subject):
-		'''
-
-		Args:
-			subject:
-
-		Returns:
-
-		'''
 		subj_data = subject.get_data()
 		# each column will have it's own plot named after it
 		category_names = subject.get_categories()
@@ -99,7 +91,6 @@ class RawDataVisualizer:
 		saved in "subject_view", a subdirectory of each study's dataset_plots, found in the Results directory of the
 		project. Moreover, for each subject the plots per category are combined and stored in "combined_plots" under
 		the same root directory.
-
 		'''
 		for subj_name, subject_dataframe in self.__dataframe_dict.items():
 			# a list to contain the image filenames of all categories for the subject
@@ -264,7 +255,6 @@ class RawDataVisualizer:
 		if type(img_per_fig) is tuple:
 			assert isinstance(img_per_fig[0], int) and isinstance(img_per_fig[1], int), "Values within the " \
 																						"img_per_fig tuple need to be " \
-																						"" \
 																						"integers"
 			img_per_col = img_per_fig[0]  # nrows
 			img_per_row = img_per_fig[1]  # ncol

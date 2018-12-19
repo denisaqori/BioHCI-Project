@@ -1,11 +1,11 @@
-
+import numpy as np
 
 # TODO: implement FeatureConstructor Class
 # TODO: look into not passing all the parameters object - maybe only the feature window? Maybe not.
 class FeatureConstructor:
-	def __int__(self, parameters):
+	def __init__(self, parameters):
 
-		print("Feature construction not implemented yet.... Should be explicitlt called after done with data "
+		print("Feature construction not implemented yet.... Should be explicitly called after done with data "
 			  "splitting, slicing, balancing.")
 
 		assert(parameters.construct_features is True), ""
@@ -13,17 +13,24 @@ class FeatureConstructor:
 												 "should be set to an integer greater than 0, and not be of NoneType."
 		self.feature_window = parameters.feature_window
 
-	def build_features(self, subj_dataset):
+	def construct_features(self, subj_dataset):
+	# tp
+
+		for subj_name, subj in subj_dataset.items():
+			cat_data = subj.get_data()
+			cat_names = subj.get_categories()
+
+			for cat in cat_data:
+				min_array = np.amin(cat, axis=2)
+
 		return self.feature_window
 
 
 	# this function constructs features over a chunk, which contains samples_per_step measurements
 	# for that time window, for each unprocessed original feature, the min, max, mean, std of the
 	# samples_per_step is calculated
-	def define_standard_features(dataset, labels, feature_window):
+	def define_standard_features(dataset):
 		print("Constructing features....")
-		print("Dataset: ", dataset)
-		print("Labels: ", labels)
 
 		# for testing purposes - making sure that the values of mean, max, min, and std are properly calculated over
 		# dimension 1 (which should have samples_per_step values)
@@ -50,6 +57,7 @@ class FeatureConstructor:
 		return feature_dataset, labels
 
 
+	#TODO: see if this serves a purpose at some point - right now, not any
 	# this function changes the view of a dataset which is chunked by time (by merging the first two dimensions)
 	# as well as the corresponding labels. Useful in case one measurement is input as an observation without constructing
 	# features over a specific time window. Input is a tensor, output a numpy array

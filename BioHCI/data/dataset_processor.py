@@ -3,8 +3,7 @@ from copy import copy
 
 
 class DatasetProcessor:
-	def __init__(self, samples_per_chunk, interval_overlap=True, balancer=None, feature_constructor=None,
-				 data_augmenter=None):
+	def __init__(self, parameters, balancer=None, feature_constructor=None, data_augmenter=None):
 		"""
 		Args:
 			samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
@@ -14,8 +13,7 @@ class DatasetProcessor:
 				If set to True, additionally new chunks are created based on existing ones, taking the bottom half of
 				the instances of the previous chunk, and the top half of those of the next chunk.
 		"""
-		self.samples_per_chunk = samples_per_chunk
-		self.interval_overlap = interval_overlap
+		self.parameters = parameters
 		self.balancer = balancer
 		self.feature_constructor = feature_constructor
 		self.data_augmenter = data_augmenter
@@ -27,7 +25,7 @@ class DatasetProcessor:
 		self.data_augmented = False
 		self.data_balanced = False
 
-	def chunk_data(self, subj_dict):
+	def chunk_data(self, subj_dict, samples_per_interval, split_axis, interval_overlap):
 		"""
 		Creates chunks of samples_per_chunk instances, so that the samples input to a classifier or deep neural
 		network architecture preserve some timing/continuity information. If at the end of a category there are
@@ -42,8 +40,9 @@ class DatasetProcessor:
 				subject is 	chunked, so the numpy array corresponding to each category has an extra dimension. The
 				data for each Subject object in the returned dictionary is a list of ndarrays of shape:  (number of
 				chunks, samples_per_step, number of features)
-
 		"""
+		print("\nChunking with interval overlap!!!")
+
 		chunked_subj_dict = {}  # dictionary to return
 		# iterate over the subject dictionary and get the corresponding data and category lists
 		for subj_name, subject in subj_dict.items():
@@ -53,7 +52,7 @@ class DatasetProcessor:
 			# create a new list to add chunked category data for the subject
 			subj_chunked_data = []
 			for i, category in enumerate(subj_data):
-				chunked_category = self._chunk_category(category, self.samples_per_chunk, self.interval_overlap)
+				chunked_category = self._chunk_category(category, samples_per_interval, split_axis, interval_overlap)
 				subj_chunked_data.append(chunked_category)
 
 			new_subject = copy(subject)  # create a new Subject object with the same values as the original
@@ -65,7 +64,7 @@ class DatasetProcessor:
 		return chunked_subj_dict
 
 	# TODO: write test cases
-	def _chunk_category(self, category, samples_per_chunk, interval_overlap):
+	def _chunk_category(self, category, samples_per_interval, split_axis, interval_overlap):
 		"""
 		Helper function of chunk_data. Chunks the data for one subject's category.
 
@@ -81,32 +80,42 @@ class DatasetProcessor:
 
 		"""
 		# create list according to which the first dimension of the category numpy array will be split
-		assert (samples_per_chunk < category.shape[0]), "There are not enough instances to make up a chunk in the " \
-														"or if this happens during train-validation split, decrease " \
-														"the number of folds."
+		assert (split_axis in range(0, len(category.shape) - 1)), "Axis to be split along needs to exist in the " \
+																  "category argument."
+		assert (samples_per_interval < category.shape[
+			split_axis]), "There are not enough instances to make up a chunk in " \
+						  "the or if this happens during train-validation split, decrease the number of folds."
 
-		split_list = np.arange(samples_per_chunk, category.shape[0], step=samples_per_chunk).tolist()
+		split_list = np.arange(samples_per_interval, category.shape[split_axis], step=samples_per_interval).tolist()
 
 		# split the intervals according to samples_per_chunk with no instances belonging to more than one chunk
-		category_chunks = np.split(category, split_list, axis=0)
+		category_chunks = np.split(category, split_list, axis=split_axis)
 
-		# padd the last chunk with zeros if there are not enough instances as for any other chunk (samples_per_step)
-		nrows = category_chunks[-1].shape[0]
-		rows_to_add = samples_per_chunk - nrows
-		category_chunks[-1] = np.pad(category_chunks[-1], [(0, rows_to_add), (0, 0)], mode='constant',
+		# pad the last chunk with zeros if there are not enough instances as for any other chunk (samples_per_step)
+		nrows = category_chunks[-1].shape[split_axis]
+		print("shape of last category chunk: ", category_chunks[-1].shape)
+		print("nrows: ", nrows)
+		print("samples per interval: ", samples_per_interval)
+		if nrows < 0.5 * samples_per_interval:
+			print("Removing last chunk since there are fewer than half of number of instances per interval.")
+			category_chunks.pop(-1)
+		elif (nrows > 0.5 * samples_per_interval) and (nrows < samples_per_interval):
+			print("Padding last chunk since there are more than half of number of instances per interval.")
+			rows_to_add = samples_per_interval - nrows
+			category_chunks[-1] = np.pad(category_chunks[-1], [(0, rows_to_add), (0, 0)], mode='constant',
 									 constant_values=0)
 
-		# if no feature overlap is specified, return the chunked_category. Otherwise, create new chunks based on
+		# if no interval overlap is specified, return the chunked_category. Otherwise, create new chunks based on
 		# previous ones.
 		if interval_overlap is True:
 			# at this point the last array of category chunks has been padded
-			print("Chunking with interval overlap!!!")
 			category_chunks = self._overlap_intervals(category_chunks)
 
-		# stack the chunks along a new dimension (which will be the first in this case)
+		# stack the chunks along a new dimension (which will be the axis split_axis (so insert new dim before the one
+		#  to split))
 		# if interval_overlap is true, category_chunks will contain overlap chunks in addition to the original chunk,
 		# otherwise the original ones only
-		chunked_category = np.stack(category_chunks, axis=0)
+		chunked_category = np.stack(category_chunks, axis=split_axis)
 		print("Shape of chunked_category: ", chunked_category.shape)
 
 		return chunked_category
@@ -259,6 +268,43 @@ class DatasetProcessor:
 
 		return name_to_indices
 
+	def construct_features(self, compacted_subj_dict):
+		"""
+		Constructs features on the samples in the given training or testing set (dictionary) so that the instances of
+		each category are collapsed to create several representative features.
+
+		Args:
+			compacted_subj_dict (dict): A dictionary mapping subject names to the corresponding Subject object.
+				For each Subject object, the data from each category is in one ndarray only, and each category appears
+				exactly once. The data list corresponds to the category list.
+
+		Returns:
+			feature_dataset(dict): A dictionary similar to the above, where features over some interval are built.
+
+		"""
+		assert self.data_compacted is True, "Data has not been compacted in DatasetProcessor, so data from one " \
+											"category may not be uniquely able to be indexed. First call " \
+											"compact_subject_categorie(chunked_subj_dict), then call this method " \
+											"again."
+
+		assert self.data_chunked is True, "Data has not been chunked in DatasetProcessor. First call chunk_data(" \
+										  "subj_dict, samples_per_chunk, interval_overlap), then call this " \
+										  "method again."
+
+		if self.feature_constructor is None:
+			print("No feature_constructor argument set in the DatasetProcessor Object. Skipping this step "
+				  "and returning original dictionary (passed as an argument to this funtion) which has been chunked "
+				  "and compacted...")
+			return compacted_subj_dict
+
+		else:
+			# feature_dataset = self.feature_constructor.construct_features(compacted_subj_dict)
+			feature_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
+											  self.parameters.feature_overlap)
+
+			print("Returning category-balanced dictionary...")
+			return feature_dataset
+
 	def balance_categories(self, compacted_subj_dict):
 		"""
 		Balances the samples in the given training or testing set (dictionary) so that each category has the same
@@ -285,7 +331,7 @@ class DatasetProcessor:
 										  "method again."
 
 		if self.balancer is None:
-			print("No category balancer (balancer) argrument set in the DatasetProcessor Object. Skipping this step "
+			print("No category balancer (balancer) argument set in the DatasetProcessor Object. Skipping this step "
 				  "and returning original dictionary (passed as an argument to this funtion) which has been chunked "
 				  "and compacted...")
 			return compacted_subj_dict
@@ -313,14 +359,16 @@ class DatasetProcessor:
 		self.data_augmenter = data_augmenter
 
 	# TODO: this variable checks are not fool-proof, they are easy to break if we call the below functions
-	# individually on two differnent datsets out of order
+	# individually on two different datasets out of order
 	def process_dataset(self, subject_dictionary):
 
 		# TODO: maybe feature construction and data augmentation before balancing
 		# use the built-in variables to ensure order: 1) chunking 2) compacting 3) balancing
-		chunked_subj_dict = self.chunk_data(subject_dictionary)
+		chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
+											self.parameters.interval_overlap)
 		compacted_data = self.compact_subject_categories(chunked_subj_dict)
-		balanced_dataset = self.balance_categories(compacted_data)
+		feature_dataset = self.construct_features(compacted_data)
+		balanced_dataset = self.balance_categories(feature_dataset)
 
 		# reset these internal variables so that the same data_processor object can be used on more than one dataset
 		self.reset_order_booleans()

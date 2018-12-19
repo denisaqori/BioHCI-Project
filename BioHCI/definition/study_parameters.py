@@ -42,6 +42,7 @@ class StudyParameters:
 
 		self.__construct_features = None  # determining whether to construct features
 		self.__feature_window = None  # the number of measurements over which to define features (collapsing all to 1)
+		self.__feature_overlap = None # determining whether to overlap instances while constructing features
 
 		self.__num_folds = None  # The number of folds for cross-validation
 
@@ -242,6 +243,17 @@ class StudyParameters:
 			assert (feature_window is "None"), "If the construct_features attribute is set to False, " \
 											   "the feature_window attribute needs to be set to \"None\"."
 			self.__feature_window = None
+
+	@property
+	def feature_overlap(self):
+		return self.__feature_overlap
+
+	@feature_overlap.setter
+	def feature_overlap(self, feature_overlap):
+		assert self.construct_features is True, "In order for feature_overlap to be set, construct_features needs to " \
+												"be True."
+		assert isinstance(feature_overlap, bool), "The variable feature_overlap needs to be a boolean."
+		self.__feature_overlap = feature_overlap
 
 	@property
 	def samples_per_chunk(self):

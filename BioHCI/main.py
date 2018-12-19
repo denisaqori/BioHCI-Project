@@ -3,6 +3,7 @@ import argparse
 import torch
 
 from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
+from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data.dataset_processor import DatasetProcessor
 from BioHCI.data.within_subject_oversampler import WithinSubjectOversampler
@@ -60,18 +61,16 @@ def main():
 		raw_data_vis.plot_each_category()
 
 	# define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
-	data_splitter = AcrossSubjectSplitter(subject_dict)
+	data_splitter = WithinSubjectSplitter(subject_dict)
 	train_val_dictionary = data_splitter.get_train_val_dict()
 
 	# define a category balancer (implementing the abstract CategoryBalancer)
 	category_balancer = WithinSubjectOversampler()
 	# initialize the feature constructor
 	feature_constructor = FeatureConstructor(parameters)
-	print("feature constructor results: ", feature_constructor.build_features(subject_dict))
 	data_augmenter = DataAugmenter()
 
-	dataset_processor = DatasetProcessor(parameters.samples_per_chunk, parameters.interval_overlap,
-										 category_balancer, feature_constructor, data_augmenter)
+	dataset_processor = DatasetProcessor(parameters, category_balancer, feature_constructor, data_augmenter)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	num_categories = len(data.get_all_dataset_categories())
