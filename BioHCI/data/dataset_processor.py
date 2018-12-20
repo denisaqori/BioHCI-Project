@@ -301,6 +301,7 @@ class DatasetProcessor:
 			# feature_dataset = self.feature_constructor.construct_features(compacted_subj_dict)
 			feature_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
 											  self.parameters.feature_overlap)
+			feature_dataset = self.feature_constructor.get_stat_features(feature_dataset, feature_axis=2)
 
 			print("Returning category-balanced dictionary...")
 			return feature_dataset

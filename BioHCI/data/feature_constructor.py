@@ -1,6 +1,7 @@
 import numpy as np
+from copy import copy
 
-# TODO: implement FeatureConstructor Class
+
 # TODO: look into not passing all the parameters object - maybe only the feature window? Maybe not.
 class FeatureConstructor:
 	def __init__(self, parameters):
@@ -8,58 +9,58 @@ class FeatureConstructor:
 		print("Feature construction not implemented yet.... Should be explicitly called after done with data "
 			  "splitting, slicing, balancing.")
 
-		assert(parameters.construct_features is True), ""
-		assert(parameters.feature_window is not None), "In order for features to be created, the feature window attribute " \
-												 "should be set to an integer greater than 0, and not be of NoneType."
+		assert (parameters.construct_features is True)
+		assert (parameters.feature_window is not None), "In order for features to be created, the feature window " \
+														"attribute should be set to an integer greater than 0, and not " \
+														"be of NoneType."
 		self.feature_window = parameters.feature_window
 
-	def construct_features(self, subj_dataset):
-	# tp
+	# TODO: deal with all_data_bool within Subject (for this and other functions that copy and create a new subj)
+	def get_stat_features(self, subj_dataset, feature_axis):
+		"""
+		Constructs features over an interval of a chunk for the whole dataset. For each unprocessed original feature,
+		the min, max, mean, std of the parts of each chunk are calculated.
 
+		Args:
+			subj_dataset: A dictionary mapping a subject name to a Subject object. The data for each category of each
+				subject will have a shape of (number of chunks, number of feature intervals, interval to built
+				features on, number of original attributes).
+			feature_axis: The axis along which features are to be created. This axis will end up being collapsed
+
+		Returns:
+
+		"""
+		assert isinstance(subj_dataset, dict)
+		assert isinstance(feature_axis, int)
+
+		feature_dataset = {}
 		for subj_name, subj in subj_dataset.items():
 			cat_data = subj.get_data()
 			cat_names = subj.get_categories()
 
+			new_cat_data = []
 			for cat in cat_data:
-				min_array = np.amin(cat, axis=2)
+				assert len(cat.shape) == 4, "The subj_dataset passed to create features on, should have 4 axis."
+				assert feature_axis in range(0, len(cat.shape))
+				min_array = np.amin(cat, axis=feature_axis, keepdims=True)
+				max_array = np.amax(cat, axis=feature_axis, keepdims=True)
+				mean_array = np.mean(cat, axis=feature_axis, keepdims=True)
+				std_array = np.std(cat, axis=feature_axis, keepdims=True)
 
-		return self.feature_window
+				new_cat = np.concatenate((min_array, max_array, mean_array, std_array), axis=feature_axis)
+				new_cat = np.reshape(new_cat, newshape=(new_cat.shape[0], new_cat.shape[1], -1))
+				new_cat_data.append(new_cat)
 
+			new_subj = copy(subj)  # copy the current subject
+			new_subj.set_data(new_cat_data)  # assign the above-calculated feature categories
+			feature_dataset[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
 
-	# this function constructs features over a chunk, which contains samples_per_step measurements
-	# for that time window, for each unprocessed original feature, the min, max, mean, std of the
-	# samples_per_step is calculated
-	def define_standard_features(dataset):
-		print("Constructing features....")
+		return feature_dataset
 
-		# for testing purposes - making sure that the values of mean, max, min, and std are properly calculated over
-		# dimension 1 (which should have samples_per_step values)
-		print("Dataset[0,:,:]", dataset[0, :, :])
-
-		# setting keepdim to false for each of these calculations, removes the dimension along which they were calculated
-		# for min and max we keep only the first value of the tuple returned, which contains the actual min, and max values
-		# respectively, while the second one gives the index of those values in the dimension along which they were calculated
-		min_tensor = dataset.min(dim=1, keepdim=False)[0]
-		print("Min tensor: ", min_tensor)
-
-		max_tensor = dataset.max(dim=1, keepdim=False)[0]
-		print("Max tensor: ", max_tensor)
-
-		mean_tensor = dataset.mean(dim=1, keepdim=False)
-		print("Mean tensor: ", mean_tensor)
-
-		std_tensor = dataset.std(dim=1, keepdim=False)
-		print("Standard deviation tensor: ", std_tensor)
-
-		feature_dataset = torch.cat((min_tensor, max_tensor, mean_tensor, std_tensor), dim=1)
-		print("New dataset with constructed features: ", feature_dataset)
-
-		return feature_dataset, labels
-
-
-	#TODO: see if this serves a purpose at some point - right now, not any
+	# TODO: see if this serves a purpose at some point - right now, not any
 	# this function changes the view of a dataset which is chunked by time (by merging the first two dimensions)
-	# as well as the corresponding labels. Useful in case one measurement is input as an observation without constructing
+	# as well as the corresponding labels. Useful in case one measurement is input as an observation without
+	# constructing
 	# features over a specific time window. Input is a tensor, output a numpy array
 	# especially helpful for a traditional ML algorithm not needing constructed features
 	def unify_time_windows(time_chunked_dataset, time_chunked_labels, samples_per_step):
@@ -80,4 +81,3 @@ class FeatureConstructor:
 		print("unifiedLabels shape: ", labels.shape)
 
 		return dataset, labels
-
