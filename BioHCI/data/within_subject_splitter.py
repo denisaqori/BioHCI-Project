@@ -126,10 +126,12 @@ class WithinSubjectSplitter(DataSplitter):
 			# populate the train and validation dictionaries with the data for each category
 			val_subj = copy(subject)
 			val_subj.set_data(val_list)
+			val_subj.set_all_data_bool(False)
 			val_dict[subj_name.replace("_train", "")] = val_subj
 
 			train_subj = copy(subject)
 			train_subj.set_data(train_list)
+			train_subj.set_all_data_bool(False)
 			train_dict[subj_name.replace("_val", "")] = train_subj
 
 		return train_dict, val_dict
