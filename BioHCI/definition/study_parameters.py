@@ -37,6 +37,9 @@ class StudyParameters:
 		# whether the dataset is to be standardized (default is per subject per column)
 		self.__standardize = None
 
+		# whether to convert to frequency domain
+		self.__compute_fft = None
+
 		self.__samples_per_chunk = None  # when chunking the dataset, the number of instances/samples in one chunk
 		self.__interval_overlap = None  # determining whether to overlap instances while chunking
 
@@ -65,6 +68,7 @@ class StudyParameters:
 		s = s + "\nLabels column index: " + str(self.labels_col)
 		s = s + "\nPlot Labels: " + str(self.plot_labels)
 		s = s + "\nShould the data be standardized?: " + str(self.standardize)
+		s = s + "\nShould the data be converted to frequency domain?: " + str(self.compute_fft)
 		s = s + "\nNumber of samples per chunk/window: " + str(self.samples_per_chunk)
 		s = s + "\nShould we create a chunk by overlapping previous and next chunks (half of each)?: " + str(
 			self.interval_overlap)
@@ -204,6 +208,16 @@ class StudyParameters:
 		self.__standardize = standardize
 
 	@property
+	def compute_fft(self):
+		return self.__compute_fft
+
+	@compute_fft.setter
+	def compute_fft(self, compute_fft):
+		assert (isinstance(compute_fft, bool)), "The compute_fft variable needs to be a boolean to indicate " \
+												"whether the dataset is to be converted to frequency domain."
+		self.__compute_fft = compute_fft
+
+	@property
 	def num_threads(self):
 		return self.__num_threads
 
@@ -254,7 +268,6 @@ class StudyParameters:
 	@feature_overlap.setter
 	def feature_overlap(self, feature_overlap):
 		assert self.construct_features is True, "In order for feature_overlap to be set, construct_features needs to " \
-												"" \
 												"be True."
 		assert isinstance(feature_overlap, bool), "The variable feature_overlap needs to be a boolean."
 		self.__feature_overlap = feature_overlap
@@ -287,8 +300,6 @@ class StudyParameters:
 	@num_folds.setter
 	def num_folds(self, num_folds):
 		assert (isinstance(num_folds, int) and (int(num_folds) > 0)), "Number of folds for cross validation needs to " \
-																	  "" \
-																	  "" \
 																	  "be a positive integer."
 		self.__num_folds = num_folds
 
