@@ -42,7 +42,7 @@ class StudyParameters:
 
 		self.__construct_features = None  # determining whether to construct features
 		self.__feature_window = None  # the number of measurements over which to define features (collapsing all to 1)
-		self.__feature_overlap = None # determining whether to overlap instances while constructing features
+		self.__feature_overlap = None  # determining whether to overlap instances while constructing features
 
 		self.__num_folds = None  # The number of folds for cross-validation
 
@@ -71,6 +71,8 @@ class StudyParameters:
 		s = s + "\nShould we create features over these chunks?: " + str(self.construct_features)
 		s = s + "\nIf yes, over what interval (number of inst.)? If not, answer should be None: " + str(
 			self.feature_window)
+		s = s + "\nShould we create a feature intervals by overlapping previous and next intervals (half of each)?: " \
+			+ str(self.feature_overlap)
 		s = s + "\nNumber of cross-validation folds: " + str(self.num_folds)
 		s = s + "\nNumber of threads: " + str(self.num_threads)
 		s = s + "\nAre we using neural networks?: " + str(self.neural_net)
@@ -136,6 +138,7 @@ class StudyParameters:
 	def column_names(self, column_names):
 		assert (isinstance(column_names, list)), "The column names need to be passed in a list."
 		assert len(column_names) == len(self.__relevant_columns), "There needs to be a column name for each relevant " \
+																  "" \
 																  "column."
 		for elem in column_names:
 			assert isinstance(elem, str), "Each element of the list needs to be a string."
@@ -251,6 +254,7 @@ class StudyParameters:
 	@feature_overlap.setter
 	def feature_overlap(self, feature_overlap):
 		assert self.construct_features is True, "In order for feature_overlap to be set, construct_features needs to " \
+												"" \
 												"be True."
 		assert isinstance(feature_overlap, bool), "The variable feature_overlap needs to be a boolean."
 		self.__feature_overlap = feature_overlap
@@ -283,6 +287,7 @@ class StudyParameters:
 	@num_folds.setter
 	def num_folds(self, num_folds):
 		assert (isinstance(num_folds, int) and (int(num_folds) > 0)), "Number of folds for cross validation needs to " \
+																	  "" \
 																	  "" \
 																	  "be a positive integer."
 		self.__num_folds = num_folds

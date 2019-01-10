@@ -56,9 +56,10 @@ def main():
 		raw_data_vis = RawDataVisualizer(subject_dict, parameters.column_names, parameters.plot_labels[0],
 										 parameters.plot_labels[1], saveplot_dir_path, verbose=False)
 		# visualizing data per subject
-		raw_data_vis.plot_all_subj_categories()
+		# raw_data_vis.plot_all_subj_categories()
 		# visualizing data per category
-		raw_data_vis.plot_each_category()
+		# raw_data_vis.plot_each_category()
+		raw_data_vis.compute_spectrogram(subject_dict)
 
 	# define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
 	data_splitter = WithinSubjectSplitter(subject_dict)

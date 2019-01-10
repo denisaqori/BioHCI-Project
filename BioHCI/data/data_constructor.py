@@ -34,7 +34,6 @@ class DataConstructor:
 
 		self.print_all_subj_dataset()
 
-
 	# this method determines the path to the directory with each subject's data files and returns a list of names of
 	# directories which should be of each subject
 	def get_subj_dir_list(self):
@@ -67,6 +66,7 @@ class DataConstructor:
 			all_subj[subj_dir_name] = subj
 
 		return all_subj
+
 
 	# print and plot information about the subject dataset -  subject names and data shapes per category
 	def print_all_subj_dataset(self):
@@ -139,4 +139,3 @@ class DataConstructor:
 
 		# return the unique values in flat_list
 		return categories
-

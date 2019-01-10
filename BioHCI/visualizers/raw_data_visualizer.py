@@ -9,6 +9,8 @@ import math
 from BioHCI.helpers import utilities as util
 from BioHCI.helpers.study_config import StudyConfig
 
+import numpy as np
+
 
 # this class takes as input a dictionary of subjects and has options to visualize that data in various ways
 # this data is supposed to not have been processed for machine definition by chunking or feature construction yet.
@@ -46,8 +48,11 @@ class RawDataVisualizer:
 		# path to store the combined plots in the above directories to produce summaries
 		self.__combined_plots = "combined_plots"
 
+		# path to store the spectrogram
+		self.__spectrograms = "spectrograms"
+
 		# create those directories whose paths have been defined above (including base saveplot_dir_path)
-		subdir_name_list = [self.__subject_view, self.__category_view, self.__combined_plots]
+		subdir_name_list = [self.__subject_view, self.__category_view, self.__combined_plots, self.__spectrograms]
 		self.root_dir = util.create_dir(saveplot_dir_path, subdir_name_list=subdir_name_list)
 		print("Look at ", saveplot_dir_path, " for such Results!")
 
@@ -187,6 +192,65 @@ class RawDataVisualizer:
 		allsubj_dataframe = pd.concat(subject_dataframe_list)
 		return allsubj_dataframe
 
+	def compute_spectrogram(self, subj_dataset):
+		dt = 0.0005
+		Fs = (1.0 / dt)
+		NFFT = 2048
+
+		assert isinstance(subj_dataset, dict)
+
+		feature_dataset = {}
+		for subj_name, subj in subj_dataset.items():
+			cat_data = subj.get_data()
+			cat_names = subj.get_categories()
+
+			for i, cat in enumerate(cat_data):
+				fig = self.__compute_subj_cat_spectrogram(cat, cat_names[i], subj_name, NFFT, Fs)
+
+				figure_name = subj_name + "_" + cat_names[i] + "_" + str(NFFT) + ".png"
+				figure_path = os.path.abspath(os.path.join(self.root_dir, self.__spectrograms, figure_name))
+				fig.savefig(figure_path)
+
+		return feature_dataset
+
+	def __compute_subj_cat_spectrogram(self, subj_cat_data, category, subj_name, feature_names, NFFT, Fs):
+		nplot_rows = int(math.ceil(math.sqrt(subj_cat_data.shape[1])))  # = ncols
+		nplot_cols = int(math.ceil(subj_cat_data.shape[1] / nplot_rows))  # = nrows
+
+		fig = plt.figure(figsize=(nplot_rows * 5, nplot_cols * 10))
+		fig.suptitle(subj_name + " - " + category, fontsize=12, y=0.995)
+
+		G = gridspec.GridSpec(nrows=nplot_rows, ncols=nplot_cols)
+
+		num = 0
+		# generate subplots in the grid, each to be populated with a spectrogram
+		for col in range(0, nplot_cols):
+			for row in range(0, nplot_rows):
+				if num < subj_cat_data.shape[1]:
+					print ("col: ", col, "row: ", row, "num: ", num)
+					ax = fig.add_subplot(G[row, col])
+
+					freq_dom = self.fft_features(subj_cat_data[:, num])
+					Pxx, freqs, bins, im = ax.specgram(freq_dom, NFFT=NFFT, Fs=Fs, noverlap=900)
+					plt.colorbar(im).set_label('Amplitude (dB)')
+
+					# put the x label at the bottom of the last individual subplot
+					ax.set_ylabel("Time (sec)", fontsize=10, labelpad=10)
+					ax.set_xlabel("Frequency (Hz)", fontsize=10, labelpad=10)
+					ax.set_title(feature_names[num])
+					num = num + 1
+
+		plt.tight_layout()
+		# if self.__verbose:
+		plt.show()
+
+		plt.close('all')
+		return fig
+
+	def fft_features(self, cat):
+		freq_spect = np.fft.fft(cat, axis=0)
+		return freq_spect
+
 	def plot_each_category(self):
 		"""
 		Generates a graph for each category with all subjects plotted under the same axis for each feature. These
@@ -255,6 +319,7 @@ class RawDataVisualizer:
 		if type(img_per_fig) is tuple:
 			assert isinstance(img_per_fig[0], int) and isinstance(img_per_fig[1], int), "Values within the " \
 																						"img_per_fig tuple need to be " \
+																						"" \
 																						"integers"
 			img_per_col = img_per_fig[0]  # nrows
 			img_per_row = img_per_fig[1]  # ncol

@@ -103,7 +103,7 @@ class DatasetProcessor:
 			print("Padding last chunk since there are more than half of number of instances per interval.")
 			rows_to_add = samples_per_interval - nrows
 			category_chunks[-1] = np.pad(category_chunks[-1], [(0, rows_to_add), (0, 0)], mode='constant',
-									 constant_values=0)
+										 constant_values=0)
 
 		# if no interval overlap is specified, return the chunked_category. Otherwise, create new chunks based on
 		# previous ones.
@@ -298,12 +298,11 @@ class DatasetProcessor:
 			return compacted_subj_dict
 
 		else:
-			# feature_dataset = self.feature_constructor.construct_features(compacted_subj_dict)
-			feature_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
+			chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
 											  self.parameters.feature_overlap)
-			feature_dataset = self.feature_constructor.get_stat_features(feature_dataset, feature_axis=2)
+			feature_dataset = self.feature_constructor.get_feature_dataset(chunked_dataset, feature_axis=2)
 
-			print("Returning category-balanced dictionary...")
+			print("Returning feature dataset...")
 			return feature_dataset
 
 	def balance_categories(self, compacted_subj_dict):
