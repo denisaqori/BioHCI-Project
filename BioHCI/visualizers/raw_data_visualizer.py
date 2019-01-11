@@ -193,27 +193,51 @@ class RawDataVisualizer:
 		return allsubj_dataframe
 
 	def compute_spectrogram(self, subj_dataset):
-		dt = 0.0005
-		Fs = (1.0 / dt)
-		NFFT = 2048
+		"""
+		Computes spectrograms of the frequency domain data for each subject, and each category. Each figure produced
+		one spectrogram per attribute of one specific category of one specific subject.
+
+		Args:
+			subj_dataset (dict): a dictionary mapping a subject name to a Subject object
+
+		"""
+		# dt = 0.0005
+		# Fs = (1.0 / dt)
+		Fs = 2000
+		NFFT = 1024
 
 		assert isinstance(subj_dataset, dict)
 
-		feature_dataset = {}
 		for subj_name, subj in subj_dataset.items():
 			cat_data = subj.get_data()
 			cat_names = subj.get_categories()
 
 			for i, cat in enumerate(cat_data):
-				fig = self.__compute_subj_cat_spectrogram(cat, cat_names[i], subj_name, NFFT, Fs)
+				fig = self.compute_subj_cat_spectrogram(cat, cat_names[i], subj_name, NFFT, Fs)
 
 				figure_name = subj_name + "_" + cat_names[i] + "_" + str(NFFT) + ".png"
 				figure_path = os.path.abspath(os.path.join(self.root_dir, self.__spectrograms, figure_name))
 				fig.savefig(figure_path)
 
-		return feature_dataset
 
-	def __compute_subj_cat_spectrogram(self, subj_cat_data, category, subj_name, feature_names, NFFT, Fs):
+	#TODO: deal with feature names
+	#TODO: deal with fft_feeatures function
+	def compute_subj_cat_spectrogram(self, subj_cat_data, category, subj_name, NFFT, Fs):
+		"""
+		Computes the spectrogram of one category from one subject, for every attribute.
+
+		Args:
+			subj_cat_data (ndarray): data from one subject and one category
+			category (str): name of the category
+			subj_name (str): name of subject
+			attribute_names (list): list of attribute names
+			NFFT (int):
+			Fs (int):
+
+		Returns: a figure composed of the spectrograms of each attribute of the specified category of the specified
+				 subject.
+
+		"""
 		nplot_rows = int(math.ceil(math.sqrt(subj_cat_data.shape[1])))  # = ncols
 		nplot_cols = int(math.ceil(subj_cat_data.shape[1] / nplot_rows))  # = nrows
 
@@ -230,14 +254,14 @@ class RawDataVisualizer:
 					print ("col: ", col, "row: ", row, "num: ", num)
 					ax = fig.add_subplot(G[row, col])
 
-					freq_dom = self.fft_features(subj_cat_data[:, num])
-					Pxx, freqs, bins, im = ax.specgram(freq_dom, NFFT=NFFT, Fs=Fs, noverlap=900)
+					# freq_dom = self.fft_features(subj_cat_data[:, num])
+					spectrum, freqs, t, im = ax.specgram(subj_cat_data[:, num], NFFT=NFFT, Fs=Fs, noverlap=int(NFFT/2))
 					plt.colorbar(im).set_label('Amplitude (dB)')
 
 					# put the x label at the bottom of the last individual subplot
-					ax.set_ylabel("Time (sec)", fontsize=10, labelpad=10)
-					ax.set_xlabel("Frequency (Hz)", fontsize=10, labelpad=10)
-					ax.set_title(feature_names[num])
+					ax.set_xlabel("Time (sec)", fontsize=10, labelpad=10)
+					ax.set_ylabel("Frequency (Hz)", fontsize=10, labelpad=10)
+					# ax.set_title(attribute_names[num])
 					num = num + 1
 
 		plt.tight_layout()
@@ -247,9 +271,6 @@ class RawDataVisualizer:
 		plt.close('all')
 		return fig
 
-	def fft_features(self, cat):
-		freq_spect = np.fft.fft(cat, axis=0)
-		return freq_spect
 
 	def plot_each_category(self):
 		"""

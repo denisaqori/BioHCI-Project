@@ -2,6 +2,7 @@ import os
 import pprint as pp
 import re
 import sys
+import numpy as np
 
 from scipy import stats
 
@@ -31,6 +32,7 @@ class DataConstructor:
 		print("\nSubject List: ", self._subject_identity_list, "\n")
 
 		self.subj_dataset = self.build_all_subj_dataset(self.subj_dir_list)
+		# self.freq_dataset = self.build_freq_dataset(self.subj_dataset)
 
 		self.print_all_subj_dataset()
 
@@ -139,3 +141,18 @@ class DataConstructor:
 
 		# return the unique values in flat_list
 		return categories
+
+	def fft_domain(self, cat):
+		freq_spect = np.fft.fft(cat, axis=0)
+		return freq_spect
+
+	# def build_freq_dataset(self, subject_dataset):
+	# 	for subj_name, subj in subject_dataset.items():
+	# 		subj_data = subj.get_data()
+	# 		subj_categories = subj.get_categories()
+	# 		for i, cat_data in enumerate(subj_data):
+	# 			freq_domain = self.fft_domain(cat_data)
+	# 	return
+	#
+	# def get_freq_dataset(self):
+	# 	return self.freq_dataset

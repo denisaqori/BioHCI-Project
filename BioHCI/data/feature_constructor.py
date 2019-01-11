@@ -114,64 +114,6 @@ class FeatureConstructor:
 if __name__ == "__main__":
 	print("Running feature_constructor module...")
 
-	"""
-	t = np.arange(50)
-	print("\nt:", t)
-
-	sin = np.sin(t)
-	cos = np.cos(t)
-
-	plt.figure(2)
-	b = plt.plot(t, sin, t, cos)
-
-	sp = np.fft.fft(sin)
-	sp_cos = np.fft.fft(cos)
-	print("\nsp: ", sp.real)
-	print("\nsp_cos: ", sp_cos.real)
-
-	plt.figure(1)
-	freq = np.fft.fftfreq(t.shape[-1])
-	print("\nfreq: ", freq)
-	a = plt.plot(freq, sp.real, freq, sp_cos.real)
-
-	# plt.figure(3)
-	# plt.plot(sp.imag)
-	powerSpectrum, freqenciesFound, time, imageAxis = plt.specgram(s2, Fs=samplingFrequency)
-
-	plt.show()
-
-	# Fixing random state for reproducibility
-	np.random.seed(19680801)
-
-	dt = 0.0005
-	t = np.arange(0.0, 20.0, dt)
-	s1 = np.sin(2 * np.pi * 100 * t)
-	s2 = 2 * np.sin(2 * np.pi * 400 * t)
-
-	# create a transient "chirp"
-	mask = np.where(np.logical_and(t > 10, t < 12), 1.0, 0.0)
-	s2 = s2 * mask
-
-	# add some noise into the mix
-	nse = 0.01 * np.random.random(size=len(t))
-
-	x = s1 + s2 + nse   # the signal
-	NFFT = 1024  # the length of the windowing segments
-	Fs = int(1.0 / dt)  # the sampling frequency
-
-	fig, (ax1, ax2) = plt.subplots(nrows=2)
-	ax1.plot(t, x)
-	Pxx, freqs, bins, im = ax2.specgram(x, NFFT=NFFT, Fs=Fs, noverlap=900)
-	# The `specgram` method returns 4 objects. They are:
-	# - Pxx: the periodogram
-	# - freqs: the frequency vector
-	# - bins: the centers of the time bins
-	# - im: the matplotlib.image.AxesImage instance representing the data in the plot
-	plt.show()
-	print("End")
-
-	"""
-
 	config_dir = "config_files"
 	config = StudyConfig(config_dir)
 
