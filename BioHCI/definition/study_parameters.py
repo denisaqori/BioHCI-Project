@@ -39,6 +39,10 @@ class StudyParameters:
 
 		# whether to convert to frequency domain
 		self.__compute_fft = None
+		# sampling frequency
+		self.__sampling_freq = None
+		# number of samples in windowing segment
+		self.__nfft = None
 
 		self.__samples_per_chunk = None  # when chunking the dataset, the number of instances/samples in one chunk
 		self.__interval_overlap = None  # determining whether to overlap instances while chunking
@@ -53,6 +57,7 @@ class StudyParameters:
 		self.__num_threads = None  # The number of threads to be used during training (for gradient computing and
 		# loading)
 		self.__neural_net = None
+
 
 	def __str__(self):
 		s = "\nStudyParameters: \n"
@@ -69,6 +74,8 @@ class StudyParameters:
 		s = s + "\nPlot Labels: " + str(self.plot_labels)
 		s = s + "\nShould the data be standardized?: " + str(self.standardize)
 		s = s + "\nShould the data be converted to frequency domain?: " + str(self.compute_fft)
+		s = s + "\nNumber of samples in windowing segment (for freq): " + str(self.nfft)
+		s = s + "\nSampling frequency: " + str(self.sampling_freq)
 		s = s + "\nNumber of samples per chunk/window: " + str(self.samples_per_chunk)
 		s = s + "\nShould we create a chunk by overlapping previous and next chunks (half of each)?: " + str(
 			self.interval_overlap)
@@ -142,7 +149,6 @@ class StudyParameters:
 	def column_names(self, column_names):
 		assert (isinstance(column_names, list)), "The column names need to be passed in a list."
 		assert len(column_names) == len(self.__relevant_columns), "There needs to be a column name for each relevant " \
-																  "" \
 																  "column."
 		for elem in column_names:
 			assert isinstance(elem, str), "Each element of the list needs to be a string."
@@ -216,6 +222,36 @@ class StudyParameters:
 		assert (isinstance(compute_fft, bool)), "The compute_fft variable needs to be a boolean to indicate " \
 												"whether the dataset is to be converted to frequency domain."
 		self.__compute_fft = compute_fft
+
+	@property
+	def nfft(self):
+		return self.__nfft
+
+	@nfft.setter
+	def nfft(self, nfft):
+		if self.compute_fft is True:
+			assert (isinstance(nfft, int) and (int(nfft) > 0)), "FFT windowing segment needs to be a " \
+																"positive integer."
+			self.__nfft = nfft
+		else:
+			assert (self.compute_fft is "None"), "If the compute_fft attribute is set to False, " \
+												 "the nfft attribute needs to be set to \"None\"."
+			self.__nfft = None
+
+	@property
+	def sampling_freq(self):
+		return self.__sampling_freq
+
+	@sampling_freq.setter
+	def sampling_freq(self, sampling_freq):
+		if self.compute_fft is True:
+			assert (isinstance(sampling_freq, int) and (int(sampling_freq) > 0)), "Sampling frequency needs to be a " \
+																				  "positive integer."
+			self.__sampling_freq = sampling_freq
+		else:
+			assert (self.compute_fft is "None"), "If the compute_fft attribute is set to False, " \
+												 "the sampling_freq attribute needs to be set to \"None\"."
+			self.__sampling_freq = None
 
 	@property
 	def num_threads(self):

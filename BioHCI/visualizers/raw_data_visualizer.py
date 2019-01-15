@@ -9,8 +9,6 @@ import math
 from BioHCI.helpers import utilities as util
 from BioHCI.helpers.study_config import StudyConfig
 
-import numpy as np
-
 
 # this class takes as input a dictionary of subjects and has options to visualize that data in various ways
 # this data is supposed to not have been processed for machine definition by chunking or feature construction yet.
@@ -19,19 +17,20 @@ class RawDataVisualizer:
 
 	"""
 
-	def __init__(self, subject_dict, category_names, xlabel, ylabel, saveplot_dir_path, verbose=False):
+	def __init__(self, subject_dict, parameters, saveplot_dir_path, verbose=False):
 
 		print("\nVisualizing the dataset through several plots...")
 		self.__verbose = verbose
 		print("Verbose is set to: ", verbose)
 		# a dictionary mapping one subject by name to his/her data
 		self.__subject_dict = subject_dict
+		self.__parameters = parameters
 
 		# a list of category names:
-		self.__category_names = category_names
+		self.__category_names = parameters.column_names
 		# plot labels
-		self.__xlabel = xlabel
-		self.__ylabel = ylabel
+		self.__xlabel = parameters.plot_labels[0]
+		self.__ylabel = parameters.plot_labels[1]
 
 		# a dictionary: subject name -> subject pandas dataframe (all data in one, with category column added)
 		self.__dataframe_dict = self.__create_dataframe_dict()
@@ -201,10 +200,9 @@ class RawDataVisualizer:
 			subj_dataset (dict): a dictionary mapping a subject name to a Subject object
 
 		"""
-		# dt = 0.0005
-		# Fs = (1.0 / dt)
-		Fs = 2000
-		NFFT = 1024
+		assert self.__parameters.compute_fft is True
+		Fs = self.__parameters.sampling_freq
+		NFFT = self.__parameters.nfft
 
 		assert isinstance(subj_dataset, dict)
 
@@ -215,7 +213,7 @@ class RawDataVisualizer:
 			for i, cat in enumerate(cat_data):
 				fig = self.compute_subj_cat_spectrogram(cat, cat_names[i], subj_name, NFFT, Fs)
 
-				figure_name = subj_name + "_" + cat_names[i] + "_" + str(NFFT) + ".png"
+				figure_name = subj_name +"_" + str(NFFT) +  "_" + cat_names[i] + ".png"
 				figure_path = os.path.abspath(os.path.join(self.root_dir, self.__spectrograms, figure_name))
 				fig.savefig(figure_path)
 
@@ -251,12 +249,19 @@ class RawDataVisualizer:
 		for col in range(0, nplot_cols):
 			for row in range(0, nplot_rows):
 				if num < subj_cat_data.shape[1]:
-					print ("col: ", col, "row: ", row, "num: ", num)
 					ax = fig.add_subplot(G[row, col])
 
-					# freq_dom = self.fft_features(subj_cat_data[:, num])
-					spectrum, freqs, t, im = ax.specgram(subj_cat_data[:, num], NFFT=NFFT, Fs=Fs, noverlap=int(NFFT/2))
+					spectrum, freqs, t, im = ax.specgram(subj_cat_data[:, num], NFFT=NFFT, Fs=Fs, noverlap=int(
+						NFFT/2))
 					plt.colorbar(im).set_label('Amplitude (dB)')
+					# f, t, sxx = signal.spectrogram(subj_cat_data[:, num], fs=Fs, nfft=NFFT, window='hamming')
+					# plt.pcolormesh(t, f, sxx)
+
+					# x = np.linspace(0.0, 1.0/Fs, int(subj_cat_data[:, num].shape[0]/2))
+					#
+					# yf = fft(subj_cat_data[:, num])
+					# y2 = 2 / subj_cat_data[:, num].shape[0] * np.abs(yf[0:np.int(subj_cat_data[:, num].shape[0] / 2)])
+					# plt.plot(x, y2)
 
 					# put the x label at the bottom of the last individual subplot
 					ax.set_xlabel("Time (sec)", fontsize=10, labelpad=10)
@@ -265,7 +270,6 @@ class RawDataVisualizer:
 					num = num + 1
 
 		plt.tight_layout()
-		# if self.__verbose:
 		plt.show()
 
 		plt.close('all')
@@ -340,7 +344,6 @@ class RawDataVisualizer:
 		if type(img_per_fig) is tuple:
 			assert isinstance(img_per_fig[0], int) and isinstance(img_per_fig[1], int), "Values within the " \
 																						"img_per_fig tuple need to be " \
-																						"" \
 																						"integers"
 			img_per_col = img_per_fig[0]  # nrows
 			img_per_row = img_per_fig[1]  # ncol
@@ -430,7 +433,7 @@ class RawDataVisualizer:
 				coordinate_list.append((xoffset, yoffset))
 		return coordinate_list
 
-	def get_CTS_column_view(self, study_name):
+	def get_CTS_column_view(self, rel_path):
 		"""
 		Creates combined figure of images per column of a 3 x 12 button-pad, where the label is the identity of the
 		button. These plots are saved in "combined_plots".
@@ -441,18 +444,13 @@ class RawDataVisualizer:
 		Returns:
 
 		"""
-		assert "CTS" in study_name, "This method is only valid for CTS dataset"
+		assert "CTS" in rel_path, "This method is only valid for CTS dataset"
 
 		plot_dir_path = util.get_root_path("Results")
 		if plot_dir_path is not None:
-			plot_dir_path = plot_dir_path + "/" + study_name + "/dataset plots/subject_view"
+			# plot_dir_path = plot_dir_path + "/" + study_name + "/dataset plots/subject_view"
+			plot_dir_path = plot_dir_path + rel_path
 			img_list = util.get_files_in_dir(plot_dir_path)
-			# pp.pprint(img_list)
-
-			# figure_names_short = ["a", "b", "c", "d", "e"]
-			# figure_names = []
-			# for name in figure_names_short:
-			# 	figure_names.append("p1_" + name + "_all_categories.png")
 
 			dict = {}
 			dict['col1'] = (1, 13, 25)
@@ -480,7 +478,7 @@ class RawDataVisualizer:
 						if entry.endswith(pattern):
 							img_sub_list.append(entry)
 				print(figure_names[j])
-				self.create_figure(img_sub_list, figure_names[j] + ".png", 1, 3)
+				self.create_figure(img_sub_list, figure_names[j] + "_spec.png", 1, 3)
 				j = j + 1
 
 	def get_conditions_across_datasets(self, path_list, label_list, save_dir):
@@ -525,28 +523,29 @@ if __name__ == "__main__":
 
 	# the object with variable definition based on the specified configuration file. It includes data description,
 	# definitions of run parameters (independent of deep definition vs not)
-	parameters = config.populate_study_parameters("CTS_one_subj_firm.toml")
+	parameters = config.populate_study_parameters("CTS_one_subj_variable.toml")
 
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
 	# build a visualizer object for the class to plot the dataset in different forms
 	# we use the subject dataset as a source (a dictionary subj_name -> subj data split in categories)
 	saveplot_dir_path = "Results/" + parameters.study_name + "/dataset plots"
-	raw_data_vis = RawDataVisualizer(subject_dict, parameters.column_names, parameters.plot_labels[0],
-									 parameters.plot_labels[1], saveplot_dir_path, verbose=False)
+	raw_data_vis = RawDataVisualizer(subject_dict, parameters, saveplot_dir_path, verbose=False)
 	# visualizing data per subject
 	# raw_data_vis.plot_all_subj_categories()
 	# visualizing data per category
 	# raw_data_vis.plot_each_category()
 
-	# raw_data_vis.get_CTS_column_view(parameters.study_name)
+	rel_path = "/" + parameters.study_name + "/dataset plots/spectrograms"
+	raw_data_vis.get_CTS_column_view(rel_path)
 
-	soft_path = "CTS_one_subj_soft/dataset plots/subject_view"
-	firm_path = "CTS_one_subj_firm/dataset plots/subject_view"
-	variable_path = "CTS_one_subj_variable/dataset plots/subject_view"
-
-	path_list = [soft_path, firm_path, variable_path]
-	label_list = [i for i in range(1, 37)]  # keys 1 to 36 (inclusive)
-	plot_dir_path = util.get_root_path("Results")
-	save_dir = util.create_dir(os.path.join(plot_dir_path, "CTS_across_dataset_plots"))
-	raw_data_vis.get_conditions_across_datasets(path_list, label_list, save_dir)
+	# soft_path = "CTS_one_subj_soft/dataset plots/spectrograms"
+	# firm_path = "CTS_one_subj_firm/dataset plots/spectrograms"
+	# variable_path = "CTS_one_subj_variable/dataset plots/spectrograms"
+	#
+	# path_list = [soft_path, firm_path, variable_path]
+	# label_list = [str(i) for i in range(1, 37)]  # keys 1 to 36 (inclusive)
+	# label_list.append("Baseline")
+	# plot_dir_path = util.get_root_path("Results")
+	# save_dir = util.create_dir(os.path.join(plot_dir_path, "CTS_across_dataset_plots", "spectrograms"))
+	# raw_data_vis.get_conditions_across_datasets(path_list, label_list, save_dir)

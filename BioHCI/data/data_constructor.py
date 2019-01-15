@@ -12,16 +12,16 @@ from BioHCI.data.subject import Subject
 # TODO: add standardization option within feature for every subject - maybe entails building a dataframe first and
 # then splitting again
 class DataConstructor:
-	def __init__(self, parameter):
+	def __init__(self, parameters):
 
-		self.__parameter = parameter
+		self.__parameters = parameters
 
 		# number of files to be included in the dataset where each file contains fNIRS data for one subject
-		self.__num_subj = parameter.num_subj
+		self.__num_subj = parameters.num_subj
 
 		# parameter's dir_path property determines the location of the data files, to be found within separate
 		# directories for each subject. These are sub-directories of this path.
-		self.__dir_path = parameter.dir_path
+		self.__dir_path = parameters.dir_path
 
 		self.subj_dir_list = self.get_subj_dir_list()
 		assert self.__num_subj == len(self.subj_dir_list), "Not as many subject directories found as declared in " \
@@ -64,7 +64,7 @@ class DataConstructor:
 		for subj_dir_name in subj_dir_list:
 			subj_data_path = os.path.join(self.__dir_path, subj_dir_name)
 
-			subj = Subject(subj_data_path, self.__parameter)
+			subj = Subject(subj_data_path, self.__parameters)
 			all_subj[subj_dir_name] = subj
 
 		return all_subj

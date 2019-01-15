@@ -40,7 +40,7 @@ def main():
 
 	# the object with variable definition based on the specified configuration file. It includes data description,
 	# definitions of run parameters (independent of deep definition vs not)
-	parameters = config.populate_study_parameters("CTS_one_subj_variable.toml")
+	parameters = config.populate_study_parameters("CTS_one_subj_firm.toml")
 	# parameters = config.populate_study_parameters("EEG_Workload.toml")
 	# config.dump(parameters, parameters.study_name + ".toml")
 	print(parameters)
@@ -53,8 +53,9 @@ def main():
 		# build a visualizer object for the class to plot the dataset in different forms
 		# we use the subject dataset as a source (a dictionary subj_name -> subj data split in categories)
 		saveplot_dir_path = "Results/" + parameters.study_name + "/dataset plots"
-		raw_data_vis = RawDataVisualizer(subject_dict, parameters.column_names, parameters.plot_labels[0],
-										 parameters.plot_labels[1], saveplot_dir_path, verbose=False)
+		# raw_data_vis = RawDataVisualizer(subject_dict, parameters.column_names, parameters.plot_labels[0],
+		# 								 parameters.plot_labels[1], saveplot_dir_path, verbose=False)
+		raw_data_vis = RawDataVisualizer(subject_dict, parameters, saveplot_dir_path, verbose=False)
 		# visualizing data per subject
 		# raw_data_vis.plot_all_subj_categories()
 		# visualizing data per category
