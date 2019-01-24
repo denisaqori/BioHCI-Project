@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 
 from BioHCI.data.subject import Subject
-
+from BioHCI.helpers.study_config import StudyConfig
 
 # TODO: add standardization option within feature for every subject - maybe entails building a dataframe first and
 # then splitting again
@@ -156,3 +156,25 @@ class DataConstructor:
 	#
 	# def get_freq_dataset(self):
 	# 	return self.freq_dataset
+
+if __name__ == "__main__":
+	config_dir = "config_files"
+	config = StudyConfig(config_dir)
+
+	# create a template of a configuration file with all the fields initialized to None
+	config.create_config_file_template()
+
+	# the object with variable definition based on the specified configuration file. It includes data description,
+	# definitions of run parameters (independent of deep definition vs not)
+	parameters = config.populate_study_parameters("CTS_one_subj_variable.toml")
+
+	data = DataConstructor(parameters)
+	subject_dict = data.get_subject_dataset()
+
+
+
+
+
+
+
+

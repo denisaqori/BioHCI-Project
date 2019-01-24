@@ -347,7 +347,6 @@ class DatasetProcessor:
 
 		Args:
 			balancer: a subclass of abstract CategoryBalancer strategy
-
 		"""
 
 		self.balancer = balancer
