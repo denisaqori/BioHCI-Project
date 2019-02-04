@@ -8,29 +8,27 @@ import os
 
 # TODO: properly incorporate dataloader for training
 class Trainer:
-	def __init__(self, train_data_loader, data, neural_network_def):
+	def __init__(self, train_data_loader, all_int_categories, neural_network_def, parameters):
 		print("\nInitializing Training...")
 
 		self._model = neural_network_def.get_model()
-		self._data = data
 		self.__optimizer = neural_network_def.get_optimizer()
 		self.__criterion = neural_network_def.get_criterion()
 		self.__num_epochs = neural_network_def.get_num_epochs()
-		self.__samples_per_step = neural_network_def.get_samples_per_step()
+		self.__samples_per_chunk = parameters.samples_per_chunk
 		self._batch_size = neural_network_def.get_batch_size()
 		self._use_cuda = neural_network_def.is_use_cuda()
 
-		self.__train_data_loader = train_data_loader
-		self._categories = data.get_categories()
+		self._all_int_categories = all_int_categories
 
 		self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
 
 	# this method returns the category based on the network output - each category will be associated with a likelihood
 	# topk is used to get the index of highest value
-	def category_from_output(self, output):
+	def __category_from_output(self, output):
 		top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
 		category_i = int(top_i[0][0])
-		return self._categories[category_i], category_i
+		return self._all_int_categories[category_i], category_i
 
 
 	# this function represents the training of one step - one chunk of data (samples_per_step) with its corresponding category
@@ -86,7 +84,7 @@ class Trainer:
 			# goes through the whole training dataset in tensor chunks and batches computing output and loss
 			for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader): # gives batch data
 
-				# data_chunk_tensor has shape (batch_size x samples_per_step x num_attr)
+				# data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
 				# category_tensor has shape (batch_size)
 				# batch_size is passed as an argument to train_data_loader
 				category_tensor = category_tensor.long()
@@ -99,7 +97,7 @@ class Trainer:
 				for i in range(0, self._batch_size):
 					total = total + 1
 					# calculating true category
-					guess, guess_i = self.category_from_output(output)
+					guess, guess_i = self.__category_from_output(output)
 					category_i = int(category_tensor[i])
 
 					# print("Guess_i: ", guess_i)
@@ -123,8 +121,7 @@ class Trainer:
 
 		# save trained model
 		name = self._data.get_dataset_name() + "-" + self._model.name + "-batch-" + str(self._batch_size) + \
-			   "-seqSize-" \
-			   + str(self.__samples_per_step) + ".pt"
+			   "-seqSize-" + str(self.__samples_per_step) + ".pt"
 		#torch.save(self.model, 'saved_models/toy-lstm-classification.pt')
 		torch.save(self._model, os.path.join("saved_models", name))
 

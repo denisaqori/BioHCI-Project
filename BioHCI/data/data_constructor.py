@@ -146,16 +146,6 @@ class DataConstructor:
 		freq_spect = np.fft.fft(cat, axis=0)
 		return freq_spect
 
-	# def build_freq_dataset(self, subject_dataset):
-	# 	for subj_name, subj in subject_dataset.items():
-	# 		subj_data = subj.get_data()
-	# 		subj_categories = subj.get_categories()
-	# 		for i, cat_data in enumerate(subj_data):
-	# 			freq_domain = self.fft_domain(cat_data)
-	# 	return
-	#
-	# def get_freq_dataset(self):
-	# 	return self.freq_dataset
 
 if __name__ == "__main__":
 	config_dir = "config_files"

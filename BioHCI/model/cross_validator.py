@@ -5,15 +5,18 @@ import time
 import BioHCI.helpers.utilities as utils
 
 
-class CrossValidation(ABC):
-	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, num_categories):
+class CrossValidator(ABC):
+	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, all_categories):
 		self._subject_dict = subject_dict
 		self._data_splitter = data_splitter
 		self._dataset_processor = dataset_processor
 		self._learning_def = learning_def
 		self._parameter = parameter
 		self._num_folds = parameter.num_folds
-		self._num_categories = num_categories
+		self._all_categories = all_categories
+		self._cat_mapping = self.__map_categories(all_categories)
+
+		self.all_int_categories = self.convert_categories(all_categories)
 
 		self._all_val_accuracies = []
 		self._all_train_accuracies = []
@@ -26,10 +29,10 @@ class CrossValidation(ABC):
 
 		# create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation below)
 		# TODO: oh noo!! there are two confusion matrixes - fix this - maybe use as a test case
-		self._confusion = torch.zeros(num_categories, num_categories)
+		self._confusion = torch.zeros(len(all_categories), len(all_categories))
 
 		self.perform_cross_validation()
-		self._confusion_matrix = np.zeros((num_categories, num_categories))
+		self._confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
 
 	def perform_cross_validation(self):
 		cv_start = time.time()
@@ -142,3 +145,42 @@ class CrossValidation(ABC):
 		all_data = np.stack(all_data, axis=0)
 		all_cat = np.array(all_cat)
 		return all_data, all_cat
+
+	def __map_categories(self, categories):
+		"""
+			Maps categories from a string element to an integer.
+
+		Args:
+			categories (list): List of unique string category names
+
+		Returns:
+			cat (dict): a dictionary mapping a sting to an integer
+
+		"""
+		# assert uniqueness of list elements
+		assert len(categories) == len(set(categories))
+		cat = {}
+
+		for idx, elem in enumerate(categories):
+			cat[elem] = idx
+
+		return cat
+
+	def convert_categories(self, categories):
+		"""
+		Converts a list of categories from strings to integers based on the internal attribute _cat_mapping.
+
+		Args:
+			categories (list): List of string category names of a dataset
+
+		Returns:
+			converted_categories (list): List of the corresponding integer id of the string categories
+
+		"""
+		converted_categories = []
+		for idx, elem in enumerate(categories):
+			assert elem in self._cat_mapping.keys()
+			converted_categories.append(self._cat_mapping[elem])
+
+		converted_categories = np.array(converted_categories)
+		return converted_categories

@@ -9,14 +9,15 @@ from BioHCI.data.dataset_processor import DatasetProcessor
 from BioHCI.data.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definition.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definition.non_neural_net_def import NonNeuralNetworkDefinition
-from BioHCI.model.neural_network_cv import NeuralNetworkCV
-from BioHCI.model.non_neural_network_cv import NonNeuralNetworkCV
+from BioHCI.model.nn_cross_validator import NNCrossValidator
+from BioHCI.model.scipy_cross_validator import ScipyCrossValidator
 from BioHCI.helpers.result_logger import Logging
 from BioHCI.data.feature_constructor import FeatureConstructor
 from BioHCI.data.data_augmenter import DataAugmenter
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
+
 
 def main():
 	parser = argparse.ArgumentParser(description='BioHCI arguments')
@@ -75,10 +76,10 @@ def main():
 	dataset_processor = DatasetProcessor(parameters, category_balancer, feature_constructor, data_augmenter)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
-	num_categories = len(data.get_all_dataset_categories())
+	datast_categories = data.get_all_dataset_categories()
 	if parameters.neural_net is True:
 		learning_def = NeuralNetworkDefinition(model_name="CNN_LSTM", num_features=parameters.num_attr,
-											   output_size=num_categories, use_cuda=args.cuda)
+											   output_size=len(datast_categories), use_cuda=args.cuda)
 
 		model = learning_def.get_model()
 		print("\nNetwork Architecture: \n", model)
@@ -90,10 +91,11 @@ def main():
 
 	# cross-validation
 	if parameters.neural_net is True:
-		cv = NeuralNetworkCV(subject_dict, data_splitter, dataset_processor, parameters, learning_def, num_categories)
+		cv = NNCrossValidator(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
+							  datast_categories)
 	else:
-		cv = NonNeuralNetworkCV(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
-								num_categories)
+		cv = ScipyCrossValidator(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
+								 datast_categories)
 
 	# results of run
 	log_dir_path = "Results/" + parameters.study_name + "/run summaries"
