@@ -23,12 +23,14 @@ class NeuralNetworkCV(CrossValidation):
 
 	# implement the abstract method from the parent class CrossValidation; returns a dataset with labels wrapped in
 	# the PyTorch DataLoader format
-	def _get_data_and_labels(self, python_dataset):
-		data, labels = self._data_processor.get_shuffled_dataset_and_labels(python_dataset)
+	def _get_data_and_labels(self, subj_dataset):
+		# data, labels = self._data_processor.get_shuffled_dataset_and_labels(python_dataset)
+
+		data, cat = self.mix_subj_chunks(subj_dataset)
 
 		# the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
 		# and one with labels (train or val respectively)
-		tensor_dataset = TensorDataset(data, labels)
+		tensor_dataset = TensorDataset(data, cat)
 
 		print("Using the PyTorch DataLoader to load the training data (shuffled) with: \nbatch size = ",
 			  self._learning_def.get_batch_size(), " & number of threads = ", self._parameter.get_num_threads())
@@ -41,8 +43,8 @@ class NeuralNetworkCV(CrossValidation):
 	# cross-validation and after it trains for that fold, it appends the calculated losses and accuracies for each epoch
 	# to the respective list in the CrossValidation object
 	def train(self, train_dataset):
-
-		trainer = Trainer(train_dataset, self._data, self._learning_def)
+		train_data_loader = self._get_data_and_labels(train_dataset)
+		trainer = Trainer(train_data_loader, self._data, self._learning_def)
 
 		# get the loss over all epochs for this cv-fold and append it to the list
 		self._all_train_losses.append(trainer.get_epoch_losses())

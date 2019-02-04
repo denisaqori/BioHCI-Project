@@ -15,7 +15,7 @@ class HashGenerator:
 	def hashes(self):
 		return self.__hashes
 
-	def __generate_hashes(self, time_freq, F=10):
+	def __generate_hashes(self, time_freq, F):
 		"""
 		Generates hashes of time-frequency point combinations (2 points at a time).
 

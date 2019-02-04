@@ -26,7 +26,7 @@ class NonNeuralNetworkCV(CrossValidation):
 		data, labels = self._data_processor.get_shuffled_dataset_and_labels(python_dataset)
 		return [data, labels]
 
-	#
+
 	# TODO: add train errors and loss
 	def train(self, train_dataset):
 

@@ -52,7 +52,6 @@ class FeatureConstructor:
 				feature_cat_tuple = ()
 				for feature_func in self.features:
 					features = feature_func(cat, feature_axis)
-					print("features: ", features.shape)
 
 					feature_cat_tuple = feature_cat_tuple + (features,)
 

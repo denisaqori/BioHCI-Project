@@ -6,6 +6,7 @@ import os
 # http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html 
 
 
+# TODO: properly incorporate dataloader for training
 class Trainer:
 	def __init__(self, train_data_loader, data, neural_network_def):
 		print("\nInitializing Training...")

@@ -4,6 +4,7 @@ import numpy as np
 import time
 import BioHCI.helpers.utilities as utils
 
+
 class CrossValidation(ABC):
 	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, num_categories):
 		self._subject_dict = subject_dict
@@ -43,17 +44,14 @@ class CrossValidation(ABC):
 			processed_train = self._dataset_processor.process_dataset(train_dict)
 			processed_val = self._dataset_processor.process_dataset(val_dict)
 
-			print("Processed train dataset: ", processed_train)
-			print("Processed val dataset: ", processed_val)
-
 			# starting training with the above-defined parameters
 			train_start = time.time()
-			self.train(train_dataset)
+			self.train(processed_train)
 			self._train_time = utils.time_since(train_start)
 
 			# start validating the model
 			val_start = time.time()
-			self.val(val_dataset)
+			self.val(processed_val)
 			self._val_time = utils.time_since(val_start)
 
 		self._cv_time = utils.time_since(cv_start)
@@ -109,4 +107,38 @@ class CrossValidation(ABC):
 	def get_val_time(self):
 		return self._val_time
 
+	def mix_subj_chunks(self, subj_dict):
+		"""
+		Creates a dataset of chunks of all subjects with the corresponding categories. At this point the subject data
+		is not separated anymore.
 
+		Args:
+			subj_dict (dict): a dictionary mapping a subject name to a Subject object
+
+		Returns:
+			all_data (ndarray): a 3D numpy array containing the train dataset of shape (number of chunks x number of
+				instances per chunk x number of features)
+			all_cat (ndarray): a 1D numpy arrray containing the category labels of all_data, of shape (number of
+				chunks).
+		"""
+
+		# data to stack - subjects end up mixed together in the ultimate dataset
+		all_data = []
+		# list of all categories to return
+		all_cat = []
+
+		for subj_name, subj in subj_dict.items():
+			subj_data = subj.get_data()
+			subj_cat = subj.get_categories()
+
+			for i, cat_data in enumerate(subj_data):
+				for j in range(0, cat_data.shape[0]):
+					chunk = cat_data[j, :, :]  # current chunk
+					cat = subj_cat[i]  # current category - same within all the chunks of the innermost loop
+
+					all_data.append(chunk)
+					all_cat.append(cat)
+
+		all_data = np.stack(all_data, axis=0)
+		all_cat = np.array(all_cat)
+		return all_data, all_cat
