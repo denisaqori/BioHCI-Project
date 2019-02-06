@@ -6,10 +6,11 @@ import BioHCI.helpers.utilities as utils
 
 
 class CrossValidator(ABC):
-	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, all_categories):
+	def __init__(self, subject_dict, data_splitter, dataset_processor, model, parameter, learning_def, all_categories):
 		self._subject_dict = subject_dict
 		self._data_splitter = data_splitter
 		self._dataset_processor = dataset_processor
+		self.__model = model
 		self._learning_def = learning_def
 		self._parameter = parameter
 		self._num_folds = parameter.num_folds

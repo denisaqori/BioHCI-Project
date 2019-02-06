@@ -17,6 +17,9 @@ from BioHCI.data.data_augmenter import DataAugmenter
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
+from BioHCI.network.cnn_lstm import CNN_LSTM
+
+from BioHCI.network.svc_wrapper import SVM
 
 
 def main():
@@ -70,31 +73,40 @@ def main():
 	# define a category balancer (implementing the abstract CategoryBalancer)
 	category_balancer = WithinSubjectOversampler()
 	# initialize the feature constructor
-	feature_constructor = FeatureConstructor(parameters)
+	# TODO fix the feature_axis and input_size to not be magic numbers
+	feature_axis = 2
+	feature_constructor = FeatureConstructor(parameters, feature_axis=feature_axis)
 	data_augmenter = DataAugmenter()
 
 	dataset_processor = DatasetProcessor(parameters, category_balancer, feature_constructor, data_augmenter)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	datast_categories = data.get_all_dataset_categories()
-	if parameters.neural_net is True:
-		learning_def = NeuralNetworkDefinition(model_name="CNN_LSTM", num_features=parameters.num_attr,
-											   output_size=len(datast_categories), use_cuda=args.cuda)
+	# in order to build networks, we need to know input size. At this point it depends on the number of current
+	# attributes, as well as the number of functions applied to those attributes (in feature_constructor) to create
+	# the ultimate features
+	# sample_subj_dataset = random.sample(train_val_dictionary.items(), 1)[0][1].get_data()[0]
+	# input_size = len(feature_constructor.features) * sample_subj_dataset.shape[feature_axis]
+	input_size = 8
 
-		model = learning_def.get_model()
+	if parameters.neural_net is True:
+		learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
+											   use_cuda=args.cuda)
+		model = CNN_LSTM(nn_learning_def=learning_def)
 		print("\nNetwork Architecture: \n", model)
 
 		if args.cuda:
 			model.cuda()
 	else:
 		learning_def = NonNeuralNetworkDefinition(model_name="SVM")
+		model = SVM(learning_def)  # now with default parameters
 
 	# cross-validation
 	if parameters.neural_net is True:
-		cv = NNCrossValidator(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
+		cv = NNCrossValidator(subject_dict, data_splitter, dataset_processor, model, parameters, learning_def,
 							  datast_categories)
 	else:
-		cv = ScipyCrossValidator(subject_dict, data_splitter, dataset_processor, parameters, learning_def,
+		cv = ScipyCrossValidator(subject_dict, data_splitter, dataset_processor, model, parameters, learning_def,
 								 datast_categories)
 
 	# results of run

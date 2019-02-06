@@ -6,10 +6,10 @@ from sklearn.metrics import confusion_matrix
 class ScipyCrossValidator(CrossValidator):
 
 	# the number for samples per step needs to not be magic (but should be able to be different from samples_per_step)
-	def __init__(self, subject_dict, data_splitter, dataset_processor, parameter, learning_def, all_categories):
+	def __init__(self, subject_dict, data_splitter, dataset_processor, model, parameter, learning_def, all_categories):
 
-		super(ScipyCrossValidator, self).__init__(subject_dict, data_splitter, dataset_processor, parameter, learning_def,
-												  all_categories)
+		super(ScipyCrossValidator, self).__init__(subject_dict, data_splitter, dataset_processor, model, parameter,
+												  learning_def, all_categories)
 
 		assert (parameter.neural_net is False), "In StudyParameters, neural_net is set to True and you are " \
 														"trying to instantiate a ScipyCrossValidator object!"

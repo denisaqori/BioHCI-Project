@@ -1,14 +1,8 @@
-from BioHCI.network.cnn_lstm import CNN_LSTM
-from BioHCI.network.cnn import CNN
-from BioHCI.network.lstm import LSTM
 from BioHCI.definition.learning_def import LearningDefinition
-import torch
-import torch.nn as nn
-import sys
 
 
 class NeuralNetworkDefinition(LearningDefinition):
-	def __init__(self, model_name, num_features, output_size, use_cuda):
+	def __init__(self, input_size, output_size, use_cuda):
 		# hyper-parameters
 		self.__num_hidden = 120  # number of nodes per hidden layer
 		self.__num_epochs = 20  # number of epochs over which to train
@@ -22,7 +16,7 @@ class NeuralNetworkDefinition(LearningDefinition):
 		# DOUBLE CHECK THE NEED TO ASSIGN THESE ATTRIBUTES. GETTERS?
 		# parameters passed to this object - there should be no setters for these attributes
 		self.__use_cuda = use_cuda
-		self.__num_features = num_features
+		self.__input_size = input_size
 		self.__output_size = output_size
 
 		# initialize the network, pick the optimizer and the loss function
@@ -31,16 +25,8 @@ class NeuralNetworkDefinition(LearningDefinition):
 
 		self._all_train_losses = []
 
-		super(NeuralNetworkDefinition, self).__init__(model_name)
+		super(NeuralNetworkDefinition, self).__init__(input_size)
 
-		# model definition
-		# self.model = self.__build_model(self.model_name)
-
-		# the stochastic gradient descent function to update weights and biases
-		self.__optimizer = torch.optim.Adam(self.model.parameters(), lr=self.__learning_rate)
-
-		# the negative log likelihood loss function - useful to train classification problems with C classes
-		self.__criterion = nn.NLLLoss()
 
 	# getters - the only way to access the class attributes
 	@property
@@ -75,27 +61,6 @@ class NeuralNetworkDefinition(LearningDefinition):
 	def num_layers(self):
 		return self.__num_layers
 
-# TODO: factory method
-	def _build_model(self, name):
-		if name == "CNN":
-			model = CNN(input_size=self.num_features, hidden_size=self.num_hidden,
-						 output_size=self.output_size)
-		elif name == "LSTM":
-			model = LSTM(input_size=self.num_features, hidden_size=self.num_hidden, output_size=self.output_size,
-						batch_size=self.batch_size, batch_first=self.batch_first, num_layers=self.num_layers,
-						 dropout_rate=self.dropout_rate, use_cuda=self.use_cuda)
-		elif name == "CNN_LSTM":
-			model = CNN_LSTM(input_size=self.num_features, hidden_size=self.num_hidden,
-								output_size=self.output_size, batch_size=self.batch_size,
-							 batch_first=self.batch_first,
-								num_layers=self.num_layers, dropout_rate=self.dropout_rate,
-								use_cuda=self.use_cuda)
-		else:
-			print("Model specified in NeuralNetworkDefinition object is currently undefined!")
-			sys.exit()
-
-		return model
-
 	@property
 	def optimizer(self):
 		return self.__optimizer
@@ -109,8 +74,8 @@ class NeuralNetworkDefinition(LearningDefinition):
 		return self.__use_cuda
 
 	@property
-	def num_features(self):
-		return self.__num_features
+	def input_size(self):
+		return self.__input_size
 
 	@property
 	def output_size(self):
@@ -120,6 +85,14 @@ class NeuralNetworkDefinition(LearningDefinition):
 	@num_hidden.setter
 	def num_hidden(self, num_hidden):
 		self.__num_hidden = num_hidden
+
+	@input_size.setter
+	def input_size(self, input_size):
+		self.__input_size = input_size
+
+	@output_size.setter
+	def output_size(self, output_size):
+		self.__output_size = output_size
 
 	@num_epochs.setter
 	def num_epochs(self, num_epochs):

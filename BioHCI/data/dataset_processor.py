@@ -300,7 +300,7 @@ class DatasetProcessor:
 		else:
 			chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
 											  self.parameters.feature_overlap)
-			feature_dataset = self.feature_constructor.get_feature_dataset(chunked_dataset, feature_axis=2)
+			feature_dataset = self.feature_constructor.get_feature_dataset(chunked_dataset)
 
 			print("Returning feature dataset...")
 			return feature_dataset

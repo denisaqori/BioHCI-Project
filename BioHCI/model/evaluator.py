@@ -9,25 +9,25 @@ class Evaluator:
 	def __init__(self, test_data_loader, model_to_eval, categories, confusion, neural_network_def):
 		print("\n\nInitializing Evaluation...")
 
-		self._model_to_eval = model_to_eval
-		self._categories = categories
-		self._batch_size = neural_network_def.get_batch_size()
+		self.__model_to_eval = model_to_eval
+		self.__categories = categories
+		self.__batch_size = neural_network_def.batch_size
 		
-		self._test_data_loader = test_data_loader
-		self._use_cuda = neural_network_def.is_use_cuda()
+		self.__test_data_loader = test_data_loader
+		self.__use_cuda = neural_network_def.use_cuda
 
 		# accuracy of evaluation
-		self._accuracy = self.evaluate(self._test_data_loader, confusion)
+		self.__accuracy = self.evaluate(self.__test_data_loader, confusion)
 
 	# returns output layer given a tensor of data
 	def evaluate_chunks_in_batch(self, data_chunk_tensor):
 		# if cuda is available, initialize the tensors there
-		if self._use_cuda:
+		if self.__use_cuda:
 			data_chunk_tensor = data_chunk_tensor.cuda(async=True)
 
 		# turn tensors into Variables (which can store gradients) - the necessary input to our model
 		input = Variable(data_chunk_tensor)
-		output = self._model_to_eval(input)
+		output = self.__model_to_eval(input)
 
 		# delete input after we are done with it to free up space
 		del input
@@ -50,7 +50,7 @@ class Evaluator:
 			output = self.evaluate_chunks_in_batch(data_chunk_tensor)
 
 			# for every element of the batch
-			for i in range(0, self._batch_size):
+			for i in range(0, self.__batch_size):
 				total = total + 1
 				# calculating true category
 				guess, guess_i = self.category_from_output(output)
@@ -77,8 +77,8 @@ class Evaluator:
 	def category_from_output(self, output):
 		top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
 		category_i = int(top_i[0][0])
-		return self._categories[category_i], category_i
+		return self.__categories[category_i], category_i
 
 	def get_accuracy(self):
-		return self._accuracy
+		return self.__accuracy
 

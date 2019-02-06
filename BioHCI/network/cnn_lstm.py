@@ -4,23 +4,27 @@ import torch
 
 
 class CNN_LSTM (nn.Module):
-	def __init__(self, input_size, hidden_size, output_size, batch_size, batch_first, num_layers, dropout_rate, use_cuda):
+	def __init__(self, nn_learning_def):
 		super(CNN_LSTM, self).__init__()
 
 		self.name = "CNN_LSTM"
-		self.hidden_size = hidden_size
-		self.use_cuda = use_cuda
-		self.batch_size = batch_size
-		self.batch_first = batch_first
+		self.hidden_size = nn_learning_def.num_hidden
+		self.use_cuda = nn_learning_def.use_cuda
+		self.batch_size = nn_learning_def.batch_size
+		self.batch_first = nn_learning_def.batch_first
+		self.input_size = nn_learning_def.input_size
+		self.num_layers = nn_learning_def.num_layers
+		self.dropout_rate = nn_learning_def.dropout_rate
+		self.output_size = nn_learning_def.output_size
 
-		self.conv1 = nn.Sequential(		# data_chunk_tensor has shape: (batch_size x samples_per_step x num_attr)
-			# the actual input is (samples_per_step x num_attr), batch_size is implicit
+		self.conv1 = nn.Sequential(		# data_chunk_tensor has shape: (batch_size x samples_per_chunk x num_attr)
+			# the actual input is (samples_per_chunk x num_attr), batch_size is implicit
 			# input size expected by Conv1d: (batch_size x number of channels x length of signal sequence)
-			# so in our case it needs to be (batch_size x input_size x samples_per_step)
+			# so in our case it needs to be (batch_size x input_size x samples_per_chunk)
 			nn.Conv1d(
-				in_channels = input_size,
+				in_channels = self.input_size,
 				out_channels = 16,		# number of filters
-				kernel_size = 5,         # size of filter
+				kernel_size = 5,        # size of filter
 				stride = 1,             # filter movement/step
 				padding = 2				# padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
 			),
@@ -28,10 +32,10 @@ class CNN_LSTM (nn.Module):
 			nn.MaxPool1d(kernel_size=2)
 		)
 
-		self.lstm = nn.LSTM(input_size=16, hidden_size=hidden_size, num_layers=num_layers,
-							dropout=dropout_rate, batch_first=batch_first)
+		self.lstm = nn.LSTM(input_size=16, hidden_size=self.hidden_size, num_layers=self.num_layers,
+							dropout=self.dropout_rate, batch_first=self.batch_first)
 
-		self.hidden2out = nn.Linear(hidden_size, output_size)
+		self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
 		self.softmax = nn.LogSoftmax(dim=1) # already ensured this is the right dimension and calculation is correct
 
 	def init_hidden(self):
@@ -45,13 +49,10 @@ class CNN_LSTM (nn.Module):
 					Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float())
 
 	def forward(self, input):
-		# print("Input before transpose: ", input.size())
 		# reshape the input from (batch_size x seq_len x input_size) to (batch_size x input_size x seq_len)
 		# since that is how CNN expects it
-
-		# noinspection PyUnresolvedReferences
 		input = torch.transpose(input, 1, 2)
-		# print("Input to cnn before conv1:", input.size())
+
 		input = self.conv1(input)
 		# the output of conv1d is expected to be (batch_size x output_channels(number of kernels) x seq_len)
 		# but seq_len can be shorter, since it's valid cross-correlation not full cross-correlation
