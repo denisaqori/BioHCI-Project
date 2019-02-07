@@ -61,6 +61,8 @@ def get_root_path(val):
 		path = '/home/denisa/GitHub/BioHCI Project/Results'
 	elif val.lower() == "src":
 		path = '/home/denisa/GitHub/BioHCI Project/BioHCI'
+	elif val.lower() == "saved_models":
+		path = '/home/denisa/GitHub/BioHCI Project/saved_models'
 	else:
 		path = None
 		print("Root path for " + val + " is set to None...")

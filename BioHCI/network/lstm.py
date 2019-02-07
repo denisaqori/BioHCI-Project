@@ -7,24 +7,26 @@ import torch
 # Also thanks to: https://github.com/yunjey/pytorch-tutorial and https://github.com/MorvanZhou/PyTorch-Tutorial
 class LSTM (nn.Module):
 
-	def __init__(self, input_size, hidden_size, output_size, batch_size, batch_first, num_layers, dropout_rate, use_cuda):
+	def __init__(self, nn_learning_def):
 		super(LSTM, self).__init__()
 
 		self.name = "LSTM"
-		self.hidden_size = hidden_size
-		self.output_size = output_size
-		self.batch_size = batch_size
-		self.batch_first = batch_first
-		self.use_cuda = use_cuda
+		self.input_size = nn_learning_def.input_size
+		self.hidden_size = nn_learning_def.hidden_size
+		self.output_size = nn_learning_def.output_size
+		self.batch_size = nn_learning_def.batch_size
+		self.batch_first = nn_learning_def.batch_first
+		self.num_layers = nn_learning_def.num_layers
+		self.use_cuda = nn_learning_def.use_cuda
 
 		# the lstm layer that receives inputs of a specific size and outputs
 		# a hidden state of hidden _state
-		self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
-							dropout=dropout_rate, batch_first=batch_first)
+		self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers,
+							dropout=self.dropout_rate, batch_first=self.batch_first)
 
 		# a linear layer mapping the hidden state to output, then squashing
 		# the output (probability for each class) through a softmax function
-		self.hidden2out = nn.Linear(hidden_size, output_size)
+		self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
 		# define the softmax function, declaring the dimension along which it will be computed (so every slice along it
 		# will sum to 1). The output  (on which the function will be called) will have the shape batch_size x output_size
 		self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
@@ -32,11 +34,9 @@ class LSTM (nn.Module):
 	# The hidden and cell state dimensions are: (num_layers * num-direction, batch, hidden_size) for each
 	def init_hidden(self):
 		if self.use_cuda:
-			# noinspection PyUnresolvedReferences
 			return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True),
 					Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True))
 		else:
-			# noinspection PyUnresolvedReferences
 			return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float(),
 					Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float())
 

@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 from BioHCI.model.trainer import Trainer
 from BioHCI.model.evaluator import Evaluator
+from BioHCI.helpers import utilities as util
 
 import torch.nn as nn
 import torch
@@ -74,15 +75,18 @@ class NNCrossValidator(CrossValidator):
 
 	# evaluate the model created during training on the validation dataset
 	def val(self, val_dataset):
+		val_data_loader = self._get_data_and_labels(val_dataset)
+
 		# this is the network produces by training over the other folds
-		model_name = self._parameter.study_name + "-" + self._learning_def.model_name + "-batch-" \
+		model_name = self._parameter.study_name + "-" + self.model.name + "-batch-" \
 					 + str(self._learning_def.batch_size) + "-seqSize-" \
-					 + str(self._learning_def.samples_per_step) + ".pt"
+					 + str(self.parameters.samples_per_chunk) + ".pt"
 
-		model_to_eval = torch.load(os.path.join("saved_models", model_name))
+		saved_models_root = util.get_root_path("saved_models")
+		model_to_eval = torch.load(os.path.join(saved_models_root, model_name))
 
-		evaluator = Evaluator(test_data_loader=val_dataset, model_to_eval=model_to_eval,
-							  categories=self._all_categories, confusion=self._confusion,
+		evaluator = Evaluator(test_data_loader=val_data_loader, model_to_eval=model_to_eval,
+							  categories=self.all_int_categories, confusion=self._confusion,
 							  neural_network_def=self._learning_def)
 
 		fold_accuracy = evaluator.get_accuracy()

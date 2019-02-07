@@ -5,8 +5,8 @@ class NeuralNetworkDefinition(LearningDefinition):
 	def __init__(self, input_size, output_size, use_cuda):
 		# hyper-parameters
 		self.__num_hidden = 120  # number of nodes per hidden layer
-		self.__num_epochs = 20  # number of epochs over which to train
-		self.__samples_per_chunk = 25  # the number of measurements to be included in one sequence
+		self.__num_epochs = 1  # number of epochs over which to train
+		# self.__samples_per_seq = 25  # the number of measurements to be included in one sequence
 		self.__learning_rate = 0.1  # If you set this too high, it might explode. If too low, it might not learn
 		self.__batch_size = 1  # The number of instances in one batch
 		self.__dropout_rate = 0.05  # dropout rate: if 0, no dropout - to be passed to the network model
@@ -36,10 +36,6 @@ class NeuralNetworkDefinition(LearningDefinition):
 	@property
 	def num_epochs(self):
 		return self.__num_epochs
-
-	@property
-	def samples_per_chunk(self):
-		return self.__samples_per_chunk
 
 	@property
 	def batch_size(self):
@@ -97,10 +93,6 @@ class NeuralNetworkDefinition(LearningDefinition):
 	@num_epochs.setter
 	def num_epochs(self, num_epochs):
 		self.__num_epochs = num_epochs
-
-	@samples_per_chunk.setter
-	def samples_per_chunk(self, samples_per_chunk):
-		self.__samples_per_chunk = samples_per_chunk
 
 	@batch_size.setter
 	def batch_size(self, batch_size):

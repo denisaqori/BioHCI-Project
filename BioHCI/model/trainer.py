@@ -1,5 +1,6 @@
 import torch
 from torch.autograd import Variable
+from BioHCI.helpers import utilities as util
 import os
 
 
@@ -126,8 +127,8 @@ class Trainer:
 		# save trained model
 		name = self.__parameters.study_name + "-" + self.__model.name + "-batch-" + str(self.__batch_size) + \
 			   "-seqSize-" + str(self.__samples_per_chunk) + ".pt"
-		# torch.save(self.model, 'saved_models/toy-lstm-classification.pt')
-		torch.save(self.__model, os.path.join("saved_models", name))
+		model_dir = util.create_dir("saved_models")
+		torch.save(self.__model, os.path.join(model_dir, name))
 
 		return all_losses, all_accuracies
 

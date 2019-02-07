@@ -95,7 +95,7 @@ class CrossValidator(ABC):
 
 	def get_avg_train_losses(self):
 		avg_losses = []
-		for i in range(self._learning_def.get_num_epochs()):
+		for i in range(self._learning_def.num_epochs):
 			epoch_loss = 0
 			for j, loss_list in enumerate(self._all_train_losses):
 				epoch_loss = epoch_loss + loss_list[i]

@@ -8,9 +8,9 @@ from sklearn.svm import SVC
 class SVM:
 	def __init__(self, learning_def):
 		self.__learning_def = learning_def
-		self.__algorithm_name = None
-		self.__gamma = None
-		self.__C = None
+		self.__algorithm_name = "SVM"
+		self.__gamma = 0.001
+		self.__C = 100
 
 		self.__algorithm = SVC(C=self.C, gamma=self.gamma)
 
