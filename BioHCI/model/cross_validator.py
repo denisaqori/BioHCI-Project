@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import time
 import BioHCI.helpers.utilities as utils
-
+from tensorboardX import SummaryWriter
 
 class CrossValidator(ABC):
 	def __init__(self, subject_dict, data_splitter, dataset_processor, model, parameter, learning_def, all_categories):
@@ -28,6 +28,9 @@ class CrossValidator(ABC):
 		self._train_time = 0
 		self._val_time = 0
 
+		self.__tbx_path = utils.create_dir('tensorboardX_runs')
+		self.__writer = SummaryWriter(self.__tbx_path)
+
 		# create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation below)
 		# TODO: oh noo!! there are two confusion matrixes - fix this - maybe use as a test case
 		self._confusion = torch.zeros(len(all_categories), len(all_categories))
@@ -50,12 +53,12 @@ class CrossValidator(ABC):
 
 			# starting training with the above-defined parameters
 			train_start = time.time()
-			self.train(processed_train)
+			self.train(processed_train, self.__writer)
 			self._train_time = utils.time_since(train_start)
 
 			# start validating the model
 			val_start = time.time()
-			self.val(processed_val)
+			self.val(processed_val, self.__writer)
 			self._val_time = utils.time_since(val_start)
 
 		self._cv_time = utils.time_since(cv_start)
@@ -65,11 +68,11 @@ class CrossValidator(ABC):
 		pass
 
 	@abstractmethod
-	def train(self, train_dataset):
+	def train(self, train_dataset, summary_writer):
 		pass
 
 	@abstractmethod
-	def val(self, val_dataset):
+	def val(self, val_dataset, summary_writer):
 		pass
 
 	def get_all_val_accuracies(self):

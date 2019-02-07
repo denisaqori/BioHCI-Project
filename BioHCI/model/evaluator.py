@@ -6,7 +6,7 @@ from torch.autograd import Variable
 
 
 class Evaluator:
-	def __init__(self, test_data_loader, model_to_eval, categories, confusion, neural_network_def):
+	def __init__(self, test_data_loader, model_to_eval, categories, confusion, neural_network_def, summary_writer):
 		print("\n\nInitializing Evaluation...")
 
 		self.__model_to_eval = model_to_eval
@@ -15,6 +15,7 @@ class Evaluator:
 		
 		self.__test_data_loader = test_data_loader
 		self.__use_cuda = neural_network_def.use_cuda
+		self.__writer = summary_writer
 
 		# accuracy of evaluation
 		self.__accuracy = self.evaluate(self.__test_data_loader, confusion)

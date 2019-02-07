@@ -1,6 +1,7 @@
 import torch
 from torch.autograd import Variable
 from BioHCI.helpers import utilities as util
+from tensorboardX import SummaryWriter
 import os
 
 
@@ -10,7 +11,7 @@ import os
 
 class Trainer:
 	def __init__(self, train_data_loader, model, optimizer, criterion, all_int_categories, neural_network_def,
-				 parameters):
+				 parameters, summary_writer):
 		print("\nInitializing Training...")
 
 		self.__model = model
@@ -23,6 +24,7 @@ class Trainer:
 
 		self.__all_int_categories = all_int_categories
 		self.__parameters = parameters
+		self.__writer = summary_writer
 
 		self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
 
@@ -114,6 +116,7 @@ class Trainer:
 
 			accuracy = correct / total
 			all_accuracies.append(accuracy)
+			self.__writer.add_scalar('Train/Accuracy', accuracy, epoch)
 
 			# Print epoch number, loss, accuracy, name and guess
 			print_every = 1
@@ -122,6 +125,7 @@ class Trainer:
 
 			# Add current loss avg to list of losses
 			all_losses.append(current_loss / epoch)
+			self.__writer.add_scalar('Train/Avg Loss', current_loss/epoch, epoch)
 			current_loss = 0
 
 		# save trained model
