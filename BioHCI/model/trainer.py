@@ -90,6 +90,9 @@ class Trainer:
 			total = 0
 			# goes through the whole training dataset in tensor chunks and batches computing output and loss
 			for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader):  # gives batch data
+				# if step == 0:
+				# 	input = Variable(data_chunk_tensor)
+				# 	self.__writer.add_graph(self.__model, input.cuda(async =True), True)
 
 				# data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
 				# category_tensor has shape (batch_size)
@@ -113,6 +116,9 @@ class Trainer:
 					if category_i == guess_i:
 						# print ("Correct Guess")
 						correct += 1
+
+			for name, param in self.__model.named_parameters():
+				self.__writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
 			accuracy = correct / total
 			all_accuracies.append(accuracy)
