@@ -2,18 +2,17 @@ import argparse
 
 import torch
 
-from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data.dataset_processor import DatasetProcessor
-from BioHCI.data.within_subject_oversampler import WithinSubjectOversampler
+from BioHCI.data_processing.dataset_processor import DatasetProcessor
+from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definition.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definition.non_neural_net_def import NonNeuralNetworkDefinition
 from BioHCI.model.nn_cross_validator import NNCrossValidator
 from BioHCI.model.scipy_cross_validator import ScipyCrossValidator
 from BioHCI.helpers.result_logger import Logging
-from BioHCI.data.feature_constructor import FeatureConstructor
-from BioHCI.data.data_augmenter import DataAugmenter
+from BioHCI.data_processing.feature_constructor import FeatureConstructor
+from BioHCI.data_processing.data_augmenter import DataAugmenter
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
