@@ -8,7 +8,7 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
-import scipy.ndimage as filter
+import scipy.ndimage
 import numpy as np
 
 
@@ -76,7 +76,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		signal_list = []
 		for i in range(0, interval.shape[-1]):
 			signal = interval[:, i]
-			filtered = filter.gaussian_filter1d(input=signal, sigma=sigma)
+			filtered = scipy.ndimage.gaussian_filter1d(input=signal, sigma=sigma)
 			signal_list.append(filtered)
 
 		smoothed_interval = np.stack(signal_list, axis=1)
@@ -105,10 +105,11 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			gradient_list = []
 			for i in range(0, octave[0].shape[-1]):
 				desc = self._describe_signal(filtered_signal[:, i])
-			# gradient = np.gradient(filtered_signal[:, i])
-			# gradient_list.append(gradient)
-		# signal_gradient = np.stack(gradient_list, axis=1)
-		# print("")
+		# gradient = np.gradient(filtered_signal[:, i])
+		# gradient_list.append(gradient)
+
+	# signal_gradient = np.stack(gradient_list, axis=1)
+	# print("")
 
 	def _describe_signal(self, signal_1d, nb=4, a=4):
 		"""
@@ -126,17 +127,18 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		"""
 		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an equal " \
+							"" \
 							"number of points before and after the keypoint."
 
 		keypoint_descriptors = []
 		for pos, point in enumerate(signal_1d):
 
-			start = int(pos - (nb*a)/2)
-			stop = int(pos + (nb*a)/2 + 1)
+			start = int(pos - (nb * a) / 2)
+			stop = int(pos + (nb * a) / 2 + 1)
 
 			# if there aren't enough values to form blocks ahead of the keypoint, repeat the first value
-			if pos < nb*a/2:
-				pad_n = nb*a/2 - pos
+			if pos < nb * a / 2:
+				pad_n = nb * a / 2 - pos
 				padding = np.repeat(signal_1d[0], pad_n)
 				signal = signal_1d[0: stop]
 
@@ -151,18 +153,58 @@ class BoTWFeatureConstructor(FeatureConstructor):
 				keypoint_neighbourhood = np.concatenate((signal, padding), axis=0)
 
 			else:
-				keypoint_neighbourhood = signal_1d[start : stop]
+				keypoint_neighbourhood = signal_1d[start: stop]
 
 			descriptor = self._describe_each_point(keypoint_neighbourhood, nb=nb, a=a)
 			keypoint_descriptors.append(descriptor)
 
-		print("")
-
+		return keypoint_descriptors
 
 	def _describe_each_point(self, keypoint_neighbourhood, nb, a):
-		assert keypoint_neighbourhood is not None, "No neighbourhood has been assigned to the keypoint."
-		return keypoint_neighbourhood
+		"""
+		Each keypoint is described in terms of the sum of positive and negative gradients of blocks of other points
+		around it. The interval keypoint_neighbourhood, whose midpoint is the keypoint being characterized,
+		is first filtered with a gaussian filter of scale nb*a/2 to weigh the importance of points according to
+		proximity with the keypoint.
 
+		Args:
+			keypoint_neighbourhood:
+			nb: the total number of blocks around a keypoint
+			a: the number of points in one block
+
+		Returns:
+			all_gradient_sums (ndarray): a 2*nb long ndarray where from each block, the sum of positive gradients,
+			and the sum of negative gradients are maintained
+
+		"""
+		assert keypoint_neighbourhood is not None, "No neighbourhood has been assigned to the keypoint."
+		assert keypoint_neighbourhood.shape[0] == nb * a + 1
+
+		filtered_neighbourhood = scipy.ndimage.gaussian_filter1d(input=keypoint_neighbourhood, sigma=nb * a / 2)
+		point_idx = int(nb * a / 2)
+
+		blocks = []
+		for i in range(0, point_idx, a):
+			block = filtered_neighbourhood[i:i+a]
+			blocks.append(block)
+
+		for i in range(point_idx+1, filtered_neighbourhood.shape[0], a):
+			block = filtered_neighbourhood[i:i+a]
+			blocks.append(block)
+
+		all_gradients = []
+		for j, block in enumerate(blocks):
+			pos = 0
+			neg = 0
+			for point in block:
+				if point < 0:
+					neg = neg + point
+				if point > 0:
+					pos = pos + point
+			all_gradients.append([pos, neg])
+
+		all_gradient_sums = np.array(all_gradients).flatten()
+		return all_gradient_sums
 
 
 if __name__ == "__main__":
