@@ -100,18 +100,21 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			diff_of_gaussian_list.append(diff_of_gaussian)
 		return diff_of_gaussian_list
 
+	# TODO: concatenate results from all octaves
 	def _describe_keypoints(self, octave):
+		processed_signals = []
 		for filtered_signal in octave:
-			gradient_list = []
+			signal_desc_list = []
 			for i in range(0, octave[0].shape[-1]):
-				desc = self._describe_signal(filtered_signal[:, i])
-		# gradient = np.gradient(filtered_signal[:, i])
-		# gradient_list.append(gradient)
+				desc = self._describe_signal_1d(filtered_signal[:, i])
+				signal_desc_list.append(desc)
+			signal_desc = np.concatenate(signal_desc_list, axis=1)
+			processed_signals.append(signal_desc)
 
-	# signal_gradient = np.stack(gradient_list, axis=1)
-	# print("")
+		processed_octave = np.concatenate(processed_signals, axis=1)
+		return
 
-	def _describe_signal(self, signal_1d, nb=4, a=4):
+	def _describe_signal_1d(self, signal_1d, nb=4, a=4):
 		"""
 		Describes each point of the input signal in terms of positive and negative gradients in its neighbourhood.
 
@@ -158,8 +161,11 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			descriptor = self._describe_each_point(keypoint_neighbourhood, nb=nb, a=a)
 			keypoint_descriptors.append(descriptor)
 
-		return keypoint_descriptors
+		signal_desc = np.stack(keypoint_descriptors, axis=0)
+		return signal_desc
 
+
+	# TODO: make sure that there is no bug where all negative gradient values are smoothed out
 	def _describe_each_point(self, keypoint_neighbourhood, nb, a):
 		"""
 		Each keypoint is described in terms of the sum of positive and negative gradients of blocks of other points
