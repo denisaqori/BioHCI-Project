@@ -102,6 +102,17 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 	# TODO: concatenate results from all octaves
 	def _describe_keypoints(self, octave):
+		"""
+		Describes every point of an interval.
+
+		Args:
+			octave:
+
+		Returns:
+			processed_octave (ndarray): a ndarray of 2*nb*number_of_blurred_images feature vector that describes
+				each point of the interval
+
+		"""
 		processed_signals = []
 		for filtered_signal in octave:
 			signal_desc_list = []
@@ -130,7 +141,6 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		"""
 		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an equal " \
-							"" \
 							"number of points before and after the keypoint."
 
 		keypoint_descriptors = []
@@ -186,16 +196,18 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		assert keypoint_neighbourhood is not None, "No neighbourhood has been assigned to the keypoint."
 		assert keypoint_neighbourhood.shape[0] == nb * a + 1
 
-		filtered_neighbourhood = scipy.ndimage.gaussian_filter1d(input=keypoint_neighbourhood, sigma=nb * a / 2)
+		gradient = np.gradient(keypoint_neighbourhood)
+		filtered_gradient = scipy.ndimage.gaussian_filter1d(input=gradient, sigma=nb * a / 2)
 		point_idx = int(nb * a / 2)
 
 		blocks = []
 		for i in range(0, point_idx, a):
-			block = filtered_neighbourhood[i:i+a]
+			block = filtered_gradient[i:i+a]
+
 			blocks.append(block)
 
-		for i in range(point_idx+1, filtered_neighbourhood.shape[0], a):
-			block = filtered_neighbourhood[i:i+a]
+		for i in range(point_idx+1, filtered_gradient.shape[0], a):
+			block = filtered_gradient[i:i+a]
 			blocks.append(block)
 
 		all_gradients = []
