@@ -50,7 +50,7 @@ class NNCrossValidator(CrossValidator):
 		print("Using the PyTorch DataLoader to load the training data (shuffled) with: \nbatch size = ",
 			  self._learning_def.batch_size, " & number of threads = ", self._parameter.num_threads)
 		data_loader = DataLoader(tensor_dataset, batch_size=self._learning_def.batch_size,
-								 num_workers=self._parameter.num_threads, shuffle=True, pin_memory=True)
+								 num_workers=self._parameter.num_threads, shuffle=False, pin_memory=True)
 
 		return data_loader
 

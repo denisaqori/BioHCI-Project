@@ -8,10 +8,19 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
+import BioHCI.helpers.utilities as utils
+
+import torch
+import time
+from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Pool
+from sklearn.cluster import KMeans
 import scipy.ndimage
 import numpy as np
+import pickle
 
 
+# TODO: run multi-threaded: disabled for the moment so there is some reproducibility in results
 class BoTWFeatureConstructor(FeatureConstructor):
 	"""
 	Bag of Temporal Words:
@@ -20,24 +29,95 @@ class BoTWFeatureConstructor(FeatureConstructor):
 	def __init__(self, parameters, feature_axis):
 		super().__init__(parameters, feature_axis)
 		print("Bag of Temporal Words being initiated...")
-		self.features = [self.smooth_category]
+		self.features = [self.compute_histogram]
 
-	def smooth_category(self, cat, feature_axis):
+	# self.features = []
+
+	# TODO: make the way the axis is extracted more general
+	# first part of computing category desc, is a modified version of the produce_category_desc where we skip the
+	# finding keypoints part
+	def compute_histogram(self, cat, feature_axis):
+		# descriptor_list = []
+		# for i in range(0, cat.shape[0]):
+		# 	for j in range(0, cat.shape[1]):
+		# 		interval = cat[i, j, :, :]
+		# 		octave = self._create_octave(interval)
+		#
+		# 		keypoint_desc = self._describe_keypoints(octave)
+		# 		if keypoint_desc is not None:
+		# 			descriptor_list.append(keypoint_desc)
+		#
+		# cat_descriptors = np.concatenate(descriptor_list, axis=0)
+
+		cat_descriptors = self.produce_category_descriptors(cat)
+		# load the model
+		kmeans = pickle.load(open("bag_of_temporal_words_codebook_100.sav", 'rb'))
+		start_time = time.time()
+		predictions = kmeans.predict(cat_descriptors)
+		end_time = utils.time_since(start_time)
+		return predictions
+
+	def generate_codebook(self, subj_dataset):
 		"""
 
 		Args:
-			cat:
-			feature_axis:
+			subj_dataset:
 
 		Returns:
 
 		"""
+		# start_time = time.time()
+		cat_desc_list = []
+		for subj_name, subj in subj_dataset.items():
+			cat_data = subj.get_data()
+			# categories = subj.get_categories()
+			for cat in cat_data:
+				cat_desc = self.produce_category_descriptors(cat)
+
+				# end_time = utils.time_since(start_time)
+				# multi-threading (easily done by mapping)
+				# pool = Pool(10)
+				# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
+				# pool.close()
+				# pool.join()
+
+				if cat_desc is not None:
+					cat_desc_list.append(cat_desc)
+		dataset_desc = np.concatenate(cat_desc_list, axis=0)
+		kmeans = KMeans(n_clusters=10).fit(dataset_desc)
+
+		# save the model to disk
+		filename = 'bag_of_temporal_words_codebook_100.sav'
+		pickle.dump(kmeans, open(filename, 'wb'))
+
+		return kmeans
+
+	def produce_category_descriptors(self, cat):
+		"""
+
+		Args:
+			cat (ndarray): category to be described
+
+		Returns:
+			cat_descriptors:
+
+		"""
+		# cat = torch.from_numpy(cat).cuda(async=True)
+		descriptor_list = []
 		for i in range(0, cat.shape[0]):
 			for j in range(0, cat.shape[1]):
 				interval = cat[i, j, :, :]
 				octave = self._create_octave(interval)
 				diff_of_gaussian = self._compute_diff_of_gaussian(octave)
-				self._describe_keypoints(octave)
+				keypoints = self._find_keypoints(diff_of_gaussian)
+
+				keypoint_desc = self._describe_keypoints(octave, keypoint_list=keypoints)
+				if keypoint_desc is not None:
+					descriptor_list.append(keypoint_desc)
+
+		print("")
+		cat_descriptors = np.concatenate(descriptor_list, axis=0)
+		return cat_descriptors
 
 	def _create_octave(self, interval):
 		"""
@@ -47,7 +127,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			interval: the signal whose columns are to be individually filtered
 
 		Returns:
-			octave (list): a list of intervals (ndarrays) filtered at different scales (2D)- each separately filtered
+			octave (list): a list of intervals (ndarrays) filtered at different scales (2D)- each separately 			filtered
 
 		"""
 		k = math.sqrt(2)
@@ -96,36 +176,170 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		diff_of_gaussian_list = []
 		for i in range(1, len(octave)):
-			diff_of_gaussian = np.subtract(octave[i - 1], octave[i])
+			diff_of_gaussian = np.subtract(octave[i], octave[i - 1])
 			diff_of_gaussian_list.append(diff_of_gaussian)
 		return diff_of_gaussian_list
 
-	# TODO: concatenate results from all octaves
-	def _describe_keypoints(self, octave):
+	def _find_keypoints(self, octave_dog):
 		"""
-		Describes every point of an interval.
+		Finds points in the interval that are either the maximum or minimum of their neighbourhood within at least
+		one dimension.
 
 		Args:
-			octave:
+			octave_dog: a list of difference of gaussian intervals
+
+		Returns:
+			signal_keypoints (list): a list of tuples - each tuple contains coordinates for a discontinuity.
+									 The first coordinate indicates the scale, while the second, the time point.
+		"""
+		num_signal = octave_dog[0].shape[-1]
+
+		signal_keypoints = []
+		for i in range(0, num_signal):
+			signal_list = []
+			for interval in octave_dog:
+				signal = interval[:, i]
+				signal_list.append(signal)
+			keypoints_1d = self._find_keypoints_1d(signal_list)
+			signal_keypoints.append(keypoints_1d)
+
+		all_keypoints = [coords for sublist in signal_keypoints for coords in sublist]
+		return all_keypoints
+
+	# admit keypoint if DoG point is smaller or larger than all the points in its neighbourhood
+	def _find_keypoints_1d(self, signals_1d):
+		"""
+
+		Args:
+			signals_1d:
+
+		Returns:
+
+		"""
+		signals_1d_list = []
+		for ndarray in signals_1d:
+			signals_1d_list.append(ndarray.tolist())
+
+		keypoint_idx = []
+		for i in range(1, len(signals_1d_list) - 1):
+			prev_signal = signals_1d_list[i - 1]
+			signal = signals_1d_list[i]
+			next_signal = signals_1d_list[i + 1]
+
+			for j in range(1, len(signal) - 1):
+				if (signal[j] > prev_signal[j] and signal[j] > next_signal[j] and
+					signal[j] > signal[j - 1] and signal[j] > signal[j + 1] and
+					signal[j] > prev_signal[j - 1] and signal[j] > prev_signal[j + 1] and
+					signal[j] > next_signal[j - 1] and signal[j] > next_signal[j + 1]) or \
+						(signal[j] < prev_signal[j] and signal[j] < next_signal[j] and
+						 signal[j] < signal[j - 1] and signal[j] < signal[j + 1] and
+						 signal[j] < prev_signal[j - 1] and signal[j] < prev_signal[j + 1] and
+						 signal[j] < next_signal[j - 1] and signal[j] < next_signal[j + 1]):
+					print("Found keypoint in signal ", i, "at location ", j, "!")
+					keypoint_idx.append((i, j))
+		return keypoint_idx
+
+	def _describe_keypoints(self, octave, keypoint_list=None):
+		"""
+		Describes every point of an interval by default, unless there is a keypoint_list passed as an argument,
+		in which case it uses that to find the indices of points to describe. 
+
+		Args:
+			octave (list): a list of arrays representing the same signal progressively blurred.
+			keypoint_list (list): a list of tuples indicating extrama in the signal scale-space. The first element
+								  of the tuple is the level of blur (scale), - indicating which of the octaves to
+								  select from the list - while the second element of the tuple stands for the time
+								  position within that octave that is a maximum or minimum.
 
 		Returns:
 			processed_octave (ndarray): a ndarray of 2*nb*number_of_blurred_images feature vector that describes
 				each point of the interval
 
 		"""
-		processed_signals = []
-		for filtered_signal in octave:
-			signal_desc_list = []
-			for i in range(0, octave[0].shape[-1]):
-				desc = self._describe_signal_1d(filtered_signal[:, i])
-				signal_desc_list.append(desc)
-			signal_desc = np.concatenate(signal_desc_list, axis=1)
-			processed_signals.append(signal_desc)
+		nb = 4
+		a = 4
 
-		processed_octave = np.concatenate(processed_signals, axis=1)
-		return
+		if keypoint_list is None:
+			processed_signals = []
+			for filtered_signal in octave:
+				signal_desc_list = []
+				for i in range(0, octave[0].shape[-1]):
+					desc = self._describe_signal_1d(filtered_signal[:, i], nb, a)
+					signal_desc_list.append(desc)
+				signal_desc = np.concatenate(signal_desc_list, axis=1)
+				processed_signals.append(signal_desc)
 
-	def _describe_signal_1d(self, signal_1d, nb=4, a=4):
+			result = np.concatenate(processed_signals, axis=1)
+
+		else:
+			if len(keypoint_list) > 0:
+				keypoint_descriptors = []
+				for i, keypoint in enumerate(keypoint_list):
+
+					print("keypoint: ", keypoint)
+					scale = keypoint[0]
+					interval = octave[scale]
+
+					point_idx = keypoint[1]
+					column_desc = []
+					for j in range(0, interval.shape[-1]):
+						signal = interval[:, j]
+						keypoint_neighbourhood = self._get_neighbourhood(signal, point_idx, nb, a)
+						descriptor = self._describe_each_point(keypoint_neighbourhood, nb, a)
+						column_desc.append(descriptor)
+					all_column_desc = np.concatenate(column_desc, axis=0)
+					keypoint_descriptors.append(all_column_desc)
+
+				# keypoint_desc = np.stack(keypoint_descriptors, axis=0)
+				# keypoint_desc_list.append(keypoint_desc)
+				result = np.stack(keypoint_descriptors, axis=0)
+			else:
+				result = None
+
+		return result
+
+	def _get_neighbourhood(self, signal_1d, point_idx, nb, a):
+		"""
+		Constructs a neighbourhood around a point to be described, with nb*a/2 points before and after that point.
+
+		Args:
+			signal_1d (ndarray): one column of an interval
+			point_idx (int): the index of the point in the interval to be described (whose neighbourhood to get)
+			nb: number of blocks to describe the point
+			a: number of points in each block
+
+		Returns:
+			keypoint_neighbourhood (ndarray): a 1D array that contains the neighbourhood with the point to be
+											  described in center. The size of the array is nb * a + 1.
+
+		"""
+		assert len(signal_1d) > 0
+
+		start = int(point_idx - (nb * a) / 2)
+		stop = int(point_idx + (nb * a) / 2 + 1)
+
+		# if there aren't enough values to form blocks ahead of the keypoint, repeat the first value
+		if point_idx < nb * a / 2:
+			pad_n = nb * a / 2 - point_idx
+			padding = np.repeat(signal_1d[0], pad_n)
+			signal = signal_1d[0: stop]
+
+			keypoint_neighbourhood = np.concatenate((padding, signal), axis=0)
+
+		# if there aren't enough values to form blocks after the keypoint, repeat the last value
+		elif signal_1d.shape[0] < stop:
+			signal = signal_1d[start: stop]
+
+			pad_n = stop - signal_1d.shape[0]
+			padding = np.repeat(signal_1d[-1], pad_n)
+			keypoint_neighbourhood = np.concatenate((signal, padding), axis=0)
+
+		else:
+			keypoint_neighbourhood = signal_1d[start: stop]
+
+		return keypoint_neighbourhood
+
+	def _describe_signal_1d(self, signal_1d, nb, a):
 		"""
 		Describes each point of the input signal in terms of positive and negative gradients in its neighbourhood.
 
@@ -141,41 +355,20 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		"""
 		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an equal " \
+							"" \
+							"" \
+							"" \
 							"number of points before and after the keypoint."
 
 		keypoint_descriptors = []
 		for pos, point in enumerate(signal_1d):
-
-			start = int(pos - (nb * a) / 2)
-			stop = int(pos + (nb * a) / 2 + 1)
-
-			# if there aren't enough values to form blocks ahead of the keypoint, repeat the first value
-			if pos < nb * a / 2:
-				pad_n = nb * a / 2 - pos
-				padding = np.repeat(signal_1d[0], pad_n)
-				signal = signal_1d[0: stop]
-
-				keypoint_neighbourhood = np.concatenate((padding, signal), axis=0)
-
-			# if there aren't enough values to form blocks after the keypoint, repeat the last value
-			elif signal_1d.shape[0] < stop:
-				signal = signal_1d[start: stop]
-
-				pad_n = stop - signal_1d.shape[0]
-				padding = np.repeat(signal_1d[-1], pad_n)
-				keypoint_neighbourhood = np.concatenate((signal, padding), axis=0)
-
-			else:
-				keypoint_neighbourhood = signal_1d[start: stop]
-
-			descriptor = self._describe_each_point(keypoint_neighbourhood, nb=nb, a=a)
+			keypoint_neighbourhood = self._get_neighbourhood(signal_1d, pos, nb, a)
+			descriptor = self._describe_each_point(keypoint_neighbourhood, nb, a)
 			keypoint_descriptors.append(descriptor)
 
 		signal_desc = np.stack(keypoint_descriptors, axis=0)
 		return signal_desc
 
-
-	# TODO: make sure that there is no bug where all negative gradient values are smoothed out
 	def _describe_each_point(self, keypoint_neighbourhood, nb, a):
 		"""
 		Each keypoint is described in terms of the sum of positive and negative gradients of blocks of other points
@@ -202,12 +395,12 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		blocks = []
 		for i in range(0, point_idx, a):
-			block = filtered_gradient[i:i+a]
+			block = filtered_gradient[i:i + a]
 
 			blocks.append(block)
 
-		for i in range(point_idx+1, filtered_gradient.shape[0], a):
-			block = filtered_gradient[i:i+a]
+		for i in range(point_idx + 1, filtered_gradient.shape[0], a):
+			block = filtered_gradient[i:i + a]
 			blocks.append(block)
 
 		all_gradients = []
@@ -227,6 +420,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 if __name__ == "__main__":
 	print("Running feature_constructor module...")
+	print("Is cuda available?", torch.cuda.is_available())
 
 	config_dir = "config_files"
 	config = StudyConfig(config_dir)
@@ -240,6 +434,7 @@ if __name__ == "__main__":
 	subject_dict = data.get_subject_dataset()
 
 	feature_constructor = BoTWFeatureConstructor(parameters, feature_axis=2)
+
 	dataset_processor = DatasetProcessor(parameters, feature_constructor=feature_constructor)
 	feature_dataset = dataset_processor.process_dataset(subject_dict)
 	print("")

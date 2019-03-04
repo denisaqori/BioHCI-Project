@@ -1,7 +1,6 @@
 import numpy as np
 from copy import copy
 
-
 class DatasetProcessor:
 	def __init__(self, parameters, balancer=None, feature_constructor=None, data_augmenter=None):
 		"""
@@ -300,6 +299,8 @@ class DatasetProcessor:
 		else:
 			chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
 											  self.parameters.feature_overlap)
+			# codebook = self.feature_constructor.generate_codebook(chunked_dataset)
+
 			feature_dataset = self.feature_constructor.get_feature_dataset(chunked_dataset)
 
 			print("Returning feature dataset...")
