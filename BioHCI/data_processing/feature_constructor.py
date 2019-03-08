@@ -7,15 +7,32 @@ from abc import ABC
 
 
 class FeatureConstructor(ABC):
-	def __init__(self, parameters, feature_axis):
+	def __init__(self, dataset_processor, parameters, feature_axis):
 
 		assert (parameters.construct_features is True)
 		assert (parameters.feature_window is not None), "In order for features to be created, the feature window " \
 														"attribute should be set to an integer greater than 0, " \
 														"and be of NoneType."
+		self.parameters = parameters
 		assert isinstance(feature_axis, int)
+		# A dictionary mapping a subject name to a Subject object. The data for each category of each subject will
+		# have a shape of (number of chunks, number of feature intervals, interval to built features on, number of
+		# original attributes).
+		self.__subject_dataset = None
+		# The axis along which features are to be created. This axis will end up being collapsed
 		self.feature_axis = feature_axis
 		self.feature_window = parameters.feature_window
+		self.dataset_processor = dataset_processor
+
+		self.processed_dataset = self.processed_dataset()
+
+	def process_dataset(self):
+		assert self.subject_dataset is not None, "Subject_dataset needs to be set."
+		processed_dataset = self.dataset_processor.process_dataset(self.subject_dataset)
+
+		feature_ready_dataset = self.dataset_processor.chunk_data(processed_dataset, self.parameters.feature_window, 1,
+														 self.parameters.feature_overlap)
+		return feature_ready_dataset
 
 	@property
 	def features(self):
@@ -29,16 +46,26 @@ class FeatureConstructor(ABC):
 
 		self.__features = feature_list
 
-	def get_feature_dataset(self, subj_dataset):
+	@property
+	def subject_dataset(self):
+		return self.__subject_dataset
+
+	@subject_dataset.setter
+	def subject_dataset(self, subject_dataset):
+		for subj_name, subj in self.subject_dataset.items():
+			cat_data = subj.get_data()
+
+			for cat in cat_data:
+				assert len(cat.shape) == 4, "The subj_dataset passed to create features on, should have 4 axis."
+		self.__subject_dataset = subject_dataset
+
+	def produce_feature_dataset(self):
 		"""
 		Constructs features over an interval of a chunk for the whole dataset. For each unprocessed original feature,
-		the function specified in self.features is applied to each part of the chunk.
-
-		Args:
-			subj_dataset: A dictionary mapping a subject name to a Subject object. The data for each category of each
-				subject will have a shape of (number of chunks, number of feature intervals, interval to built
-				features on, number of original attributes).
-			feature_axis: The axis along which features are to be created. This axis will end up being collapsed.
+		the function specified in self.features is applied to each part of the chunk. First the existence of
+		self.subject_dataset is checked to ensure it has been assigned. At the end of the processing,
+		self.subject_dataset is reset to None, so the same FeatureConstructor definition can be used on another
+		subject dataset.
 
 		Returns:
 			feature_dataset: A dictionary mapping a subject name to a Subject object. The data for each category of
@@ -47,12 +74,13 @@ class FeatureConstructor(ABC):
 				calculated for each).
 
 		"""
-		assert isinstance(subj_dataset, dict)
+		assert self.subject_dataset is not None, "A subject dataset needs to be set to this FeatureConstructor object."
+		assert isinstance(self.processed_dataset, dict)
 		assert self.features is not None, "There features should contain functions that calculate features in a " \
 										  "specific way. Initiate a non-abstract class, child of FeatureConstructor."
 
 		feature_dataset = {}
-		for subj_name, subj in subj_dataset.items():
+		for subj_name, subj in self.processed_dataset.items():
 			cat_data = subj.get_data()
 
 			new_cat_data = []
@@ -75,6 +103,8 @@ class FeatureConstructor(ABC):
 			new_subj.set_data(new_cat_data)  # assign the above-calculated feature categories
 			feature_dataset[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
 
+		# reset self.subject_dataset to None, so another subject dataset can be assigned to the feature definition
+		self.subject_dataset = None
 		return feature_dataset
 
 	'''

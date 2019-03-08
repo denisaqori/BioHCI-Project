@@ -9,6 +9,7 @@ from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
 import BioHCI.helpers.utilities as utils
+from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 
 import torch
 import time
@@ -477,8 +478,14 @@ if __name__ == "__main__":
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
 
-	feature_constructor = BoTWFeatureConstructor(parameters, feature_axis=2)
+	# define a category balancer (implementing the abstract CategoryBalancer)
+	category_balancer = WithinSubjectOversampler()
+	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
+	processed_data = dataset_processor.process_dataset(subject_dict)
 
-	dataset_processor = DatasetProcessor(parameters, feature_constructor=feature_constructor)
-	feature_dataset = dataset_processor.process_dataset(subject_dict)
+	feature_constructor = BoTWFeatureConstructor(parameters, feature_axis=2)
+	feature_ready_dataset = dataset_processor.chunk_data(processed_data, parameters.feature_window, 1,
+											  parameters.feature_overlap)
+	feature_constructor.subject_dataset = feature_ready_dataset
+	feature_dataset = feature_constructor.produce_feature_dataset()
 	print("Done")

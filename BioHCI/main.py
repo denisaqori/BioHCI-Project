@@ -73,11 +73,10 @@ def main():
 	category_balancer = WithinSubjectOversampler()
 	# initialize the feature constructor
 	# TODO fix the feature_axis and input_size to not be magic numbers
-	feature_axis = 2
-	feature_constructor = FeatureConstructor(parameters, feature_axis=feature_axis)
 	data_augmenter = DataAugmenter()
-
-	dataset_processor = DatasetProcessor(parameters, category_balancer, feature_constructor, data_augmenter)
+	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer, data_augmenter=data_augmenter)
+	feature_axis = 2
+	feature_constructor = FeatureConstructor(dataset_processor, subject_dict, parameters, feature_axis=feature_axis)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	datast_categories = data.get_all_dataset_categories()
@@ -102,11 +101,11 @@ def main():
 
 	# cross-validation
 	if parameters.neural_net is True:
-		cv = NNCrossValidator(subject_dict, data_splitter, dataset_processor, model, parameters, learning_def,
-							  datast_categories)
+		cv = NNCrossValidator(subject_dict, data_splitter, dataset_processor, feature_constructor, model, parameters,
+							  learning_def, datast_categories)
 	else:
-		cv = ScipyCrossValidator(subject_dict, data_splitter, dataset_processor, model, parameters, learning_def,
-								 datast_categories)
+		cv = ScipyCrossValidator(subject_dict, data_splitter, dataset_processor, feature_constructor, model,
+								 parameters, learning_def, datast_categories)
 
 	# results of run
 	log_dir_path = "Results/" + parameters.study_name + "/run summaries"

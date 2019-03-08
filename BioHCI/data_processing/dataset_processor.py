@@ -2,7 +2,7 @@ import numpy as np
 from copy import copy
 
 class DatasetProcessor:
-	def __init__(self, parameters, balancer=None, feature_constructor=None, data_augmenter=None):
+	def __init__(self, parameters, balancer=None, data_augmenter=None):
 		"""
 		Args:
 			samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
@@ -14,13 +14,11 @@ class DatasetProcessor:
 		"""
 		self.parameters = parameters
 		self.balancer = balancer
-		self.feature_constructor = feature_constructor
 		self.data_augmenter = data_augmenter
 
 		self.data_chunked = False  # used to ensure order of operations (ex: chunking before compacting) for the data
 		self.data_compacted = False  # similar to the above (ex. compacting before balancing)
 
-		self.features_constructed = False
 		self.data_augmented = False
 		self.data_balanced = False
 
@@ -267,45 +265,6 @@ class DatasetProcessor:
 
 		return name_to_indices
 
-	def construct_features(self, compacted_subj_dict):
-		"""
-		Constructs features on the samples in the given training or testing set (dictionary) so that the instances of
-		each category are collapsed to create several representative features.
-
-		Args:
-			compacted_subj_dict (dict): A dictionary mapping subject names to the corresponding Subject object.
-				For each Subject object, the data from each category is in one ndarray only, and each category appears
-				exactly once. The data list corresponds to the category list.
-
-		Returns:
-			feature_dataset(dict): A dictionary similar to the above, where features over some interval are built.
-
-		"""
-		assert self.data_compacted is True, "Data has not been compacted in DatasetProcessor, so data from one " \
-											"category may not be uniquely able to be indexed. First call " \
-											"compact_subject_categorie(chunked_subj_dict), then call this method " \
-											"again."
-
-		assert self.data_chunked is True, "Data has not been chunked in DatasetProcessor. First call chunk_data(" \
-										  "subj_dict, samples_per_chunk, interval_overlap), then call this " \
-										  "method again."
-
-		if self.feature_constructor is None:
-			print("No feature_constructor argument set in the DatasetProcessor Object. Skipping this step "
-				  "and returning original dictionary (passed as an argument to this funtion) which has been chunked "
-				  "and compacted...")
-			return compacted_subj_dict
-
-		else:
-			chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
-											  self.parameters.feature_overlap)
-			# codebook = self.feature_constructor.generate_codebook(chunked_dataset)
-
-			feature_dataset = self.feature_constructor.get_feature_dataset(chunked_dataset)
-
-			print("Returning feature dataset...")
-			return feature_dataset
-
 	def balance_categories(self, compacted_subj_dict):
 		"""
 		Balances the samples in the given training or testing set (dictionary) so that each category has the same
@@ -338,6 +297,8 @@ class DatasetProcessor:
 			return compacted_subj_dict
 
 		else:
+			# chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
+			# 								  self.parameters.feature_overlap)
 			balanced_dictionary = self.balancer.balance(compacted_subj_dict)
 			print("Returning category-balanced dictionary...")
 			return balanced_dictionary
@@ -367,8 +328,7 @@ class DatasetProcessor:
 		chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
 											self.parameters.interval_overlap)
 		compacted_data = self.compact_subject_categories(chunked_subj_dict)
-		feature_dataset = self.construct_features(compacted_data)
-		balanced_dataset = self.balance_categories(feature_dataset)
+		balanced_dataset = self.balance_categories(compacted_data)
 
 		# reset these internal variables so that the same data_processor object can be used on more than one dataset
 		self.reset_order_booleans()
@@ -379,4 +339,3 @@ class DatasetProcessor:
 		self.data_chunked = False
 		self.data_compacted = False
 		self.data_augmented = False
-		self.features_constructed = False

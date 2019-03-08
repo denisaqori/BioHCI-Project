@@ -6,10 +6,12 @@ import BioHCI.helpers.utilities as utils
 from tensorboardX import SummaryWriter
 
 class CrossValidator(ABC):
-	def __init__(self, subject_dict, data_splitter, dataset_processor, model, parameter, learning_def, all_categories):
+	def __init__(self, subject_dict, data_splitter, dataset_processor, feature_constructor, model, parameter,
+				 learning_def, all_categories):
 		self._subject_dict = subject_dict
 		self._data_splitter = data_splitter
 		self._dataset_processor = dataset_processor
+		self._feature_constructor = feature_constructor
 		self.__model = model
 		self._learning_def = learning_def
 		self._parameter = parameter
@@ -48,8 +50,9 @@ class CrossValidator(ABC):
 			train_dict, val_dict = self._data_splitter.split_into_folds(subject_dictionary=self._subject_dict,
 																		num_folds=self._num_folds, val_index=i)
 
-			processed_train = self._dataset_processor.process_dataset(train_dict)
-			processed_val = self._dataset_processor.process_dataset(val_dict)
+			# processed_train = self._dataset_processor.process_dataset(train_dict)
+
+			# processed_val = self._dataset_processor.process_dataset(val_dict)
 
 			# starting training with the above-defined parameters
 			train_start = time.time()
