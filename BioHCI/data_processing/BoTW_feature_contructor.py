@@ -34,28 +34,61 @@ class BoTWFeatureConstructor(FeatureConstructor):
 	# self.features = []
 
 	# TODO: make the way the axis is extracted more general
-	# first part of computing category desc, is a modified version of the produce_category_desc where we skip the
-	# finding keypoints part
 	def compute_histogram(self, cat, feature_axis):
-		# descriptor_list = []
-		# for i in range(0, cat.shape[0]):
-		# 	for j in range(0, cat.shape[1]):
-		# 		interval = cat[i, j, :, :]
-		# 		octave = self._create_octave(interval)
-		#
-		# 		keypoint_desc = self._describe_keypoints(octave)
-		# 		if keypoint_desc is not None:
-		# 			descriptor_list.append(keypoint_desc)
-		#
-		# cat_descriptors = np.concatenate(descriptor_list, axis=0)
+		"""
+		For each interval of each chunk, the number of keypoints that belong to each cluster is calculated,
+		and the distribution over all the clusters for each interval is converted to a 1D feature vector.
 
-		cat_descriptors = self.produce_category_descriptors(cat)
+		Args:
+			cat: the category over which to create features in the form form of distributions over clusters
+
+		Returns:
+			category_dist (ndarray): a 3D ndarray containing distribution of keypoints over different clusters. The
+			shape is (nubmer of chunks, instances per chunk, number of clusters(=number of final attributes)).
+
+		"""
 		# load the model
 		kmeans = pickle.load(open("bag_of_temporal_words_codebook_100.sav", 'rb'))
-		start_time = time.time()
-		predictions = kmeans.predict(cat_descriptors)
-		end_time = utils.time_since(start_time)
-		return predictions
+
+		new_chunk_list = []
+		for i in range(0, cat.shape[0]):
+			chunk_distributions = []
+			for j in range(0, cat.shape[1]):
+				interval = cat[i, j, :, :]
+				interval_descriptors_list = self._produce_interval_descriptors(interval)
+
+				if len(interval_descriptors_list) > 0:
+					interval_descriptors = np.concatenate(interval_descriptors_list, axis=0)
+					prediction = kmeans.predict(interval_descriptors)
+					interval_distribution = self._compute_interval_distribution(prediction, kmeans.n_clusters)
+				else:
+					interval_distribution = np.zeros((1, kmeans.n_clusters))
+
+				chunk_distributions.append(interval_distribution)
+			new_chunk = np.concatenate(chunk_distributions, axis=0)
+			new_chunk_list.append(new_chunk)
+		category_dist = np.stack(new_chunk_list, axis=0)
+		return category_dist
+
+	def _compute_interval_distribution(self, prediction, num_clusters):
+		"""
+
+		Args:
+			prediction (ndarray): a ndarray whose elements contain the indices of the cluster centers to which a
+								  descriptor belongs
+			num_clusters (int): the total number of clusters in the KMeans algorithm
+
+		Returns:
+			dist(ndarray): a ndarray of dimension (1, num_clusters) where each index represents the particular
+							cluster and its value, the number of descriptors in that interval that belong to that
+							cluster.
+		"""
+		dist = np.zeros((1, num_clusters))
+		for i in range(0, prediction.shape[0]):
+			for x in np.nditer(prediction[i]):
+				dist[0, x] = dist[0, x] + 1
+
+		return dist
 
 	def generate_codebook(self, subj_dataset):
 		"""
@@ -66,15 +99,12 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		Returns:
 
 		"""
-		# start_time = time.time()
 		cat_desc_list = []
 		for subj_name, subj in subj_dataset.items():
 			cat_data = subj.get_data()
-			# categories = subj.get_categories()
 			for cat in cat_data:
 				cat_desc = self.produce_category_descriptors(cat)
 
-				# end_time = utils.time_since(start_time)
 				# multi-threading (easily done by mapping)
 				# pool = Pool(10)
 				# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
@@ -107,17 +137,33 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		for i in range(0, cat.shape[0]):
 			for j in range(0, cat.shape[1]):
 				interval = cat[i, j, :, :]
-				octave = self._create_octave(interval)
-				diff_of_gaussian = self._compute_diff_of_gaussian(octave)
-				keypoints = self._find_keypoints(diff_of_gaussian)
+				interval_desc_list = self._produce_interval_descriptors(interval)
+				descriptor_list.append(interval_desc_list)
 
-				keypoint_desc = self._describe_keypoints(octave, keypoint_list=keypoints)
-				if keypoint_desc is not None:
-					descriptor_list.append(keypoint_desc)
-
-		print("")
+		descriptor_list = [desc for sublist in descriptor_list for desc in sublist]
 		cat_descriptors = np.concatenate(descriptor_list, axis=0)
 		return cat_descriptors
+
+	def _produce_interval_descriptors(self, interval):
+		"""
+
+		Args:
+			interval: a 2D interval over which to find keypoints and produce their descriptros
+
+		Returns:
+			descriptor_list (list): list of descriptors of the interval keypoints
+
+		"""
+		descriptor_list = []
+		octave = self._create_octave(interval)
+		diff_of_gaussian = self._compute_diff_of_gaussian(octave)
+		keypoints = self._find_keypoints(diff_of_gaussian)
+
+		keypoint_desc = self._describe_keypoints(octave, keypoint_list=keypoints)
+		if keypoint_desc is not None:
+			descriptor_list.append(keypoint_desc)
+
+		return descriptor_list
 
 	def _create_octave(self, interval):
 		"""
@@ -127,7 +173,8 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			interval: the signal whose columns are to be individually filtered
 
 		Returns:
-			octave (list): a list of intervals (ndarrays) filtered at different scales (2D)- each separately 			filtered
+			octave (list): a list of intervals (ndarrays) filtered at different scales (2D)- each separately
+				filtered
 
 		"""
 		k = math.sqrt(2)
@@ -354,11 +401,8 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			vector)
 
 		"""
-		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an equal " \
-							"" \
-							"" \
-							"" \
-							"number of points before and after the keypoint."
+		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an 	" \
+							"						equal number of points before and after the keypoint."
 
 		keypoint_descriptors = []
 		for pos, point in enumerate(signal_1d):
@@ -437,4 +481,4 @@ if __name__ == "__main__":
 
 	dataset_processor = DatasetProcessor(parameters, feature_constructor=feature_constructor)
 	feature_dataset = dataset_processor.process_dataset(subject_dict)
-	print("")
+	print("Done")
