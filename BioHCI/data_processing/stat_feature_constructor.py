@@ -7,14 +7,15 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
+from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 import numpy as np
 
 class StatFeatureConstructor(FeatureConstructor):
 	"""
 	Statistical Information:
 	"""
-	def __init__(self, parameters, feature_axis):
-		super().__init__(parameters, feature_axis)
+	def __init__(self, dataset_processor, parameters, feature_axis):
+		super().__init__(dataset_processor, parameters, feature_axis)
 		print("Statistical Feature Constructor being initiated.")
 
 		# methods to calculate particular features
@@ -58,7 +59,9 @@ if __name__ == "__main__":
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
 
-	feature_constructor = StatFeatureConstructor(parameters, feature_axis=2)
-	dataset_processor = DatasetProcessor(parameters, feature_constructor=feature_constructor)
-	feature_dataset = dataset_processor.process_dataset(subject_dict)
+	category_balancer = WithinSubjectOversampler()
+	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
+
+	feature_constructor = StatFeatureConstructor(dataset_processor, parameters, feature_axis=2)
+	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
 	print("")

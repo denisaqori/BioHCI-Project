@@ -19,6 +19,7 @@ from sklearn.cluster import KMeans
 import scipy.ndimage
 import numpy as np
 import pickle
+import os
 
 
 # TODO: run multi-threaded: disabled for the moment so there is some reproducibility in results
@@ -27,12 +28,14 @@ class BoTWFeatureConstructor(FeatureConstructor):
 	Bag of Temporal Words:
 	"""
 
-	def __init__(self, dataset_processor, parameters, feature_axis):
+	def __init__(self, dataset_processor, parameters, feature_axis, codebook_name=None):
 		super().__init__(dataset_processor, parameters, feature_axis)
 		print("Bag of Temporal Words being initiated...")
-		self.features = [self.compute_histogram]
 
-		# self.features = []
+		self.codebook_name = None
+		codebooks_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/codebooks'
+		self.all_codebooks_dir = utils.create_dir(codebooks_path)
+		self.features = [self.compute_histogram]
 
 	# TODO: make the way the axis is extracted more general
 	def compute_histogram(self, cat, feature_axis):
@@ -49,7 +52,11 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		"""
 		# load the model
-		kmeans = pickle.load(open("bag_of_temporal_words_codebook_100.sav", 'rb'))
+		assert self.codebook_name is not None
+		codebook_path = os.path.abspath(os.path.join(self.all_codebooks_dir, self.codebook_name))
+		assert os.path.exists(codebook_path)
+
+		kmeans = pickle.load(open(codebook_path, 'rb'))
 
 		new_chunk_list = []
 		for i in range(0, cat.shape[0]):
@@ -91,7 +98,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		return dist
 
-	def generate_codebook(self, subj_dataset):
+	def generate_codebook(self, subj_dataset, codebook_name):
 		"""
 
 		Args:
@@ -100,28 +107,31 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		Returns:
 
 		"""
-		cat_desc_list = []
-		for subj_name, subj in subj_dataset.items():
-			cat_data = subj.get_data()
-			for cat in cat_data:
-				cat_desc = self.produce_category_descriptors(cat)
+		codebook_path = os.path.abspath(os.path.join(self.all_codebooks_dir, codebook_name))
+		if not os.path.exists(codebook_path):
 
-				# multi-threading (easily done by mapping)
-				# pool = Pool(10)
-				# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
-				# pool.close()
-				# pool.join()
+			cat_desc_list = []
+			for subj_name, subj in subj_dataset.items():
+				cat_data = subj.get_data()
+				for cat in cat_data:
+					cat_desc = self.produce_category_descriptors(cat)
 
-				if cat_desc is not None:
-					cat_desc_list.append(cat_desc)
-		dataset_desc = np.concatenate(cat_desc_list, axis=0)
-		kmeans = KMeans(n_clusters=10).fit(dataset_desc)
+					# multi-threading (easily done by mapping)
+					# pool = Pool(10)
+					# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
+					# pool.close()
+					# pool.join()
 
-		# save the model to disk
-		filename = 'bag_of_temporal_words_codebook_100.sav'
-		pickle.dump(kmeans, open(filename, 'wb'))
+					if cat_desc is not None:
+						cat_desc_list.append(cat_desc)
+			dataset_desc = np.concatenate(cat_desc_list, axis=0)
+			kmeans = KMeans(n_clusters=10).fit(dataset_desc)
 
-		return kmeans
+			# save the model to disk
+			pickle.dump(kmeans, open(codebook_path, 'wb'))
+		else:
+			print ("Codebook: ", codebook_name, "already exists in ", self.all_codebooks_dir)
+		self.codebook_name = codebook_name
 
 	def produce_category_descriptors(self, cat):
 		"""
@@ -402,8 +412,8 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			vector)
 
 		"""
-		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an 	" \
-							"						equal number of points before and after the keypoint."
+		assert nb % 2 == 0, "The number of blocks that describe the keypoint needs to be even, so we can get an " \
+							"equal number of points before and after the keypoint."
 
 		keypoint_descriptors = []
 		for pos, point in enumerate(signal_1d):
@@ -481,8 +491,8 @@ if __name__ == "__main__":
 	# define a category balancer (implementing the abstract CategoryBalancer)
 	category_balancer = WithinSubjectOversampler()
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
-	# processed_data = dataset_processor.process_dataset(subject_dict)
 
 	feature_constructor = BoTWFeatureConstructor(dataset_processor, parameters, feature_axis=2)
+	feature_constructor.generate_codebook(subject_dict, "bag_of_temporal_words_codebook.sav")
 	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
 	print("Done")

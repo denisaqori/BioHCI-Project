@@ -11,7 +11,7 @@ from BioHCI.definition.non_neural_net_def import NonNeuralNetworkDefinition
 from BioHCI.model.nn_cross_validator import NNCrossValidator
 from BioHCI.model.scipy_cross_validator import ScipyCrossValidator
 from BioHCI.helpers.result_logger import Logging
-from BioHCI.data_processing.feature_constructor import FeatureConstructor
+from BioHCI.data_processing.stat_feature_constructor import StatFeatureConstructor
 from BioHCI.data_processing.data_augmenter import DataAugmenter
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
@@ -76,7 +76,7 @@ def main():
 	data_augmenter = DataAugmenter()
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer, data_augmenter=data_augmenter)
 	feature_axis = 2
-	feature_constructor = FeatureConstructor(dataset_processor, parameters, feature_axis=feature_axis)
+	feature_constructor = StatFeatureConstructor(dataset_processor, parameters, feature_axis=feature_axis)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	datast_categories = data.get_all_dataset_categories()
