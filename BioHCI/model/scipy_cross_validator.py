@@ -6,10 +6,10 @@ from sklearn.metrics import confusion_matrix
 class ScipyCrossValidator(CrossValidator):
 
 	# the number for samples per step needs to not be magic (but should be able to be different from samples_per_step)
-	def __init__(self, subject_dict, data_splitter, dataset_processor, feature_constructor, model, parameter,
+	def __init__(self, subject_dict, data_splitter, feature_constructor, model, parameter,
 				 learning_def, all_categories):
 
-		super(ScipyCrossValidator, self).__init__(subject_dict, data_splitter, dataset_processor, feature_constructor,
+		super(ScipyCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
 												  model, parameter, learning_def, all_categories)
 
 		assert (parameter.neural_net is False), "In StudyParameters, neural_net is set to True and you are " \
@@ -23,6 +23,7 @@ class ScipyCrossValidator(CrossValidator):
 		# are numpy arrays as expected form scikit-learn
 		self.__construct_features = parameter.construct_features
 
+	#TODO: use feature_constructor to obtain dataset instead of data_processor or dataset_processor
 	def _get_data_and_labels(self, python_dataset):
 		data, labels = self._data_processor.get_shuffled_dataset_and_labels(python_dataset)
 		return [data, labels]

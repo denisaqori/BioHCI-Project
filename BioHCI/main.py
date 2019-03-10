@@ -76,7 +76,7 @@ def main():
 	data_augmenter = DataAugmenter()
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer, data_augmenter=data_augmenter)
 	feature_axis = 2
-	feature_constructor = FeatureConstructor(dataset_processor, subject_dict, parameters, feature_axis=feature_axis)
+	feature_constructor = FeatureConstructor(dataset_processor, parameters, feature_axis=feature_axis)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	datast_categories = data.get_all_dataset_categories()
@@ -101,10 +101,10 @@ def main():
 
 	# cross-validation
 	if parameters.neural_net is True:
-		cv = NNCrossValidator(subject_dict, data_splitter, dataset_processor, feature_constructor, model, parameters,
+		cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, model, parameters,
 							  learning_def, datast_categories)
 	else:
-		cv = ScipyCrossValidator(subject_dict, data_splitter, dataset_processor, feature_constructor, model,
+		cv = ScipyCrossValidator(subject_dict, data_splitter, feature_constructor, model,
 								 parameters, learning_def, datast_categories)
 
 	# results of run

@@ -2,9 +2,6 @@ import numpy as np
 from copy import copy
 from abc import ABC
 
-# from opencv-contrib-python: Currently downgraded to 3.4.2, since it's the latest OpenCV version that allows use of
-# SIFT and SURF without a patent
-
 
 class FeatureConstructor(ABC):
 	def __init__(self, dataset_processor, parameters, feature_axis):
@@ -18,20 +15,25 @@ class FeatureConstructor(ABC):
 		# A dictionary mapping a subject name to a Subject object. The data for each category of each subject will
 		# have a shape of (number of chunks, number of feature intervals, interval to built features on, number of
 		# original attributes).
-		self.__subject_dataset = None
+
 		# The axis along which features are to be created. This axis will end up being collapsed
 		self.feature_axis = feature_axis
 		self.feature_window = parameters.feature_window
 		self.dataset_processor = dataset_processor
 
-		self.processed_dataset = self.processed_dataset()
+	def _process_dataset(self, subject_dataset):
+		"""
+		Runs dataset_processor on the subject dataset, and additionally chunks it to create an axis over which
+		features will be built, and which will be eventually collapsed.
 
-	def process_dataset(self):
-		assert self.subject_dataset is not None, "Subject_dataset needs to be set."
-		processed_dataset = self.dataset_processor.process_dataset(self.subject_dataset)
+		Returns:
 
-		feature_ready_dataset = self.dataset_processor.chunk_data(processed_dataset, self.parameters.feature_window, 1,
-														 self.parameters.feature_overlap)
+		"""
+		assert subject_dataset is not None, "subject_dataset needs to be set."
+		processed_dataset = self.dataset_processor.process_dataset(subject_dataset)
+
+		feature_ready_dataset = self.dataset_processor.chunk_data(processed_dataset, self.parameters.feature_window,
+																  1, self.parameters.feature_overlap)
 		return feature_ready_dataset
 
 	@property
@@ -46,20 +48,7 @@ class FeatureConstructor(ABC):
 
 		self.__features = feature_list
 
-	@property
-	def subject_dataset(self):
-		return self.__subject_dataset
-
-	@subject_dataset.setter
-	def subject_dataset(self, subject_dataset):
-		for subj_name, subj in self.subject_dataset.items():
-			cat_data = subj.get_data()
-
-			for cat in cat_data:
-				assert len(cat.shape) == 4, "The subj_dataset passed to create features on, should have 4 axis."
-		self.__subject_dataset = subject_dataset
-
-	def produce_feature_dataset(self):
+	def produce_feature_dataset(self, subject_dataset):
 		"""
 		Constructs features over an interval of a chunk for the whole dataset. For each unprocessed original feature,
 		the function specified in self.features is applied to each part of the chunk. First the existence of
@@ -74,13 +63,14 @@ class FeatureConstructor(ABC):
 				calculated for each).
 
 		"""
-		assert self.subject_dataset is not None, "A subject dataset needs to be set to this FeatureConstructor object."
-		assert isinstance(self.processed_dataset, dict)
+		assert subject_dataset is not None, "A subject dataset needs to be set to this FeatureConstructor object."
+		assert isinstance(subject_dataset, dict)
 		assert self.features is not None, "There features should contain functions that calculate features in a " \
 										  "specific way. Initiate a non-abstract class, child of FeatureConstructor."
 
+		processed_dataset = self._process_dataset(subject_dataset)
 		feature_dataset = {}
-		for subj_name, subj in self.processed_dataset.items():
+		for subj_name, subj in processed_dataset.items():
 			cat_data = subj.get_data()
 
 			new_cat_data = []
@@ -140,5 +130,3 @@ class FeatureConstructor(ABC):
 					descriptor = descriptor.ravel()
 				print("")
 	'''
-
-

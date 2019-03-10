@@ -6,11 +6,11 @@ import BioHCI.helpers.utilities as utils
 from tensorboardX import SummaryWriter
 
 class CrossValidator(ABC):
-	def __init__(self, subject_dict, data_splitter, dataset_processor, feature_constructor, model, parameter,
+	def __init__(self, subject_dict, data_splitter, feature_constructor, model, parameter,
 				 learning_def, all_categories):
 		self._subject_dict = subject_dict
 		self._data_splitter = data_splitter
-		self._dataset_processor = dataset_processor
+		# self._dataset_processor = dataset_processor
 		self._feature_constructor = feature_constructor
 		self.__model = model
 		self._learning_def = learning_def
@@ -33,7 +33,8 @@ class CrossValidator(ABC):
 		self.__tbx_path = utils.create_dir('tensorboardX_runs')
 		self.__writer = SummaryWriter(self.__tbx_path)
 
-		# create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation below)
+		# create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
+		# below)
 		# TODO: oh noo!! there are two confusion matrixes - fix this - maybe use as a test case
 		self._confusion = torch.zeros(len(all_categories), len(all_categories))
 
@@ -50,9 +51,8 @@ class CrossValidator(ABC):
 			train_dict, val_dict = self._data_splitter.split_into_folds(subject_dictionary=self._subject_dict,
 																		num_folds=self._num_folds, val_index=i)
 
-			# processed_train = self._dataset_processor.process_dataset(train_dict)
-
-			# processed_val = self._dataset_processor.process_dataset(val_dict)
+			processed_train = self._feature_constructor.produce_feature_dataset(train_dict)
+			processed_val = self._feature_constructor.produce_feature_dataset(val_dict)
 
 			# starting training with the above-defined parameters
 			train_start = time.time()

@@ -12,7 +12,7 @@ import os
 
 class NNCrossValidator(CrossValidator):
 
-	def __init__(self, subject_dict, data_splitter, dataset_processor, feature_constructor, model, parameter,
+	def __init__(self, subject_dict, data_splitter, feature_constructor, model, parameter,
 				 learning_def, all_categories):
 		# this list contains lists of accuracies for each epoch. There will be self._num_folds lists of _num_epochs
 		# elements in this list after all training is done
@@ -26,7 +26,7 @@ class NNCrossValidator(CrossValidator):
 		# the negative log likelihood loss function - useful to train classification problems with C classes
 		self.criterion = nn.NLLLoss()
 
-		super(NNCrossValidator, self).__init__(subject_dict, data_splitter, dataset_processor, feature_constructor,
+		super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
 											   model, parameter, learning_def, all_categories)
 		assert (parameter.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
 											   "trying to instantiate a NNCrossValidator object!"

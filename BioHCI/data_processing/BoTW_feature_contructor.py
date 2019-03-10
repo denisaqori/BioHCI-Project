@@ -27,12 +27,12 @@ class BoTWFeatureConstructor(FeatureConstructor):
 	Bag of Temporal Words:
 	"""
 
-	def __init__(self, parameters, feature_axis):
-		super().__init__(parameters, feature_axis)
+	def __init__(self, dataset_processor, parameters, feature_axis):
+		super().__init__(dataset_processor, parameters, feature_axis)
 		print("Bag of Temporal Words being initiated...")
 		self.features = [self.compute_histogram]
 
-	# self.features = []
+		# self.features = []
 
 	# TODO: make the way the axis is extracted more general
 	def compute_histogram(self, cat, feature_axis):
@@ -481,11 +481,8 @@ if __name__ == "__main__":
 	# define a category balancer (implementing the abstract CategoryBalancer)
 	category_balancer = WithinSubjectOversampler()
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
-	processed_data = dataset_processor.process_dataset(subject_dict)
+	# processed_data = dataset_processor.process_dataset(subject_dict)
 
-	feature_constructor = BoTWFeatureConstructor(parameters, feature_axis=2)
-	feature_ready_dataset = dataset_processor.chunk_data(processed_data, parameters.feature_window, 1,
-											  parameters.feature_overlap)
-	feature_constructor.subject_dataset = feature_ready_dataset
-	feature_dataset = feature_constructor.produce_feature_dataset()
+	feature_constructor = BoTWFeatureConstructor(dataset_processor, parameters, feature_axis=2)
+	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
 	print("Done")
