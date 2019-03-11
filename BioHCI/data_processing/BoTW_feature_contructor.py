@@ -16,6 +16,9 @@ import time
 from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Pool
 from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 import scipy.ndimage
 import numpy as np
 import pickle
@@ -110,8 +113,9 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		codebook_path = os.path.abspath(os.path.join(self.all_codebooks_dir, codebook_name))
 		if not os.path.exists(codebook_path):
 
+			processed_dataset = self._process_dataset(subj_dataset)
 			cat_desc_list = []
-			for subj_name, subj in subj_dataset.items():
+			for subj_name, subj in processed_dataset.items():
 				cat_data = subj.get_data()
 				for cat in cat_data:
 					cat_desc = self.produce_category_descriptors(cat)
@@ -125,13 +129,29 @@ class BoTWFeatureConstructor(FeatureConstructor):
 					if cat_desc is not None:
 						cat_desc_list.append(cat_desc)
 			dataset_desc = np.concatenate(cat_desc_list, axis=0)
+
 			kmeans = KMeans(n_clusters=10).fit(dataset_desc)
+			self.plot_kmeans(dataset_desc, kmeans)
 
 			# save the model to disk
 			pickle.dump(kmeans, open(codebook_path, 'wb'))
 		else:
 			print ("Codebook: ", codebook_name, "already exists in ", self.all_codebooks_dir)
+
 		self.codebook_name = codebook_name
+
+	def plot_kmeans(self, dataset_desc, kmeans):
+		# reduce dimensionality of points to cluster (to 2D)
+		pca = PCA(n_components=3)
+		data3D = pca.fit_transform(dataset_desc)
+		plt.scatter(data3D[:, 0], data3D[:, 1], data3D[:, 2])
+
+		# plot the cluster centers
+		plt.hold(True)
+		centers3D = pca.transform(kmeans.cluster_centers_)
+
+		plt.scatter(centers3D[:, 0], centers3D[:, 1], centers3D[:, 2], marker='x', s=200, linewidths=3, c='r')
+		plt.show()
 
 	def produce_category_descriptors(self, cat):
 		"""
@@ -493,6 +513,6 @@ if __name__ == "__main__":
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
 	feature_constructor = BoTWFeatureConstructor(dataset_processor, parameters, feature_axis=2)
-	feature_constructor.generate_codebook(subject_dict, "bag_of_temporal_words_codebook.sav")
+	feature_constructor.generate_codebook(subject_dict, "bag_of_temporal_words_codebook_3D.sav")
 	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
 	print("Done")
