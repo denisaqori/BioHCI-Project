@@ -16,7 +16,7 @@ import time
 from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import Pool
 from sklearn.cluster import KMeans
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.metrics import silhouette_score, calinski_harabaz_score
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import scipy.ndimage
@@ -38,6 +38,9 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		self.codebook_name = None
 		codebooks_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/codebooks'
 		self.all_codebooks_dir = utils.create_dir(codebooks_path)
+
+		self.codebook_plot_path = utils.get_root_path("Results") + "/" + parameters.study_name + "/codebook plots/"
+		self.codebook_plots = utils.create_dir(self.codebook_plot_path)
 		self.features = [self.compute_histogram]
 
 	# TODO: make the way the axis is extracted more general
@@ -56,8 +59,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		"""
 		# load the model
 		assert self.codebook_name is not None
-		codebook_path = os.path.abspath(os.path.join(self.all_codebooks_dir, self.codebook_name))
-		assert os.path.exists(codebook_path)
+		codebook_path = self._get_codebook_path(self.codebook_name)
 
 		kmeans = pickle.load(open(codebook_path, 'rb'))
 
@@ -101,7 +103,8 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		return dist
 
-	def generate_codebook(self, subj_dataset, codebook_name):
+	def generate_codebook(self, subj_dataset, dataset_desc_name, kmeans_nclusters):
+
 		"""
 
 		Args:
@@ -110,48 +113,149 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		Returns:
 
 		"""
-		codebook_path = os.path.abspath(os.path.join(self.all_codebooks_dir, codebook_name))
+		dataset_desc_path = self._get_dataset_desc_path(dataset_desc_name)
+		if not os.path.exists(dataset_desc_path):
+			dataset_desc = self._produce_dataset_descriptors(subj_dataset, dataset_desc_name)
+		else:
+			dataset_desc = np.load(dataset_desc_path)
+
+		codebook_name = dataset_desc_name + "_kmeans_" + str(kmeans_nclusters)
+		codebook_path = self._get_codebook_path(codebook_name)
 		if not os.path.exists(codebook_path):
-
-			processed_dataset = self._process_dataset(subj_dataset)
-			cat_desc_list = []
-			for subj_name, subj in processed_dataset.items():
-				cat_data = subj.get_data()
-				for cat in cat_data:
-					cat_desc = self.produce_category_descriptors(cat)
-
-					# multi-threading (easily done by mapping)
-					# pool = Pool(10)
-					# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
-					# pool.close()
-					# pool.join()
-
-					if cat_desc is not None:
-						cat_desc_list.append(cat_desc)
-			dataset_desc = np.concatenate(cat_desc_list, axis=0)
-
-			kmeans = KMeans(n_clusters=10).fit(dataset_desc)
-			self.plot_kmeans(dataset_desc, kmeans)
-
+			kmeans = KMeans(n_clusters=kmeans_nclusters).fit(dataset_desc)
 			# save the model to disk
 			pickle.dump(kmeans, open(codebook_path, 'wb'))
 		else:
-			print ("Codebook: ", codebook_name, "already exists in ", self.all_codebooks_dir)
+			print("Codebook: ", codebook_name, "already exists in ", self.all_codebooks_dir)
 
 		self.codebook_name = codebook_name
 
-	def plot_kmeans(self, dataset_desc, kmeans):
+	def _produce_dataset_descriptors(self, subj_dataset, dataset_desc_name):
+		processed_dataset = self._process_dataset(subj_dataset)
+		cat_desc_list = []
+		for subj_name, subj in processed_dataset.items():
+			cat_data = subj.get_data()
+			for cat in cat_data:
+				cat_desc = self.produce_category_descriptors(cat)
+
+				# multi-threading (easily done by mapping)
+				# pool = Pool(10)
+				# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
+				# pool.close()
+				# pool.join()
+
+				if cat_desc is not None:
+					cat_desc_list.append(cat_desc)
+
+		dataset_desc = np.concatenate(cat_desc_list, axis=0)
+		dataset_desc_path = self._get_dataset_desc_path(dataset_desc_name)
+
+		# save the numpy array containing the dataset description
+		np.save(dataset_desc_path, dataset_desc)
+		return dataset_desc
+
+	def plot_kmeans(self, dataset_desc_name, kmeans_name):
+		"""
+
+		Args:
+			dataset_desc_name(str): The name of the serialized dataset descriptors
+			kmeans_name: The name of the serialized kmeans algorithm
+
+		"""
+		codebook_path = self._get_codebook_path(kmeans_name)
+		dataset_desc_path = self._get_dataset_desc_path(dataset_desc_name)
+
+		kmeans = pickle.load(open(codebook_path, 'rb'))
+		dataset_desc = np.load(dataset_desc_path)
 		# reduce dimensionality of points to cluster (to 2D)
-		pca = PCA(n_components=3)
-		data3D = pca.fit_transform(dataset_desc)
-		plt.scatter(data3D[:, 0], data3D[:, 1], data3D[:, 2])
+		pca_ncomponents = 2
+		pca = PCA(n_components=pca_ncomponents)
+		data2D = pca.fit_transform(dataset_desc)
+		plt.scatter(data2D[:, 0], data2D[:, 1])
 
 		# plot the cluster centers
-		plt.hold(True)
-		centers3D = pca.transform(kmeans.cluster_centers_)
+		# plt.hold(True)
+		centers2D = pca.transform(kmeans.cluster_centers_)
 
-		plt.scatter(centers3D[:, 0], centers3D[:, 1], centers3D[:, 2], marker='x', s=200, linewidths=3, c='r')
+		plt.scatter(centers2D[:, 0], centers2D[:, 1], marker='x', s=200, linewidths=3, c='r')
+		plt.savefig(self.codebook_plot_path + dataset_desc_name + str(kmeans_name) + "_" + str(pca_ncomponents) +
+					"D.png")
 		plt.show()
+		return
+
+	def score_kmeans(self, dataset_desc_name, kmeans_name):
+		"""
+
+		Args:
+			dataset_desc_name: The name of the serialized dataset descriptors
+			kmeans_name: The name of the serialized kmeans algorithm
+
+		Returns: a tuple containing the silhouette score, which is in the range -1 to +1, followed by the
+			calinski-harabaz score
+
+		"""
+		codebook_path = self._get_codebook_path(kmeans_name)
+		dataset_desc_path = self._get_dataset_desc_path(dataset_desc_name)
+
+		kmeans = pickle.load(open(codebook_path, 'rb'))
+		dataset_desc = np.load(dataset_desc_path)
+
+		labels = kmeans.labels_
+		silhouette = silhouette_score(dataset_desc, labels, metric='euclidean')
+		calinski_harabaz = calinski_harabaz_score(dataset_desc, labels)
+		print("Silouhette score: ", silhouette)
+		print("Calinsky Harabes score: ", category_balancer)
+		return silhouette, calinski_harabaz
+
+	def log_kmeans_score(self, nclusters_list, interval_size_list):
+
+		filepath = utils.get_root_path("Results") + "/" + parameters.study_name + "/codebook results/"
+		filepath = utils.create_dir(filepath) + "cluster_eval.txt"
+		with open(filepath, 'a') as the_file:
+			for nclust in nclusters_list:
+				for interval_size in interval_size_list:
+					codebook_alg_name = "_kmeans_" + str(nclust)
+					dataset_desc_name = "CTS_firm_chunk_" + str(parameters.samples_per_chunk) + "_interval_" + str(
+						interval_size)
+					feature_constructor.generate_codebook(subject_dict, dataset_desc_name, nclust)
+					silouhette, calinski_harabaz = feature_constructor.score_kmeans(dataset_desc_name, dataset_desc_name +
+																					codebook_alg_name)
+					the_file.write(
+						'Number of clusters: ' + str(nclust) + "; Interval size: " + str(interval_size) + ":  Silouhette "
+						"Score: " + str(silouhette) + ";  Calinksi-Harabaz Score: " + str(calinski_harabaz) + "\n")
+
+
+	def _get_codebook_path(self, codebook_name):
+		"""
+		Returns the path to the codebook whose name is passed as an argument
+		Args:
+			codebook_name: The name of the codebook whose path is to be returned
+
+		Returns:
+			codebook_path: the absolute path to that codebook
+
+		"""
+		codebook_path = os.path.abspath(os.path.join(self.all_codebooks_dir, codebook_name + ".sav"))
+		# assert os.path.exists(codebook_path)
+		return codebook_path
+
+	def _get_dataset_desc_path(self, dataset_desc_name):
+		"""
+		Returns the path to the numpy array containing the dataset description whose name is passed as an
+		argument
+
+		Args:
+		dataset_desc_name: The name of the dataset descriptors whose path is to be returned
+
+		Returns:
+			dataset_desc_path: the absolute path to that numpy array containing dataset descriptors
+		"""
+		dataset_desc_path = os.path.abspath(os.path.join(self.all_codebooks_dir, dataset_desc_name + ".npy"))
+		return dataset_desc_path
+
+	def _get_path(self, filename):
+		dataset_desc_path = os.path.abspath(os.path.join(self.all_codebooks_dir, filename))
+		return dataset_desc_path
 
 	def produce_category_descriptors(self, cat):
 		"""
@@ -368,8 +472,6 @@ class BoTWFeatureConstructor(FeatureConstructor):
 					all_column_desc = np.concatenate(column_desc, axis=0)
 					keypoint_descriptors.append(all_column_desc)
 
-				# keypoint_desc = np.stack(keypoint_descriptors, axis=0)
-				# keypoint_desc_list.append(keypoint_desc)
 				result = np.stack(keypoint_descriptors, axis=0)
 			else:
 				result = None
@@ -513,6 +615,18 @@ if __name__ == "__main__":
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
 	feature_constructor = BoTWFeatureConstructor(dataset_processor, parameters, feature_axis=2)
-	feature_constructor.generate_codebook(subject_dict, "bag_of_temporal_words_codebook_3D.sav")
+	dataset_desc_name = "CTS_firm_chunk_" + str(parameters.samples_per_chunk) + "_interval_" + str(
+		parameters.feature_window)
+	# nclusters = 50
+	# codebook_alg_name = "_kmeans_" + str(nclusters)
+	# feature_constructor.generate_codebook(subject_dict, dataset_desc_name, nclusters)
+
+	# silouhette = feature_constructor.score_kmeans(dataset_desc_name, dataset_desc_name + codebook_alg_name)
+	# feature_constructor.plot_kmeans(dataset_desc_name, dataset_desc_name + codebook_alg_name)
+
+	nclusters_list = [5, 10, 15, 20, 25, 30, 35, 40, 50, 100, 200]
+	interval_size_list = [25, 50, 100, 150]
+	feature_constructor.log_kmeans_score(nclusters_list, interval_size_list)
+
 	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
 	print("Done")
