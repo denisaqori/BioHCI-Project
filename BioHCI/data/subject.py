@@ -10,8 +10,7 @@ class Subject:
 
 		self.__filename_list = []
 
-		self.__data = self.__build_subj_data()
-		self.__categories = self.__create_subject_categories()
+		self.__data, self.__categories = self.__build_subj_data()
 
 		assert len(self.__data) == len(self.__categories), "The sizes of the subject's data list and categories list " \
 														   "do not match!!"
@@ -25,46 +24,54 @@ class Subject:
 
 		# get all the files where this subject's data is found
 
-		for filename in os.listdir(self.__subj_data_path):
-			if filename.endswith((self.__parameter.file_format)):
-				self.__filename_list.append(filename)
-
 		subj_category_data = []
+		subj_category_names = []
+		for cat_data_container in os.listdir(self.__subj_data_path):
+			# each subject should have a directory for each category
+			subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
+			if os.path.isdir(subj_cat_data_path):
 
-		i = 0
-		for filename in self.__filename_list:
-			full_path = os.path.join(self.__subj_data_path, filename)
-			with open(full_path, encoding='ascii') as f:
+				for filename in os.listdir(subj_cat_data_path):
+					if filename.endswith((self.__parameter.file_format)):
 
-				# get the data in each file by first stripping and splitting the lines and
-				# then creating a numpy array out of these values
-				file_lines = []
-				print("Filename: ", full_path)
-				for line in f:
-					line = line.strip(' \t\n\r')
-					line = re.split('\t|,', line)
-					file_lines.append(line)
-				file_lines = np.asarray(file_lines)
+						filepath = os.path.join(subj_cat_data_path, filename)
+						filedata = self.__get_file_data(filepath)
 
-				# keep info only from the relevant columns and rows
-				file_lines = (file_lines[self.__parameter.start_row:,
-							  self.__parameter.relevant_columns]).astype(np.float32)
-				subj_category_data.append(file_lines)
-				i = i + 1
+						subj_category_data.append(filedata)
+						subj_category_names.append(cat_data_container)
 
-		return subj_category_data
+		return subj_category_data, subj_category_names
+
+	def __get_file_data(self, filepath):
+		with open(filepath, encoding='ascii') as f:
+
+			# get the data in each file by first stripping and splitting the lines and
+			# then creating a numpy array out of these values
+			file_lines = []
+			print("Filename: ", filepath)
+			for line in f:
+				line = line.strip(' \t\n\r')
+				line = re.split('\t|,', line)
+				file_lines.append(line)
+			file_lines = np.asarray(file_lines)
+
+			# keep info only from the relevant columns and rows
+			file_lines = (file_lines[self.__parameter.start_row:,
+						  self.__parameter.relevant_columns]).astype(np.float32)
+			# subj_category_data.append(file_lines)
+			return file_lines
 
 	# this method creates categories of the subject; if labels_in in parameter is set to True, the categories are
 	# acquired from the dataset, otherwise from the file names within the subject directory
-	def __create_subject_categories(self):
-		categories = []
-		print("labels_col: ", type(self.__parameter.labels_col))
-		if self.__parameter.labels_col is None:
-			for filename in self.__filename_list:
-				# keep the filename only to assign the category, and remove the file extension (format)
-				category_name = filename[:-len(self.__parameter.file_format)]
-				categories.append(category_name)
-		return categories
+	# def __create_subject_categories(self):
+	# 	categories = []
+	# 	print("labels_col: ", type(self.__parameter.labels_col))
+	# 	if self.__parameter.labels_col is None:
+	# 		for filename in self.__filename_list:
+	# 			keep the filename only to assign the category, and remove the file extension (format)
+				# category_name = filename[:-len(self.__parameter.file_format)]
+				# categories.append(category_name)
+		# return categories
 
 	# return subject data split by categories, as a list of numpy arrays
 	def get_data(self):

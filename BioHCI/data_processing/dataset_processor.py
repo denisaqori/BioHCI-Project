@@ -79,7 +79,7 @@ class DatasetProcessor:
 		# create list according to which the first dimension of the category numpy array will be split
 		assert (split_axis in range(0, len(category.shape) - 1)), "Axis to be split along needs to exist in the " \
 																  "category argument."
-		assert (samples_per_interval < category.shape[
+		assert (samples_per_interval <= category.shape[
 			split_axis]), "There are not enough instances to make up a chunk in " \
 						  "the or if this happens during train-validation split, decrease the number of folds."
 
@@ -222,7 +222,7 @@ class DatasetProcessor:
 				new_subject = copy(subject)
 				new_subject.set_data(compact_data_list)
 				new_subject.set_categories(new_subj_cat_names)
-				compacted_subj_dict[subj_name] = subject
+				compacted_subj_dict[subj_name] = new_subject
 			else:
 				compacted_subj_dict[subj_name] = subject
 
@@ -323,17 +323,19 @@ class DatasetProcessor:
 	# individually on two different datasets out of order
 	def process_dataset(self, subject_dictionary):
 
-		# TODO: maybe feature construction and data augmentation before balancing
-		# use the built-in variables to ensure order: 1) chunking 2) compacting 3) balancing
-		chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
+		if (self.parameters.chunk_instances is not None):
+			# use the built-in variables to ensure order: 1) chunking 2) compacting 3) balancing
+			chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
 											self.parameters.interval_overlap)
-		compacted_data = self.compact_subject_categories(chunked_subj_dict)
-		balanced_dataset = self.balance_categories(compacted_data)
+			compacted_data = self.compact_subject_categories(chunked_subj_dict)
+			balanced_dataset = self.balance_categories(compacted_data)
 
-		# reset these internal variables so that the same data_processor object can be used on more than one dataset
-		self.reset_order_booleans()
+			# reset these internal variables so that the same data_processor object can be used on more than one dataset
+			self.reset_order_booleans()
 
-		return balanced_dataset
+			return balanced_dataset
+		else:
+			return subject_dictionary
 
 	def reset_order_booleans(self):
 		self.data_chunked = False

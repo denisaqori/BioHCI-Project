@@ -1,7 +1,10 @@
 import numpy as np
 from copy import copy
 from abc import ABC
-
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import BioHCI.helpers.utilities as utils
 
 class FeatureConstructor(ABC):
 	def __init__(self, dataset_processor, parameters, feature_axis):
@@ -29,12 +32,15 @@ class FeatureConstructor(ABC):
 		Returns:
 
 		"""
+		# if (self.parameters.chunk_instances is True):
 		assert subject_dataset is not None, "subject_dataset needs to be set."
 		processed_dataset = self.dataset_processor.process_dataset(subject_dataset)
 
 		feature_ready_dataset = self.dataset_processor.chunk_data(processed_dataset, self.parameters.feature_window,
 																  1, self.parameters.feature_overlap)
 		return feature_ready_dataset
+		# else:
+		# 	return subject_dataset
 
 	@property
 	def features(self):

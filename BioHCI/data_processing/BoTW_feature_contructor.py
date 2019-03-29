@@ -12,9 +12,6 @@ import BioHCI.helpers.utilities as utils
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 
 import torch
-import time
-from multiprocessing.dummy import Pool as ThreadPool
-from multiprocessing import Pool
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, calinski_harabaz_score
 from sklearn.decomposition import PCA
@@ -23,15 +20,18 @@ import scipy.ndimage
 import numpy as np
 import pickle
 import os
-
+import pandas as pd
+import seaborn as sns
+from copy import copy
 
 # TODO: run multi-threaded: disabled for the moment so there is some reproducibility in results
+# TODO: fix - there were changes that need to be compacted here - so that this still works as a feature constructor
 class BoTWFeatureConstructor(FeatureConstructor):
 	"""
 	Bag of Temporal Words:
 	"""
 
-	def __init__(self, dataset_processor, parameters, feature_axis, codebook_name=None):
+	def __init__(self, dataset_processor, parameters, feature_axis):
 		super().__init__(dataset_processor, parameters, feature_axis)
 		print("Bag of Temporal Words being initiated...")
 
@@ -42,6 +42,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		self.codebook_plot_path = utils.get_root_path("Results") + "/" + parameters.study_name + "/codebook plots/"
 		self.codebook_plots = utils.create_dir(self.codebook_plot_path)
 		self.features = [self.compute_histogram]
+
 
 	# TODO: make the way the axis is extracted more general
 	def compute_histogram(self, cat, feature_axis):
@@ -130,19 +131,18 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 		self.codebook_name = codebook_name
 
+
 	def _produce_dataset_descriptors(self, subj_dataset, dataset_desc_name):
 		processed_dataset = self._process_dataset(subj_dataset)
+
 		cat_desc_list = []
 		for subj_name, subj in processed_dataset.items():
 			cat_data = subj.get_data()
-			for cat in cat_data:
+			cat_names = subj.get_categories()
+			for i,cat in enumerate(cat_data):
 				cat_desc = self.produce_category_descriptors(cat)
-
-				# multi-threading (easily done by mapping)
-				# pool = Pool(10)
-				# cat_desc = pool.map(self.produce_category_descriptors, cat_data)
-				# pool.close()
-				# pool.join()
+				cat_name = cat_names[i]
+				print("Obtained descriptors of category ", str(i), ": ", cat_name)
 
 				if cat_desc is not None:
 					cat_desc_list.append(cat_desc)
@@ -185,7 +185,6 @@ class BoTWFeatureConstructor(FeatureConstructor):
 
 	def score_kmeans(self, dataset_desc_name, kmeans_name):
 		"""
-
 		Args:
 			dataset_desc_name: The name of the serialized dataset descriptors
 			kmeans_name: The name of the serialized kmeans algorithm
@@ -207,22 +206,96 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		print("Calinsky Harabes score: ", category_balancer)
 		return silhouette, calinski_harabaz
 
-	def log_kmeans_score(self, nclusters_list, interval_size_list):
+
+	def log_kmeans_score(self, nclusters_list, interval_size, name_extra_str=""):
 
 		filepath = utils.get_root_path("Results") + "/" + parameters.study_name + "/codebook results/"
 		filepath = utils.create_dir(filepath) + "cluster_eval.txt"
+
 		with open(filepath, 'a') as the_file:
 			for nclust in nclusters_list:
-				for interval_size in interval_size_list:
-					codebook_alg_name = "_kmeans_" + str(nclust)
-					dataset_desc_name = "CTS_firm_chunk_" + str(parameters.samples_per_chunk) + "_interval_" + str(
-						interval_size)
-					feature_constructor.generate_codebook(subject_dict, dataset_desc_name, nclust)
-					silouhette, calinski_harabaz = feature_constructor.score_kmeans(dataset_desc_name, dataset_desc_name +
-																					codebook_alg_name)
-					the_file.write(
-						'Number of clusters: ' + str(nclust) + "; Interval size: " + str(interval_size) + ":  Silouhette "
-						"Score: " + str(silouhette) + ";  Calinksi-Harabaz Score: " + str(calinski_harabaz) + "\n")
+				codebook_alg_name = "_kmeans_" + str(nclust)
+				dataset_desc_name = "CTS_firm_chunk_" + str(parameters.samples_per_chunk) + "_interval_" + str(
+					interval_size) + name_extra_str
+				feature_constructor.generate_codebook(subject_dict, dataset_desc_name, nclust)
+				silouhette, calinski_harabaz = feature_constructor.score_kmeans(dataset_desc_name, dataset_desc_name +
+																				codebook_alg_name)
+				the_file.write(
+					'Number of clusters: ' + str(nclust) + "; Interval size: " + str(interval_size) + ":  Silouhette "
+					"Score: " + str(silouhette) + ";  Calinksi-Harabaz Score: " + str(calinski_harabaz) + "\n")
+
+	def compute_dataset_stats(self, feature_dataset, filename):
+		# create a new feature dataset that is the same as the first, except it does not have dimensions that are 1.
+		squeezed_feature_dataset = {}
+		for subj_name, subj in feature_dataset.items():
+			new_data = np.squeeze(subj.get_data())
+			new_subj = copy(subj)
+			new_subj.set_data(new_data)
+
+			squeezed_feature_dataset[subj_name] = new_subj
+
+		dataframe_dict = self.__create_dataframe_dict(squeezed_feature_dataset)
+		all_subj_dataframe = self.__create_allsubj_dataframe(dataframe_dict)
+
+		groups = all_subj_dataframe.groupby("category")
+		for name, group in groups:
+			l1norm = np.linalg.norm(group[[0, 1, 2, 3, 4]].values.astype(float), axis=1)
+			print(":/")
+		# group_desc = groups.describe()
+		group_cov = groups.cov()
+		print(group_cov)
+
+		filepath = utils.get_root_path("Results") + "/" + parameters.study_name + "/codebook results/"
+		file_name = utils.create_dir(filepath) + "dataset_covariance_" + filename + ".csv"
+		group_cov.to_csv(file_name, sep='\t')
+
+		# corr_aggr = corr.aggregate()
+		# seaborn scatter matrix
+		# g = sns.pairplot(all_subj_dataframe, hue='category', diag_kind='hist')
+		# plt.show()
+
+		# pandas correlation matrix
+		# plt.matshow(all_subj_dataframe.corr())
+		# plt.show()
+
+		return all_subj_dataframe
+
+	def __create_dataframe_dict(self, subject_dict):
+		dataframe_dict = {}
+		for subj_name, subj in subject_dict.items():
+			dataframe_dict[subj_name] = self.__compact_subj_dataframe(subj)
+		return dataframe_dict
+
+	# this function puts the data from one subject in one dataframe (adding a column corresponding to category)
+	def __compact_subj_dataframe(self, subject):
+		subj_data = subject.get_data()
+		category_names = subject.get_categories()
+
+		category_list = []
+
+		# convert the data from each category to pandas dataframe, as expected from seaborn
+		for i, cat_data in enumerate(subj_data):
+			subj_cat_data = pd.DataFrame(data=cat_data)
+
+			# create a list of categories to append to the dataframe (so we can plot by it)
+			category_name_list = [category_names[i]] * cat_data.shape[0]
+			subj_cat_data['category'] = category_name_list
+
+			category_list.append(subj_cat_data)
+
+		compacted_dataframe = pd.concat(category_list)
+		return compacted_dataframe
+
+	def __create_allsubj_dataframe(self, dataframe_dict):
+		# create a pandas dataframe that has all the subject and categories out of the dictionary that has the
+		# subject name as key and its dataframe as a value
+		subject_dataframe_list = []
+		for subj_name, subject_dataframe in dataframe_dict.items():
+			subject_dataframe['subj_name'] = subj_name
+			subject_dataframe_list.append(subject_dataframe)
+
+		allsubj_dataframe = pd.concat(subject_dataframe_list)
+		return allsubj_dataframe
 
 
 	def _get_codebook_path(self, codebook_name):
@@ -251,10 +324,6 @@ class BoTWFeatureConstructor(FeatureConstructor):
 			dataset_desc_path: the absolute path to that numpy array containing dataset descriptors
 		"""
 		dataset_desc_path = os.path.abspath(os.path.join(self.all_codebooks_dir, dataset_desc_name + ".npy"))
-		return dataset_desc_path
-
-	def _get_path(self, filename):
-		dataset_desc_path = os.path.abspath(os.path.join(self.all_codebooks_dir, filename))
 		return dataset_desc_path
 
 	def produce_category_descriptors(self, cat):
@@ -417,7 +486,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
 						 signal[j] < signal[j - 1] and signal[j] < signal[j + 1] and
 						 signal[j] < prev_signal[j - 1] and signal[j] < prev_signal[j + 1] and
 						 signal[j] < next_signal[j - 1] and signal[j] < next_signal[j + 1]):
-					print("Found keypoint in signal ", i, "at location ", j, "!")
+					# print("Found keypoint in signal ", i, "at location ", j, "!")
 					keypoint_idx.append((i, j))
 		return keypoint_idx
 
@@ -456,27 +525,38 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		else:
 			if len(keypoint_list) > 0:
 				keypoint_descriptors = []
+				keypoint_descriptors_2D = []
 				for i, keypoint in enumerate(keypoint_list):
 
-					print("keypoint: ", keypoint)
+					# print("keypoint: ", keypoint)
 					scale = keypoint[0]
 					interval = octave[scale]
 
 					point_idx = keypoint[1]
 					column_desc = []
+					neighborhood_2D_list = []
 					for j in range(0, interval.shape[-1]):
 						signal = interval[:, j]
 						keypoint_neighbourhood = self._get_neighbourhood(signal, point_idx, nb, a)
-						descriptor = self._describe_each_point(keypoint_neighbourhood, nb, a)
+						neighborhood_2D_list.append(keypoint_neighbourhood)
+
+						descriptor = self._describe_each_point_1D(keypoint_neighbourhood, nb, a)
 						column_desc.append(descriptor)
 					all_column_desc = np.concatenate(column_desc, axis=0)
 					keypoint_descriptors.append(all_column_desc)
 
-				result = np.stack(keypoint_descriptors, axis=0)
-			else:
-				result = None
+					neighborhood_2D = np.stack(neighborhood_2D_list, axis=1)
+					descriptors_2D = self._describe_each_point_2D(neighborhood_2D, nb, a)
+					keypoint_descriptors_2D.append(descriptors_2D)
 
-		return result
+				all_descriptors_2D = np.stack(keypoint_descriptors_2D, axis=0)
+				all_descriptors_1D = np.stack(keypoint_descriptors, axis=0)
+			else:
+				all_descriptors_1D = None
+				all_descriptors_2D = None
+
+			return all_descriptors_2D
+
 
 	def _get_neighbourhood(self, signal_1d, point_idx, nb, a):
 		"""
@@ -540,13 +620,41 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		keypoint_descriptors = []
 		for pos, point in enumerate(signal_1d):
 			keypoint_neighbourhood = self._get_neighbourhood(signal_1d, pos, nb, a)
-			descriptor = self._describe_each_point(keypoint_neighbourhood, nb, a)
+			descriptor = self._describe_each_point_1D(keypoint_neighbourhood, nb, a)
+
 			keypoint_descriptors.append(descriptor)
 
 		signal_desc = np.stack(keypoint_descriptors, axis=0)
 		return signal_desc
 
-	def _describe_each_point(self, keypoint_neighbourhood, nb, a):
+	def _describe_each_point_2D(self, keypoint_neighborhood_2D, nb, a):
+		assert keypoint_neighborhood_2D is not None, "No neighbourhood has been assigned to the keypoint."
+		assert keypoint_neighborhood_2D.shape[0] == nb * a + 1
+
+		# 2 2-D arrays are returned: first standing for gradients in rows, and second for gradients in columns
+		gradient_rows, gradient_cols = np.gradient(keypoint_neighborhood_2D)
+		filtered_gradient_rows = scipy.ndimage.gaussian_filter(input=gradient_rows, sigma=nb * a / 2)
+		filtered_gradient_cols = scipy.ndimage.gaussian_filter(input=gradient_cols, sigma=nb * a / 2)
+
+		point_idx = int(nb * a / 2)
+
+		all_gradients = []
+		for i in range(0, filtered_gradient_rows.shape[1]):
+			filtered_gradient_rows_1D = filtered_gradient_rows[:, i]
+			blocks = self._create_blocks(filtered_gradient_rows_1D, point_idx, a)
+			gradients_rows_1D = self._get_block_gradients(blocks)
+			all_gradients.append(gradients_rows_1D)
+
+		for i in range(0, filtered_gradient_cols.shape[1]):
+			filtered_gradient_cols_1D = filtered_gradient_cols[:, i]
+			blocks = self._create_blocks(filtered_gradient_cols_1D, point_idx, a)
+			gradients_cols_1D = self._get_block_gradients(blocks)
+			all_gradients.append(gradients_cols_1D)
+
+		all_gradient_sums = np.concatenate(all_gradients)
+		return all_gradient_sums
+
+	def _describe_each_point_1D(self, keypoint_neighbourhood, nb, a):
 		"""
 		Each keypoint is described in terms of the sum of positive and negative gradients of blocks of other points
 		around it. The interval keypoint_neighbourhood, whose midpoint is the keypoint being characterized,
@@ -570,16 +678,25 @@ class BoTWFeatureConstructor(FeatureConstructor):
 		filtered_gradient = scipy.ndimage.gaussian_filter1d(input=gradient, sigma=nb * a / 2)
 		point_idx = int(nb * a / 2)
 
+		blocks = self._create_blocks(filtered_gradient, point_idx, a)
+		gradient_sums = self._get_block_gradients(blocks)
+
+		return gradient_sums
+
+	def _create_blocks(self, filtered_gradient_1D, point_idx, a):
 		blocks = []
 		for i in range(0, point_idx, a):
-			block = filtered_gradient[i:i + a]
+			block = filtered_gradient_1D[i:i + a]
 
 			blocks.append(block)
 
-		for i in range(point_idx + 1, filtered_gradient.shape[0], a):
-			block = filtered_gradient[i:i + a]
+		for i in range(point_idx + 1, filtered_gradient_1D.shape[0], a):
+			block = filtered_gradient_1D[i:i + a]
 			blocks.append(block)
 
+		return blocks
+
+	def _get_block_gradients(self, blocks):
 		all_gradients = []
 		for j, block in enumerate(blocks):
 			pos = 0
@@ -591,8 +708,9 @@ class BoTWFeatureConstructor(FeatureConstructor):
 					pos = pos + point
 			all_gradients.append([pos, neg])
 
-		all_gradient_sums = np.array(all_gradients).flatten()
-		return all_gradient_sums
+		gradient_sums = np.array(all_gradients).flatten()
+		return gradient_sums
+
 
 
 if __name__ == "__main__":
@@ -604,7 +722,7 @@ if __name__ == "__main__":
 
 	# create a template of a configuration file with all the fields initialized to None
 	config.create_config_file_template()
-	parameters = config.populate_study_parameters("CTS_one_subj_firm.toml")
+	parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
 
 	# generating the data from files
 	data = DataConstructor(parameters)
@@ -616,17 +734,16 @@ if __name__ == "__main__":
 
 	feature_constructor = BoTWFeatureConstructor(dataset_processor, parameters, feature_axis=2)
 	dataset_desc_name = "CTS_firm_chunk_" + str(parameters.samples_per_chunk) + "_interval_" + str(
-		parameters.feature_window)
-	# nclusters = 50
-	# codebook_alg_name = "_kmeans_" + str(nclusters)
-	# feature_constructor.generate_codebook(subject_dict, dataset_desc_name, nclusters)
+		parameters.feature_window) + "_test"
 
-	# silouhette = feature_constructor.score_kmeans(dataset_desc_name, dataset_desc_name + codebook_alg_name)
-	# feature_constructor.plot_kmeans(dataset_desc_name, dataset_desc_name + codebook_alg_name)
-
-	nclusters_list = [5, 10, 15, 20, 25, 30, 35, 40, 50, 100, 200]
-	interval_size_list = [25, 50, 100, 150]
-	feature_constructor.log_kmeans_score(nclusters_list, interval_size_list)
+	nclusters_list = [5]
+	# feature_constructor.log_kmeans_score(nclusters_list, parameters.feature_window, "_old_alg")
+	# feature_constructor.log_kmeans_score(nclusters_list, interval_size_list)
+	feature_constructor.generate_codebook(subject_dict, dataset_desc_name, 30)
 
 	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
+	file_desc_name = parameters.study_name + "_interval_" + str(parameters.feature_window) + "_old_alg_kmeans_" + str(
+		nclusters_list[0])
+
+	dataset_corr = feature_constructor.compute_dataset_stats(feature_dataset, file_desc_name)
 	print("Done")

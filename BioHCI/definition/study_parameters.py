@@ -44,6 +44,7 @@ class StudyParameters:
 		# number of samples in windowing segment
 		self.__nfft = None
 
+		self.__chunk_instances = None
 		self.__samples_per_chunk = None  # when chunking the dataset, the number of instances/samples in one chunk
 		self.__interval_overlap = None  # determining whether to overlap instances while chunking
 
@@ -309,14 +310,34 @@ class StudyParameters:
 		self.__feature_overlap = feature_overlap
 
 	@property
+	def chunk_instances(self):
+		return self.__chunk_instances
+
+	@chunk_instances.setter
+	def chunk_instances(self, chunk_instances):
+		assert isinstance(chunk_instances, bool), "The variable chunk_instances needs to be set to true or false"
+		self.__chunk_instances = chunk_instances
+
+	@property
 	def samples_per_chunk(self):
 		return self.__samples_per_chunk
 
 	@samples_per_chunk.setter
 	def samples_per_chunk(self, samples_per_chunk):
+		assert self.chunk_instances is True, "In order for samples_per_chunk to be set "
 		assert (isinstance(samples_per_chunk, int) and (samples_per_chunk > 0)), "Samples per chunk needs to be a " \
 																				 "positive integer."
 		self.__samples_per_chunk = samples_per_chunk
+
+		if self.chunk_instances is True:
+			assert (isinstance(samples_per_chunk, int) and (int(samples_per_chunk) > 0)), "Samples per chunk needs to be a " \
+																					"positive integer."
+			self.__samples_per_chunk = samples_per_chunk
+		else:
+			assert (samples_per_chunk is "None"), "If the construct_features attribute is set to False, " \
+											   "the feature_window attribute needs to be set to \"None\"."
+			self.__samples_per_chunk = None
+
 
 	@property
 	def interval_overlap(self):
@@ -324,7 +345,7 @@ class StudyParameters:
 
 	@interval_overlap.setter
 	def interval_overlap(self, interval_overlap):
-		assert (isinstance(interval_overlap, bool)), "Interval overalap needs to be a boolean, showing whether when " \
+		assert (isinstance(interval_overlap, bool)), "Interval overlap needs to be a boolean, showing whether when " \
 													 "chunking the dataset and creating intervals, intermediate " \
 													 "intervals consisting of 50% of each are to be built."
 		self.__interval_overlap = interval_overlap

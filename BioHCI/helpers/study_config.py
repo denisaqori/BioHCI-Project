@@ -89,7 +89,7 @@ class StudyConfig:
 		for attr, val in vars(study_params).items():
 			new_dict[attr] = "None"
 
-		abs_configfile = os.path.join(self.root_dir, "template_config.toml")
+		abs_configfile = os.path.join(self.root_dir, "config_file_template.toml")
 		with open(abs_configfile, 'w') as configfile:
 			toml.dump(new_dict, configfile)
 
