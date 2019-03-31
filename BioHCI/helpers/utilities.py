@@ -2,7 +2,7 @@ import math
 import time
 import datetime
 
-import torch
+import numpy as np
 import os
 import errno
 
@@ -82,3 +82,45 @@ def get_files_in_dir(root_dir_path):
 		return img_list
 	else:
 		return None
+
+def __map_categories(all_categories):
+	"""
+		Maps categories from a string element to an integer.
+
+	Args:
+		categories (list): List of unique string category names
+
+	Returns:
+		cat (dict): a dictionary mapping a sting to an integer
+
+	"""
+	# assert uniqueness of list elements
+	assert len(all_categories) == len(set(all_categories))
+	cat = {}
+
+	all_categories.sort()
+	for idx, elem in enumerate(all_categories):
+		cat[elem] = idx
+
+	return cat
+
+def convert_categories(all_categories, categories_subset):
+	"""
+	Converts a list of categories from strings to integers based on the internal attribute _cat_mapping.
+
+	Args:
+		categories (list): List of string category names of a dataset
+
+	Returns:
+		converted_categories (list): List of the corresponding integer id of the string categories
+
+	"""
+	all_cat_mapping = __map_categories(all_categories)
+
+	converted_categories = []
+	for idx, elem in enumerate(categories_subset):
+		assert elem in all_cat_mapping.keys()
+		converted_categories.append(all_cat_mapping[elem])
+
+	converted_categories = np.array(converted_categories)
+	return converted_categories

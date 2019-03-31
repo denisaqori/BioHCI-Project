@@ -13,15 +13,20 @@ from BioHCI.data_processing.dataset_processor import DatasetProcessor
 from copy import copy
 import pickle
 
-class DatasetDescriptor:
+class DescriptorComputer:
 	def __init__(self, subject_dataset, desc_type, parameters, dataset_desc_name=None):
 		self.subject_dataset = subject_dataset
 		self.desc_type = desc_type
+		self.__dataset_desc_path = None
 		self.dataset_desc_name = dataset_desc_name
 		self.parameters = parameters
 
 		dataset_desc_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/dataset_descriptors'
 		self.all_dataset_desc_dir = utils.create_dir(dataset_desc_path)
+
+	@property
+	def dataset_desc_path(self):
+		return self.__dataset_desc_path
 
 	def produce_unprocessed_dataset_descriptors(self):
 		descriptor_subj_dataset = {}
@@ -59,9 +64,11 @@ class DatasetDescriptor:
 		else:
 			dataset_desc_path = dataset_desc_path + ".pkl"
 
-		with open(dataset_desc_path, 'wb') as f:
-			pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+		if not os.path.exists(dataset_desc_path):
+			with open(dataset_desc_path, 'wb') as f:
+				pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+		self.__dataset_desc_path = dataset_desc_path
 		return dataset_desc_path
 
 
@@ -80,9 +87,8 @@ if __name__ == "__main__":
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
 
-	dataset_descriptor = DatasetDescriptor(subject_dict, 2, parameters)
+	dataset_descriptor = DescriptorComputer(subject_dict, 2, parameters)
 
 	dataset_processor = DatasetProcessor(parameters)
 	all_desc = dataset_descriptor.produce_unprocessed_dataset_descriptors()
 
-	print("")

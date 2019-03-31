@@ -17,9 +17,11 @@ class CrossValidator(ABC):
 		self._parameter = parameter
 		self._num_folds = parameter.num_folds
 		self._all_categories = all_categories
-		self._cat_mapping = self.__map_categories(all_categories)
 
-		self.all_int_categories = self.convert_categories(all_categories)
+		# self._cat_mapping = self.__map_categories(all_categories)
+
+		# self.all_int_categories = self.convert_categories(all_categories)
+		self.all_int_categories = utils.convert_categories(all_categories, all_categories)
 
 		self._all_val_accuracies = []
 		self._all_train_accuracies = []
@@ -153,41 +155,3 @@ class CrossValidator(ABC):
 		all_cat = np.array(all_cat)
 		return all_data, all_cat
 
-	def __map_categories(self, categories):
-		"""
-			Maps categories from a string element to an integer.
-
-		Args:
-			categories (list): List of unique string category names
-
-		Returns:
-			cat (dict): a dictionary mapping a sting to an integer
-
-		"""
-		# assert uniqueness of list elements
-		assert len(categories) == len(set(categories))
-		cat = {}
-
-		for idx, elem in enumerate(categories):
-			cat[elem] = idx
-
-		return cat
-
-	def convert_categories(self, categories):
-		"""
-		Converts a list of categories from strings to integers based on the internal attribute _cat_mapping.
-
-		Args:
-			categories (list): List of string category names of a dataset
-
-		Returns:
-			converted_categories (list): List of the corresponding integer id of the string categories
-
-		"""
-		converted_categories = []
-		for idx, elem in enumerate(categories):
-			assert elem in self._cat_mapping.keys()
-			converted_categories.append(self._cat_mapping[elem])
-
-		converted_categories = np.array(converted_categories)
-		return converted_categories

@@ -61,18 +61,6 @@ class Subject:
 			# subj_category_data.append(file_lines)
 			return file_lines
 
-	# this method creates categories of the subject; if labels_in in parameter is set to True, the categories are
-	# acquired from the dataset, otherwise from the file names within the subject directory
-	# def __create_subject_categories(self):
-	# 	categories = []
-	# 	print("labels_col: ", type(self.__parameter.labels_col))
-	# 	if self.__parameter.labels_col is None:
-	# 		for filename in self.__filename_list:
-	# 			keep the filename only to assign the category, and remove the file extension (format)
-				# category_name = filename[:-len(self.__parameter.file_format)]
-				# categories.append(category_name)
-		# return categories
-
 	# return subject data split by categories, as a list of numpy arrays
 	def get_data(self):
 		return self.__data
