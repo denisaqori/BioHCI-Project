@@ -72,7 +72,8 @@ class DescriptorEvaluator:
 		if heatmap is not None:
 			heatmap_fig = sns.heatmap(heatmap, cmap="YlGnBu")
 			self.save_obj(heatmap_fig, ".png", "_heatmap")
-		return
+
+		return heatmap
 
 	def levenshtein_distance(self, keypress1, keypress2):
 		lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
@@ -96,7 +97,7 @@ class DescriptorEvaluator:
 		dataset_eval_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
 														 self.descriptor_computer.parameters.study_name +
 														 "_desc_type_" + str(
-														self.descriptor_computer.desc_type)) + extra_name + ext)
+															 self.descriptor_computer.desc_type)) + extra_name + ext)
 		if ext == ".pkl":
 			with open(dataset_eval_path, 'wb') as f:
 				pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -109,10 +110,27 @@ class DescriptorEvaluator:
 
 	def get_matrix_full_name(self):
 		matrix_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
-														 self.descriptor_computer.parameters.study_name +
-														 "_desc_type_" + str(
-														self.descriptor_computer.desc_type)) + "_matrix.pkl")
+												   self.descriptor_computer.parameters.study_name +
+												   "_desc_type_" + str(
+													   self.descriptor_computer.desc_type)) + "_matrix.pkl")
 		return matrix_path
+
+	def get_avg_category_distance(self, heatmap_matrix):
+		sum_same = 0
+		num_same = 0
+		sum_diff = 0
+		num_diff = 0
+		for i in range(0, heatmap_matrix.shape[0]):
+			for j in range(0, heatmap_matrix.shape[1]):
+				if (i == j):
+					sum_same += heatmap_matrix[i, j]
+					num_same += 1
+				else:
+					sum_diff += heatmap_matrix[i, j]
+					num_diff += 1
+		avg_same = sum_same/num_same
+		avg_diff = sum_diff/num_diff
+		return avg_same, avg_diff
 
 if __name__ == "__main__":
 	config_dir = "config_files"
@@ -127,13 +145,17 @@ if __name__ == "__main__":
 	subject_dict = data.get_subject_dataset()
 
 	# original BoTW descriptor compution
-	# descriptor_1_computer = DescriptorComputer(subject_dict, 1, parameters)
-	# descriptor_1_eval = DescriptorEvaluator(descriptor_1_computer)
-	# descriptor_1_eval.compute_heatmap(data.get_all_dataset_categories())
+	descriptor_1_computer = DescriptorComputer(subject_dict, 1, parameters)
+	descriptor_1_eval = DescriptorEvaluator(descriptor_1_computer)
+	heatmap_matrix_1 = descriptor_1_eval.compute_heatmap(data.get_all_dataset_categories())
+	avg_same_1, avg_diff_1 = descriptor_1_eval.get_avg_category_distance(heatmap_matrix_1)
+	ratio_1 = avg_same_1/avg_diff_1
 
 	# altered BoTW descriptor compution
 	descriptor_2_computer = DescriptorComputer(subject_dict, 2, parameters)
 	descriptor_2_eval = DescriptorEvaluator(descriptor_2_computer)
-	descriptor_2_eval.compute_heatmap(data.get_all_dataset_categories())
+	heatmap_matrix_2 = descriptor_2_eval.compute_heatmap(data.get_all_dataset_categories())
+	avg_same_2, avg_diff_2 = descriptor_2_eval.get_avg_category_distance(heatmap_matrix_2)
+	ratio_2 = avg_same_2/avg_diff_2
 
 	print("")
