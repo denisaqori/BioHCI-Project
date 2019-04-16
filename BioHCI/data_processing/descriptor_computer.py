@@ -12,13 +12,16 @@ from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
 from copy import copy
 import pickle
+from sklearn import preprocessing
+
 
 class DescriptorComputer:
-	def __init__(self, subject_dataset, desc_type, parameters, dataset_desc_name=None):
+	def __init__(self, subject_dataset, desc_type, parameters, normalize, dataset_desc_name=""):
 		self.subject_dataset = subject_dataset
 		self.desc_type = desc_type
 		self.__dataset_desc_path = None
 		self.dataset_desc_name = dataset_desc_name
+		self.normalize = normalize
 		self.parameters = parameters
 
 		dataset_desc_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/dataset_descriptors'
@@ -42,9 +45,11 @@ class DescriptorComputer:
 			new_subj.set_data(subj_keypress_desc)
 			descriptor_subj_dataset[subj_name] = new_subj
 
+		if self.normalize:
+			descriptor_subj_dataset = self.normalize_l2(descriptor_subj_dataset)
+
 		self.save_to_file(descriptor_subj_dataset)
 		return descriptor_subj_dataset
-
 
 	def save_to_file(self, obj):
 		"""
@@ -58,7 +63,7 @@ class DescriptorComputer:
 			dataset_desc_path: the absolute path to that numpy array containing dataset descriptors
 		"""
 		dataset_desc_path = os.path.abspath(os.path.join(self.all_dataset_desc_dir, self.parameters.study_name +
-							"_desc_type_" + str(self.desc_type)))
+														 "_desc_type_" + str(self.desc_type)))
 		if self.dataset_desc_name is not None:
 			dataset_desc_path = dataset_desc_path + self.dataset_desc_name + ".pkl"
 		else:
@@ -70,6 +75,23 @@ class DescriptorComputer:
 
 		self.__dataset_desc_path = dataset_desc_path
 		return dataset_desc_path
+
+	def normalize_l2(self, dataset_desc):
+
+		normalized_subj_dataset = {}
+		for subj_name, subj in dataset_desc.items():
+			subj_data = subj.get_data()
+			subj_normalized_keypresses = []
+			for i, keypress in enumerate(subj_data):
+				keypress_normalized = preprocessing.normalize(keypress, norm='l2')
+				subj_normalized_keypresses.append(keypress_normalized)
+
+			new_subj = copy(subj)
+			new_subj.set_data(subj_normalized_keypresses)
+			normalized_subj_dataset[subj_name] = new_subj
+
+		self.dataset_desc_name += "_l2_scaled"
+		return normalized_subj_dataset
 
 
 if __name__ == "__main__":
@@ -87,8 +109,7 @@ if __name__ == "__main__":
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
 
-	dataset_descriptor = DescriptorComputer(subject_dict, 2, parameters)
-
+	descriptor_computer = DescriptorComputer(subject_dict, 2, parameters, normalize=True,
+											 dataset_desc_name="_test")
 	dataset_processor = DatasetProcessor(parameters)
-	all_desc = dataset_descriptor.produce_unprocessed_dataset_descriptors()
-
+	all_desc = descriptor_computer.produce_unprocessed_dataset_descriptors()

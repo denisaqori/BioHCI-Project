@@ -59,7 +59,8 @@ class DescriptorEvaluator:
 						# print("cat 1: ", cat1, "cat 2: ", cat2)
 						print("Number of levenshtine dist computed (out of 16110 expected): ", num)
 
-						lev_dist = self.levenshtein_distance(keypress1, keypress2)
+						# lev_dist = self.levenshtein_distance(keypress1, keypress2)
+						lev_dist = self.real_levenshtein_distance(keypress1, keypress2)
 						heatmap[cat1, cat2] = heatmap[cat1, cat2] + lev_dist
 						num = num + 1
 
@@ -70,7 +71,9 @@ class DescriptorEvaluator:
 				heatmap = pickle.load(openfile)
 
 		if heatmap is not None:
-			heatmap_fig = sns.heatmap(heatmap, cmap="YlGnBu")
+			plt.figure(figsize=(14, 10))
+			sns.set(font_scale=1.4)
+			heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
 			self.save_obj(heatmap_fig, ".png", "_heatmap")
 
 		return heatmap
@@ -93,11 +96,41 @@ class DescriptorEvaluator:
 		minimal_cost = lev_matrix[keypress1.shape[0] - 1, keypress2.shape[0] - 1]
 		return minimal_cost
 
+	def real_levenshtein_distance(self, keypress1, keypress2):
+		lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
+		for i in range(1, keypress1.shape[0]):
+			for j in range(1, keypress2.shape[0]):
+
+				k1_i = keypress1[i, :]
+				k2_j = keypress2[j, :]
+
+				k1_i_norm = np.linalg.norm(k1_i)
+				k2_j_norm = np.linalg.norm(k2_j)
+				diff_norm = np.linalg.norm(k1_i - k2_j)
+
+				if min(i, j) == 0:
+					lev_matrix[i, j] = max(k1_i_norm, k2_j_norm)
+
+				else:
+					left = lev_matrix[i - 1, j]
+					min_clause_1 = left + k1_i_norm
+
+					up = lev_matrix[i, j - 1]
+					min_clause_2 = up + k2_j_norm
+
+					diag = lev_matrix[i - 1, j - 1]
+					min_clause_3 = diag + diff_norm
+
+					lev_matrix[i, j] = min(min_clause_1, min_clause_2, min_clause_3)
+
+		# return the element of the last diagonal
+		minimal_cost = lev_matrix[keypress1.shape[0] - 1, keypress2.shape[0] - 1]
+		return minimal_cost
+
 	def save_obj(self, obj, ext, extra_name=""):
 		dataset_eval_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
-														 self.descriptor_computer.parameters.study_name +
-														 "_desc_type_" + str(
-															 self.descriptor_computer.desc_type)) + extra_name + ext)
+			self.descriptor_computer.parameters.study_name + "_desc_type_" + str(self.descriptor_computer.desc_type))
+										+ self.descriptor_computer.dataset_desc_name + extra_name + ext)
 		if ext == ".pkl":
 			with open(dataset_eval_path, 'wb') as f:
 				pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -110,27 +143,31 @@ class DescriptorEvaluator:
 
 	def get_matrix_full_name(self):
 		matrix_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
-												   self.descriptor_computer.parameters.study_name +
-												   "_desc_type_" + str(
-													   self.descriptor_computer.desc_type)) + "_matrix.pkl")
+			self.descriptor_computer.parameters.study_name + "_desc_type_" + str(self.descriptor_computer.desc_type))
+								+ self.descriptor_computer.dataset_desc_name + "_matrix.pkl")
 		return matrix_path
 
 	def get_avg_category_distance(self, heatmap_matrix):
-		sum_same = 0
-		num_same = 0
-		sum_diff = 0
-		num_diff = 0
+
+		same_list = []
+		diff_list = []
 		for i in range(0, heatmap_matrix.shape[0]):
 			for j in range(0, heatmap_matrix.shape[1]):
 				if (i == j):
-					sum_same += heatmap_matrix[i, j]
-					num_same += 1
+					same_list.append(heatmap_matrix[i, j])
 				else:
-					sum_diff += heatmap_matrix[i, j]
-					num_diff += 1
-		avg_same = sum_same/num_same
-		avg_diff = sum_diff/num_diff
-		return avg_same, avg_diff
+					diff_list.append(heatmap_matrix[i, j])
+
+		avg_same = np.mean(np.asarray(same_list))
+		avg_diff = np.mean(np.asarray(diff_list))
+
+		std_same = np.std(np.asarray(same_list))
+		std_diff = np.std(np.asarray(diff_list))
+
+		cv_same = std_same / avg_same
+		cv_diff = std_diff / avg_diff
+		return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff
+
 
 if __name__ == "__main__":
 	config_dir = "config_files"
@@ -144,18 +181,36 @@ if __name__ == "__main__":
 	data = DataConstructor(parameters)
 	subject_dict = data.get_subject_dataset()
 
-	# original BoTW descriptor compution
-	descriptor_1_computer = DescriptorComputer(subject_dict, 1, parameters)
+	# JUSD compution - unnormalized
+	descriptor_1_computer = DescriptorComputer(subject_dict, 1, parameters, normalize=False)
 	descriptor_1_eval = DescriptorEvaluator(descriptor_1_computer)
 	heatmap_matrix_1 = descriptor_1_eval.compute_heatmap(data.get_all_dataset_categories())
-	avg_same_1, avg_diff_1 = descriptor_1_eval.get_avg_category_distance(heatmap_matrix_1)
-	ratio_1 = avg_same_1/avg_diff_1
+	avg_same_1, avg_diff_1, std_same_1, std_diff_1, cv_same_1, cv_diff_1 = \
+		descriptor_1_eval.get_avg_category_distance(heatmap_matrix_1)
+	ratio_1 = avg_same_1 / avg_diff_1
 
-	# altered BoTW descriptor compution
-	descriptor_2_computer = DescriptorComputer(subject_dict, 2, parameters)
+	# MSBSD compution - unnormalized
+	descriptor_2_computer = DescriptorComputer(subject_dict, 2, parameters, normalize=False)
 	descriptor_2_eval = DescriptorEvaluator(descriptor_2_computer)
 	heatmap_matrix_2 = descriptor_2_eval.compute_heatmap(data.get_all_dataset_categories())
-	avg_same_2, avg_diff_2 = descriptor_2_eval.get_avg_category_distance(heatmap_matrix_2)
-	ratio_2 = avg_same_2/avg_diff_2
+	avg_same_2, avg_diff_2, std_same_2, std_diff_2, cv_same_2, cv_diff_2 = \
+		descriptor_2_eval.get_avg_category_distance(heatmap_matrix_2)
+	ratio_2 = avg_same_2 / avg_diff_2
+
+	# JUSD compution - normalized
+	descriptor_1_computer_norm = DescriptorComputer(subject_dict, 1, parameters, normalize=True)
+	descriptor_1_eval_norm = DescriptorEvaluator(descriptor_1_computer_norm)
+	heatmap_matrix_1_norm = descriptor_1_eval_norm.compute_heatmap(data.get_all_dataset_categories())
+	avg_same_1_norm, avg_diff_1_norm, std_same_1_norm, std_diff_1_norm, cv_same_1_norm, cv_diff_1_norm = \
+		descriptor_1_eval_norm.get_avg_category_distance(heatmap_matrix_1_norm)
+	ratio_1_norm = avg_same_1_norm / avg_diff_1_norm
+
+	# MSBSD compution - normalized
+	descriptor_2_computer_norm = DescriptorComputer(subject_dict, 2, parameters, normalize=True)
+	descriptor_2_eval_norm = DescriptorEvaluator(descriptor_2_computer_norm)
+	heatmap_matrix_2_norm = descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories())
+	avg_same_2_norm, avg_diff_2_norm, std_same_2_norm, std_diff_2_norm, cv_same_2_norm, cv_diff_2_norm = \
+		descriptor_2_eval_norm.get_avg_category_distance(heatmap_matrix_2_norm)
+	ratio_2_norm = avg_same_2_norm / avg_diff_2_norm
 
 	print("")

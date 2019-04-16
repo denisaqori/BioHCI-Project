@@ -358,6 +358,21 @@ class IntervalDescription:
 		all_gradient_sums = np.concatenate(all_gradients)
 		return all_gradient_sums
 
+	"""
+	def _create_2D_blocks(self, filtered_gradient_2D, point_idx, a):
+		blocks = []
+		for i in range(0, point_idx, a):
+			block = filtered_gradient_2D[i:i + a, :]
+
+			blocks.append(block)
+
+		for i in range(point_idx + 1, filtered_gradient_2D.shape[0], a):
+			block = filtered_gradient_2D[i:i + a, :]
+			blocks.append(block)
+
+		return blocks
+	"""
+
 	def _describe_each_point_1D(self, keypoint_neighbourhood, nb, a):
 		"""
 		Each keypoint is described in terms of the sum of positive and negative gradients of blocks of other points
