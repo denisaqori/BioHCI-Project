@@ -5,6 +5,7 @@ _StudyParameters__file_format = ".csv"
 _StudyParameters__relevant_columns = [1, 2]
 _StudyParameters__column_names = ["A", "B"]
 _StudyParameters__start_row = 0
+_StudyParameters__cat_names = "dir"
 _StudyParameters__num_subj = 1
 _StudyParameters__labels_col = "None"
 _StudyParameters__plot_labels = ["Voltage Frequency Gain", "Time"]

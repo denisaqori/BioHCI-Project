@@ -49,8 +49,8 @@ def main():
 
 '''	
 	for subj_name, subj in all_subj_dict.items():
-		subj_data = subj.get_data()
-		subj_cat = subj.get_categories()
+		subj_data = subj.data
+		subj_cat = subj.categories
 		for i, cat_data in enumerate(subj_data):
 			fs = parameters.sampling_freq
 			nfft = parameters.nfft
@@ -74,8 +74,8 @@ def main():
 def relabel_whole_dataset(subject_dict, new_label):
 	new_subj_dict = {}
 	for subj_name, subj in subject_dict.items():
-		subj_data = subj.get_data()
-		subj_cat = subj.get_categories()
+		subj_data = subj.data
+		subj_cat = subj.categories
 
 		baseline_idx = [i for i, s in enumerate(subj_cat) if 'baseline' in s.lower()]
 		for idx in baseline_idx:
@@ -84,8 +84,8 @@ def relabel_whole_dataset(subject_dict, new_label):
 		new_cat = (len(subj_cat) - len(baseline_idx)) * [new_label]
 
 		new_subj = copy(subj)  # copy the current subject
-		new_subj.set_categories(new_cat)  # assign the above-assigned categories to it
-		new_subj.set_data(subj_data)
+		new_subj.categories = new_cat  # assign the above-assigned categories to it
+		new_subj.data = subj_data
 		new_subj_dict[subj_name + new_label] = new_subj
 	return new_subj_dict
 

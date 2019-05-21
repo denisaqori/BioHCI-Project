@@ -38,8 +38,8 @@ class WithinSubjectSplitter(DataSplitter):
 
 		# iterate over subject dictionary to get the data and corresponding categories per subject
 		for subj_name, subject in subject_dict.items():
-			subj_data = subject.get_data()
-			subj_cat = subject.get_categories()
+			subj_data = subject.data
+			subj_cat = subject.categories
 
 			# for each category get the first train_percent part to assign to training, and assign the rest to
 			# testing
@@ -61,16 +61,16 @@ class WithinSubjectSplitter(DataSplitter):
 			# using copy as in: obj2 = copy(obj1), a new obj2 will be created with identical values as obj1,
 			# but in a different memory location
 			subj_train_val = copy(subject)
-			subj_train_val.set_data(subj_train_val_list)
-			subj_train_val.set_categories(subj_cat)
-			subj_train_val.set_all_data_bool(False)
+			subj_train_val.data = subj_train_val_list
+			subj_train_val.categories = subj_cat
+			subj_train_val.all_data_bool = False
 
 			train_val_dict[subj_name + '_train_val'] = subj_train_val
 
 			subj_test = copy(subject)
-			subj_test.set_data(subj_test_list)
-			subj_test.set_categories(subj_cat)
-			subj_test.set_all_data_bool(False)
+			subj_test.data = subj_test_list
+			subj_test.categories = subj_cat
+			subj_test.all_data_bool = False
 
 			test_dict[subj_name + '_test'] = subj_test
 
@@ -101,7 +101,7 @@ class WithinSubjectSplitter(DataSplitter):
 		train_dict = {}
 		val_dict = {}
 		for subj_name, subject in subject_dictionary.items():
-			subj_data = subject.get_data()
+			subj_data = subject.data
 
 			train_list = []
 			val_list = []
@@ -125,13 +125,13 @@ class WithinSubjectSplitter(DataSplitter):
 
 			# populate the train and validation dictionaries with the data for each category
 			val_subj = copy(subject)
-			val_subj.set_data(val_list)
-			val_subj.set_all_data_bool(False)
+			val_subj.data = val_list
+			val_subj.all_data_bool = False
 			val_dict[subj_name.replace("_train", "")] = val_subj
 
 			train_subj = copy(subject)
-			train_subj.set_data(train_list)
-			train_subj.set_all_data_bool(False)
+			train_subj.data = train_list
+			train_subj.all_data_bool = False
 			train_dict[subj_name.replace("_val", "")] = train_subj
 
 		return train_dict, val_dict

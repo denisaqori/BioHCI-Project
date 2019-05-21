@@ -25,8 +25,8 @@ class WithinSubjectOversampler(CategoryBalancer):
 		"""
 		category_balanced_dict = {}
 		for subj_name, subject in compacted_subj_dict.items():
-			cat_data = subject.get_data()
-			cat_names = subject.get_categories()
+			cat_data = subject.data
+			cat_names = subject.categories
 
 			# for every subject ensure that their categories are compacted i.e: the name of one category does not
 			# appear more than once in the category list of the subject
@@ -47,7 +47,7 @@ class WithinSubjectOversampler(CategoryBalancer):
 				oversampled_categories.append(oversampled_cat)
 
 			new_subj = copy(subject)  # copy the current subject
-			new_subj.set_data(oversampled_categories)  # assign the above-calculated oversampled categories to it
+			new_subj.data = oversampled_categories  # assign the above-calculated oversampled categories to it
 			category_balanced_dict[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
 
 		return category_balanced_dict

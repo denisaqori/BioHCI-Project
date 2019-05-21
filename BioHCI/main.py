@@ -83,7 +83,7 @@ def main():
 	# in order to build networks, we need to know input size. At this point it depends on the number of current
 	# attributes, as well as the number of functions applied to those attributes (in feature_constructor) to create
 	# the ultimate features
-	# sample_subj_dataset = random.sample(train_val_dictionary.items(), 1)[0][1].get_data()[0]
+	# sample_subj_dataset = random.sample(train_val_dictionary.items(), 1)[0][1].data[0]
 	# input_size = len(feature_constructor.features) * sample_subj_dataset.shape[feature_axis]
 	input_size = 8
 

@@ -5,27 +5,40 @@ Created: 3/28/19
 import numpy as np
 import torch
 import os
-from BioHCI.data_processing.interval_descriptor import IntervalDescription
+from BioHCI.data_processing.keypoint_description.interval_descriptor import IntervalDescription
 from BioHCI.helpers import utilities as utils
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.helpers.study_config import StudyConfig
+from BioHCI.definition.study_parameters import StudyParameters
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
 from copy import copy
 import pickle
 from sklearn import preprocessing
-
+import sys
 
 class DescriptorComputer:
 	def __init__(self, subject_dataset, desc_type, parameters, normalize, dataset_desc_name=""):
-		self.subject_dataset = subject_dataset
-		self.desc_type = desc_type
-		self.__dataset_desc_path = None
-		self.dataset_desc_name = dataset_desc_name
-		self.normalize = normalize
-		self.parameters = parameters
 
+		assert isinstance(subject_dataset, dict)
+		assert desc_type == 1 or desc_type == 2, "Descriptor type needs to be 1 or 2."
+		self.subject_dataset = subject_dataset
+
+		assert isinstance(desc_type, int)
+		self.desc_type = desc_type
+
+		# set name and path of descriptor to be saved
+		self.__dataset_desc_path = None
+		assert isinstance(dataset_desc_name, str)
+		self.dataset_desc_name = dataset_desc_name
 		dataset_desc_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/dataset_descriptors'
 		self.all_dataset_desc_dir = utils.create_dir(dataset_desc_path)
+
+		assert isinstance(normalize, bool)
+		self.normalize = normalize
+
+		assert isinstance(parameters, StudyParameters)
+		self.parameters = parameters
+
 
 	@property
 	def dataset_desc_path(self):
@@ -34,7 +47,7 @@ class DescriptorComputer:
 	def produce_unprocessed_dataset_descriptors(self):
 		descriptor_subj_dataset = {}
 		for subj_name, subj in self.subject_dataset.items():
-			subj_data = subj.get_data()
+			subj_data = subj.data
 			subj_keypress_desc = []
 			for i, keypress in enumerate(subj_data):
 				interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
@@ -42,7 +55,7 @@ class DescriptorComputer:
 
 			subj_keypress_desc = [desc for sublist in subj_keypress_desc for desc in sublist]
 			new_subj = copy(subj)
-			new_subj.set_data(subj_keypress_desc)
+			new_subj.data = subj_keypress_desc
 			descriptor_subj_dataset[subj_name] = new_subj
 
 		if self.normalize:
@@ -77,17 +90,41 @@ class DescriptorComputer:
 		return dataset_desc_path
 
 	def normalize_l2(self, dataset_desc):
+		"""
+		If the type of descriptor is 1, normalizes each instance of dataset_desc - converts each row into unit norm.
+		If the type of descriptor is 2, first splits each row in half, normalized each half row, and then puts them
+		back together.
 
+		Args:
+			dataset_desc:
+
+		Returns:
+
+		"""
 		normalized_subj_dataset = {}
 		for subj_name, subj in dataset_desc.items():
-			subj_data = subj.get_data()
+			subj_data = subj.data
 			subj_normalized_keypresses = []
 			for i, keypress in enumerate(subj_data):
-				keypress_normalized = preprocessing.normalize(keypress, norm='l2')
+
+				if self.desc_type == 1:
+					keypress_normalized = preprocessing.normalize(keypress, norm='l2')
+
+				elif self.desc_type == 2:
+					keypress_split = np.split(keypress, 2, axis=1)
+					normalized_splits = []
+					for split in keypress_split:
+						normalized_split = preprocessing.normalize(split, norm='l2')
+						normalized_splits.append(normalized_split)
+					keypress_normalized = np.concatenate(normalized_splits, axis=1)
+				else:
+					print ("There is no such descriptor: ", self.desc_type)
+					sys.exit()
+
 				subj_normalized_keypresses.append(keypress_normalized)
 
 			new_subj = copy(subj)
-			new_subj.set_data(subj_normalized_keypresses)
+			new_subj.data = subj_normalized_keypresses
 			normalized_subj_dataset[subj_name] = new_subj
 
 		self.dataset_desc_name += "_l2_scaled"

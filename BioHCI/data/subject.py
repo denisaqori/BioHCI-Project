@@ -1,82 +1,157 @@
 import os
 import numpy as np
 import re
+import sys
+from typing import List, Tuple
+from BioHCI.definition.study_parameters import StudyParameters
+
+labeled_dataset = Tuple[List[np.ndarray], List[str]]
 
 
 class Subject:
-	def __init__(self, subj_data_path, parameter):
-		self.__subj_data_path = subj_data_path
-		self.__parameter = parameter
 
-		self.__filename_list = []
+    def __init__(self, subj_data_path: str, parameter: StudyParameters) -> None:
 
-		self.__data, self.__categories = self.__build_subj_data()
+        self.__subj_data_path = subj_data_path
+        self.__parameter = parameter
 
-		assert len(self.__data) == len(self.__categories), "The sizes of the subject's data list and categories list " \
-														   "do not match!!"
-		self.__all_data_bool = True
+        self.__filename_list = []
 
-	# this method returns a python list of numpy arrays with all the signal data from the text files of one subject
-	# for each category/label. The data for each category is expected to be found in the subject sub-directory
-	# in a separate file and is represented as a numpy array, element of the returned python list
-	def __build_subj_data(self):
-		print("\nBuilding the subject dataset: ")
+        self.__data, self.__categories = self.__build_subj_data()
 
-		# get all the files where this subject's data is found
+        assert len(self.__data) == len(self.__categories), \
+            "The sizes of the subject's data list and categories list do not match!!"
+        self.__all_data_bool = True
 
-		subj_category_data = []
-		subj_category_names = []
-		for cat_data_container in os.listdir(self.__subj_data_path):
-			# each subject should have a directory for each category
-			subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
-			if os.path.isdir(subj_cat_data_path):
+    def __build_subj_data(self) -> labeled_dataset:
+        """
+        Extracts signal data with its corresponding categories for the subject, found it the subject's files.
 
-				for filename in os.listdir(subj_cat_data_path):
-					if filename.endswith((self.__parameter.file_format)):
+        Returns:
+            subj_category_data (List[np.ndarray]): (a python list of numpy arrays with all the signal data from the text
+                                                   files of one subject.)
+            subj_category_names (List[str]): a python list of stings, corresponding to the category names of the data in
+                                             each element of subj_category_data.
+        """
+        print("\nBuilding the subject dataset: ")
+        subj_category_data = None
+        subj_category_names = None
 
-						filepath = os.path.join(subj_cat_data_path, filename)
-						filedata = self.__get_file_data(filepath)
+        # if each subject has a directory for each category
+        if self.__parameter.cat_names == 'dir':
+            for cat_data_container in os.listdir(self.__subj_data_path):
+                subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
+                if os.path.isdir(subj_cat_data_path):
+                    subj_category_data, subj_category_names = self.__read_files(subj_cat_data_path, cat_data_container)
+        # if each subject has one file per category
+        elif self.__parameter.cat_names == 'file':
+            subj_cat_data_path = self.__subj_data_path
+            subj_category_data, subj_category_names = self.__read_files(subj_cat_data_path)
+        else:
+            print(
+                "A problem with assigning category names. They should be assigned based on filenames or "
+                "directory names. Exiting...")
+            sys.exit()
 
-						subj_category_data.append(filedata)
-						subj_category_names.append(cat_data_container)
+        return subj_category_data, subj_category_names
 
-		return subj_category_data, subj_category_names
+    def __read_files(self, dirpath: str, label=None) -> labeled_dataset:
+        """
+        Given a directory, find files
 
-	def __get_file_data(self, filepath):
-		with open(filepath, encoding='ascii') as f:
+        Args:
+            dirpath:
+            label:
 
-			# get the data in each file by first stripping and splitting the lines and
-			# then creating a numpy array out of these values
-			file_lines = []
-			print("Filename: ", filepath)
-			for line in f:
-				line = line.strip(' \t\n\r')
-				line = re.split('\t|,', line)
-				file_lines.append(line)
-			file_lines = np.asarray(file_lines)
+        Returns:
 
-			# keep info only from the relevant columns and rows
-			file_lines = (file_lines[self.__parameter.start_row:,
-						  self.__parameter.relevant_columns]).astype(np.float32)
-			# subj_category_data.append(file_lines)
-			return file_lines
+        """
+        data = []
+        labels = []
 
-	# return subject data split by categories, as a list of numpy arrays
-	def get_data(self):
-		return self.__data
+        for filename in os.listdir(dirpath):
+            if filename.endswith(self.__parameter.file_format):
 
-	# returns subject categories
-	def get_categories(self):
-		return self.__categories
+                # split the filename into the name part and the extension part
+                name, extension = os.path.splitext(filename)
 
-	def set_data(self, data):
-		self.__data = data
+                filepath = os.path.join(dirpath, filename)
+                filedata = self.__get_file_data(filepath)
 
-	def set_categories(self, categories):
-		self.__categories = categories
+                data.append(filedata)
+                if label is None:
+                    labels.append(name)
+                else:
+                    labels.append(label)
 
-	def get_all_data_bool(self):
-		return self.__all_data_bool
+        return data, labels
 
-	def set_all_data_bool(self, all_data_bool):
-		self.__all_data_bool = all_data_bool
+    def __get_file_data(self, filepath: str) -> np.ndarray:
+        """
+        Obtain the data in the give file, potentially filtering out some rows and columns as determined by
+        self.__parameter.
+
+        Args:
+            filepath (str): the path to the file whose data is to be extracted
+
+        Returns:
+            file_lines (np.ndarray): the extracted data from the given file
+
+        """
+        with open(filepath, encoding='ascii') as f:
+            # get the data in each file by first stripping and splitting the lines and
+            # then creating a numpy array out of these values
+            file_lines = []
+            print("Filename: ", filepath)
+            for line in f:
+                line = line.strip(' \t\n\r')
+                line = re.split('\t|,', line)
+                file_lines.append(line)
+            file_lines = np.asarray(file_lines)
+
+            # keep info only from the relevant columns and rows
+            file_lines = (
+                file_lines[self.__parameter.start_row:, self.__parameter.relevant_columns]).astype(np.float32)
+            return file_lines
+
+    @property
+    def data(self) -> List[np.ndarray]:
+        """
+        Returns: subject data split by categories, as a list of numpy arrays
+        """
+        return self.__data
+
+    @data.setter
+    def data(self, data: List[np.ndarray]) -> None:
+        """
+        Set the subject's data to the passed argument
+        Args:
+            data (list[np.ndarray]):
+        """
+        self.__data = data
+
+    @property
+    def categories(self) -> List[str]:
+        """
+        Returns: subject categories
+        """
+        return self.__categories
+
+    @categories.setter
+    def categories(self, categories: List[str]) -> None:
+        """
+        Sets the subject categories to the passed 'categories' argument.
+
+        Args:
+            categories: List of categories, where each element belongs to a an element in the data property
+
+        """
+        self.__categories = categories
+
+    @property
+    def all_data_bool(self) -> bool:
+        return self.__all_data_bool
+
+    @all_data_bool.setter
+    def all_data_bool(self, all_data_bool: bool) -> None:
+        self.__all_data_bool = all_data_bool

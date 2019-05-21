@@ -140,8 +140,8 @@ class CrossValidator(ABC):
 		all_cat = []
 
 		for subj_name, subj in subj_dict.items():
-			subj_data = subj.get_data()
-			subj_cat = subj.get_categories()
+			subj_data = subj.data
+			subj_cat = subj.categories
 
 			for i, cat_data in enumerate(subj_data):
 				for j in range(0, cat_data.shape[0]):

@@ -43,8 +43,8 @@ class DatasetProcessor:
 		chunked_subj_dict = {}  # dictionary to return
 		# iterate over the subject dictionary and get the corresponding data and category lists
 		for subj_name, subject in subj_dict.items():
-			subj_data = subject.get_data()
-			subj_cat_names = subject.get_categories()
+			subj_data = subject.data
+			subj_cat_names = subject.categories
 
 			# create a new list to add chunked category data for the subject
 			subj_chunked_data = []
@@ -53,8 +53,8 @@ class DatasetProcessor:
 				subj_chunked_data.append(chunked_category)
 
 			new_subject = copy(subject)  # create a new Subject object with the same values as the original
-			new_subject.set_categories(subj_cat_names)  # append the categories
-			new_subject.set_data(subj_chunked_data)  # append the new data
+			new_subject.categories = subj_cat_names  # append the categories
+			new_subject.data = subj_chunked_data  # append the new data
 			chunked_subj_dict[subj_name] = new_subject  # make this subject the value to the key (name) in dictionary
 
 		self.data_chunked = True
@@ -77,7 +77,7 @@ class DatasetProcessor:
 
 		"""
 		# create list according to which the first dimension of the category numpy array will be split
-		assert (split_axis in range(0, len(category.shape) - 1)), "Axis to be split along needs to exist in the " \
+		assert (0 <= split_axis <= len(category.shape) - 1), "Axis to be split along needs to exist in the " \
 																  "category argument."
 		assert (samples_per_interval <= category.shape[
 			split_axis]), "There are not enough instances to make up a chunk in " \
@@ -193,9 +193,9 @@ class DatasetProcessor:
 		# iterate over the original dictionary and for each subject
 		for subj_name, subject in chunked_subj_dict.items():
 			# extract the list of data split according to categories
-			subj_cat_data = subject.get_data()
+			subj_cat_data = subject.data
 			# as well as the list of corresponding (by index) category names
-			subj_cat = subject.get_categories()
+			subj_cat = subject.categories
 			# get unique category names
 			cat_set = set(subj_cat)
 
@@ -220,8 +220,8 @@ class DatasetProcessor:
 					compact_data_list.append(compact_data)
 
 				new_subject = copy(subject)
-				new_subject.set_data(compact_data_list)
-				new_subject.set_categories(new_subj_cat_names)
+				new_subject.data = compact_data_list
+				new_subject.categories = new_subj_cat_names
 				compacted_subj_dict[subj_name] = new_subject
 			else:
 				compacted_subj_dict[subj_name] = subject

@@ -67,9 +67,9 @@ class RawDataVisualizer:
 
 	# this function puts the data from one subject in one dataframe (adding a column corresponding to category)
 	def __compact_subj_dataframe(self, subject):
-		subj_data = subject.get_data()
+		subj_data = subject.data
 		# each column will have it's own plot named after it
-		category_names = subject.get_categories()
+		category_names = subject.categories
 
 		category_list = []
 
@@ -207,8 +207,8 @@ class RawDataVisualizer:
 		assert isinstance(subj_dataset, dict)
 
 		for subj_name, subj in subj_dataset.items():
-			cat_data = subj.get_data()
-			cat_names = subj.get_categories()
+			cat_data = subj.data
+			cat_names = subj.categories
 
 			for i, cat in enumerate(cat_data):
 				fig = self.compute_subj_cat_spectrogram(cat, cat_names[i], subj_name, NFFT, Fs)

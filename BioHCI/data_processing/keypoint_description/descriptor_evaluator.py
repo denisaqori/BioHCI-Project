@@ -4,7 +4,7 @@ Created: 3/27/19
 """
 import numpy as np
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data_processing.descriptor_computer import DescriptorComputer
+from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.helpers.study_config import StudyConfig
 import pickle
 from BioHCI.helpers import utilities as utils
@@ -42,8 +42,8 @@ class DescriptorEvaluator:
 		heatmap = None
 		if not os.path.exists(self.get_matrix_full_name()):
 			for subj_name, subj in self.__dataset_descriptors_dict.items():
-				subj_data = subj.get_data()
-				subj_cat = subj.get_categories()
+				subj_data = subj.data
+				subj_cat = subj.categories
 				subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
 				heatmap = np.zeros((len(set(subj_int_cat)), len(set(subj_int_cat))))

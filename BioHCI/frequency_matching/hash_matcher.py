@@ -29,8 +29,8 @@ class HashMatcher():
 		hashes_data_list = []
 
 		for subj_name, subj in all_subj_dict.items():
-			subj_data = subj.get_data()
-			subj_cat = subj.get_categories()
+			subj_data = subj.data
+			subj_cat = subj.categories
 
 			for i, cat_data in enumerate(subj_data):
 				fs = parameters.sampling_freq

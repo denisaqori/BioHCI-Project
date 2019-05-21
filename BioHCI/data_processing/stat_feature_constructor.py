@@ -9,59 +9,116 @@ from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 import numpy as np
+import BioHCI.helpers.type_aliases as types
+from copy import copy
+
 
 class StatFeatureConstructor(FeatureConstructor):
-	"""
-	Statistical Information:
-	"""
-	def __init__(self, dataset_processor, parameters, feature_axis):
-		super().__init__(dataset_processor, parameters, feature_axis)
-		print("Statistical Feature Constructor being initiated.")
+    """
+    Statistical Information:
+    """
 
-		# methods to calculate particular features
-		self.features = [self.min_features, self.max_features, self.mean_features, self.std_features]
+    def __init__(self, dataset_processor, parameters):
+        super().__init__(dataset_processor, parameters)
+        print("Statistical Feature Constructor being initiated.")
 
-	def min_features(self, cat, feature_axis):
-		min_array = np.amin(cat, axis=feature_axis, keepdims=False)
-		return min_array
+        assert parameters.construct_features is True
+        assert parameters.feature_window > 0
 
-	def max_features(self, cat, feature_axis):
-		max_array = np.amax(cat, axis=feature_axis, keepdims=False)
-		return max_array
+        # methods to calculate particular features
+        self.__stat_features = [self.min_features, self.max_features, self.mean_features, self.std_features]
 
-	def mean_features(self, cat, feature_axis):
-		mean_array = np.mean(cat, axis=feature_axis, keepdims=False)
-		return mean_array
+    def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> types.subj_dataset:
+        """
+        Constructs features over an interval of a chunk for the whole dataset.
 
-	def std_features(self, cat, feature_axis):
-		std_array = np.std(cat, axis=feature_axis, keepdims=False)
-		return std_array
+        For each unprocessed original feature, each function specified in self.__stat_features is applied to each
+        part of the chunk.
 
-	def diff_log_mean(self, cat, feature_axis):
-		mean_array =self.mean_features(cat, feature_axis)
-		assert mean_array.shape[-1] == 2
-		diff = np.log(mean_array[:, :, 0]) - np.log(mean_array[:, :, 1])
+        Returns:
+            feature_dataset: A dictionary mapping a subject name to a Subject object. The data for each category of
+                this subject object will have been processed to have some features calculated.
 
-		diff = np.expand_dims(diff, axis=feature_axis)
-		return diff
+        """
+        # axis along the dataset is to be chunked in order to create an extra axis for feature construction
+        chunk_axis = 1
+        feature_ready_dataset = self.dataset_processor.chunk_data(processed_dataset, self.parameters.feature_window,
+                                                                  chunk_axis, self.parameters.feature_overlap)
+
+        # The axis along which features are to be created. This axis will end up being collapsed
+        feature_axis = 2
+
+        feature_dataset = {}
+        for subj_name, subj in feature_ready_dataset.items():
+            cat_data = subj.data
+
+            new_cat_data = []
+            for cat in cat_data:
+                # assert len(cat.shape) == 4, "The subj_dataset passed to create features on, should have 4 axis."
+                assert feature_axis in range(-1, len(cat.shape))
+
+                feature_cat_tuple = ()
+                for feature_func in self.__stat_features:
+                    features = feature_func(cat, feature_axis)
+                    feature_cat_tuple = feature_cat_tuple + (features,)
+
+                new_cat = np.stack(feature_cat_tuple, axis=feature_axis)
+
+                new_cat_reshaped = np.reshape(new_cat, newshape=(new_cat.shape[0], new_cat.shape[1], -1))
+                new_cat_data.append(new_cat_reshaped)
+
+            new_subj = copy(subj)  # copy the current subject
+            new_subj.data = new_cat_data  # assign the above-calculated feature categories
+            feature_dataset[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
+
+        return feature_dataset
+
+    @staticmethod
+    def min_features(cat, feature_axis):
+        min_array = np.amin(cat, axis=feature_axis, keepdims=False)
+        return min_array
+
+    @staticmethod
+    def max_features(cat, feature_axis):
+        max_array = np.amax(cat, axis=feature_axis, keepdims=False)
+        return max_array
+
+    @staticmethod
+    def mean_features(cat, feature_axis):
+        mean_array = np.mean(cat, axis=feature_axis, keepdims=False)
+        return mean_array
+
+    @staticmethod
+    def std_features(cat, feature_axis):
+        std_array = np.std(cat, axis=feature_axis, keepdims=False)
+        return std_array
+
+    def diff_log_mean(self, cat, feature_axis):
+        mean_array = self.mean_features(cat, feature_axis)
+        assert mean_array.shape[-1] == 2
+        diff = np.log(mean_array[:, :, 0]) - np.log(mean_array[:, :, 1])
+
+        diff = np.expand_dims(diff, axis=feature_axis)
+        return diff
+
 
 if __name__ == "__main__":
-	print("Running feature_constructor module...")
+    print("Running feature_constructor module...")
 
-	config_dir = "config_files"
-	config = StudyConfig(config_dir)
+    config_dir = "config_files"
+    config = StudyConfig(config_dir)
 
-	# create a template of a configuration file with all the fields initialized to None
-	config.create_config_file_template()
-	parameters = config.populate_study_parameters("CTS_one_subj_firm.toml")
+    # create a template of a configuration file with all the fields initialized to None
+    config.create_config_file_template()
+    parameters = config.populate_study_parameters("EEG_Workload.toml")
 
-	# generating the data from files
-	data = DataConstructor(parameters)
-	subject_dict = data.get_subject_dataset()
+    # generating the data from files
+    data = DataConstructor(parameters)
+    subject_dict = data.get_subject_dataset()
 
-	category_balancer = WithinSubjectOversampler()
-	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
+    category_balancer = WithinSubjectOversampler()
+    dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
-	feature_constructor = StatFeatureConstructor(dataset_processor, parameters, feature_axis=2)
-	feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
-	print("")
+    feature_constructor = StatFeatureConstructor(dataset_processor, parameters)
+    feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
+    print("")

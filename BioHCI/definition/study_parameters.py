@@ -27,6 +27,10 @@ class StudyParameters:
 		# this value represents the beginning of valid rows in the file
 		self.__start_row = None
 
+		# how arrays of data will be named: so far, either from subdirectories of each subject, or from filenames of
+		# each subject
+		self.__cat_names = None
+
 		# the total number of subjects
 		self.__num_subj = None
 		# the column in which the file for each subject contains labels. If set to None, there are no labels.
@@ -164,6 +168,15 @@ class StudyParameters:
 		assert (isinstance(start_row, int) and (
 				int(start_row) >= 0)), "Number of subjects needs to be a positive integer or zero."
 		self.__start_row = start_row
+
+	@property
+	def cat_names(self):
+		return self.__cat_names
+
+	@cat_names.setter
+	def cat_names(self, cat_names):
+		assert cat_names is 'file'.lower() or cat_names is 'dir'.lower()
+		self.__cat_names = cat_names.lower()
 
 	@property
 	def num_subj(self):
