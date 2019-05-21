@@ -6,10 +6,11 @@ import numpy as np
 import scipy.ndimage
 import math
 
+from BioHCI.data_processing.keypoint_description.desc_type import DescType
+
 
 class IntervalDescription:
-	def __init__(self, interval, desc_type):
-		assert desc_type == 1 or desc_type == 2
+	def __init__(self, interval, desc_type: DescType):
 		self.interval = interval
 		self.desc_type = desc_type
 
@@ -188,9 +189,9 @@ class IntervalDescription:
 
 		else:
 			if len(keypoint_list) > 0:
-				if self.desc_type == 1:
+				if self.desc_type == DescType.JUSD:
 					descriptors = self._describe_keypoints_1D(octave, keypoint_list, nb, a)
-				elif self.desc_type == 2:
+				elif self.desc_type == DescType.MSBSD:
 					descriptors = self._describe_keypoints_2D(octave, keypoint_list, nb, a)
 
 		return descriptors

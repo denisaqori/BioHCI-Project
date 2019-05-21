@@ -11,6 +11,7 @@ from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOvers
 import numpy as np
 import BioHCI.helpers.type_aliases as types
 from copy import copy
+from typing import Optional
 
 
 class StatFeatureConstructor(FeatureConstructor):
@@ -28,7 +29,7 @@ class StatFeatureConstructor(FeatureConstructor):
         # methods to calculate particular features
         self.__stat_features = [self.min_features, self.max_features, self.mean_features, self.std_features]
 
-    def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> types.subj_dataset:
+    def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         """
         Constructs features over an interval of a chunk for the whole dataset.
 
