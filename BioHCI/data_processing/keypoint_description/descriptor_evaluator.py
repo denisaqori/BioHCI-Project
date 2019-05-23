@@ -224,7 +224,7 @@ if __name__ == "__main__":
     ratio_1_norm = avg_same_1_norm / avg_diff_1_norm
     """
 
-    # MSBSD compution - normalized
+        # MSBSD compution - normalized
     descriptor_2_computer_norm = DescriptorComputer(DescType.MSBSD, parameters, normalize=True)
     descriptor_2_eval_norm = DescriptorEvaluator(descriptor_2_computer_norm, subject_dataset)
 
@@ -235,5 +235,15 @@ if __name__ == "__main__":
     avg_same_2_norm, avg_diff_2_norm, std_same_2_norm, std_diff_2_norm, cv_same_2_norm, cv_diff_2_norm = \
         descriptor_2_eval_norm.get_avg_category_distance(heatmap_matrix_2_norm)
     ratio_2_norm = avg_same_2_norm / avg_diff_2_norm
+
+    f = open("desc_eval_msbsd_norm.txt", "w")
+    f.write("avg_same_norm: %f\r\n" %(avg_same_2_norm))
+    f.write("avg_diff_norm: %f\r\n" %(avg_diff_2_norm))
+    f.write("std_same_norm: %f\r\n" %(std_same_2_norm))
+    f.write("std_diff_norm: %f\r\n" %(std_diff_2_norm))
+    f.write("cv_same_norm: %f\r\n" %(cv_same_2_norm))
+    f.write("cv_diff_norm: %f\r\n" %(cv_diff_2_norm))
+    f.write("ratio_norm: %f\r\n" %(ratio_2_norm))
+    f.close()
 
     print("")
