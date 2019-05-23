@@ -4,6 +4,7 @@ Created: 2/19/19
 """
 
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
+from BioHCI.definition.study_parameters import StudyParameters
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
@@ -19,7 +20,7 @@ class StatFeatureConstructor(FeatureConstructor):
     Statistical Information:
     """
 
-    def __init__(self, dataset_processor, parameters):
+    def __init__(self, dataset_processor: DatasetProcessor, parameters: StudyParameters) -> None:
         super().__init__(dataset_processor, parameters)
         print("Statistical Feature Constructor being initiated.")
 
@@ -29,7 +30,7 @@ class StatFeatureConstructor(FeatureConstructor):
         # methods to calculate particular features
         self.__stat_features = [self.min_features, self.max_features, self.mean_features, self.std_features]
 
-    def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
+    def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         """
         Constructs features over an interval of a chunk for the whole dataset.
 
@@ -41,6 +42,9 @@ class StatFeatureConstructor(FeatureConstructor):
                 this subject object will have been processed to have some features calculated.
 
         """
+        # run dataset_processor on subject_dataset to compact, chunk the dataset.
+        processed_dataset = self.dataset_processor.process_dataset(subject_dataset)
+
         # axis along the dataset is to be chunked in order to create an extra axis for feature construction
         chunk_axis = 1
         feature_ready_dataset = self.dataset_processor.chunk_data(processed_dataset, self.parameters.feature_window,
@@ -75,26 +79,26 @@ class StatFeatureConstructor(FeatureConstructor):
         return feature_dataset
 
     @staticmethod
-    def min_features(cat, feature_axis):
+    def min_features(cat: np.ndarray, feature_axis: int) -> np.ndarray:
         min_array = np.amin(cat, axis=feature_axis, keepdims=False)
         return min_array
 
     @staticmethod
-    def max_features(cat, feature_axis):
+    def max_features(cat: np.ndarray, feature_axis: int) -> np.ndarray:
         max_array = np.amax(cat, axis=feature_axis, keepdims=False)
         return max_array
 
     @staticmethod
-    def mean_features(cat, feature_axis):
+    def mean_features(cat: np.ndarray, feature_axis: int) -> np.ndarray:
         mean_array = np.mean(cat, axis=feature_axis, keepdims=False)
         return mean_array
 
     @staticmethod
-    def std_features(cat, feature_axis):
+    def std_features(cat: np.ndarray, feature_axis: int) -> np.ndarray:
         std_array = np.std(cat, axis=feature_axis, keepdims=False)
         return std_array
 
-    def diff_log_mean(self, cat, feature_axis):
+    def diff_log_mean(self, cat: np.ndarray, feature_axis: int) -> np.ndarray:
         mean_array = self.mean_features(cat, feature_axis)
         assert mean_array.shape[-1] == 2
         diff = np.log(mean_array[:, :, 0]) - np.log(mean_array[:, :, 1])

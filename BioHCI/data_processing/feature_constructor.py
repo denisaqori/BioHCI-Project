@@ -31,11 +31,8 @@ class FeatureConstructor(ABC):
         """
         assert subject_dataset is not None, "subject_dataset needs to be set."
 
-        # run dataset_processor on subject_dataset to compact, chunk the dataset.
-        processed_dataset = self.dataset_processor.process_dataset(subject_dataset)
 
-        processed_dataset = subject_dataset
-        feature_dataset = self._produce_specific_features(processed_dataset)
+        feature_dataset = self._produce_specific_features(subject_dataset)
         assert feature_dataset is not None, "Class FeatureConstructor is Abstract and should not be initiated - " \
                                             "initiate one of its children instead. The produced feature_dataset is " \
                                             "currently set to None."

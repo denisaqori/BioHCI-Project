@@ -30,9 +30,9 @@ class ScipyCrossValidator(CrossValidator):
 
 
 	# TODO: add train errors and loss
-	def train(self, train_dataset):
+	def train(self, train_dataset, summary_writter):
 
-		if self.__construct_features is False:
+		if self._parameter.construct_features is False:
 			train_data, train_labels = utils.unify_time_windows(train_dataset[0], train_dataset[1], 30)
 		else:
 			train_data, train_labels = utils.define_standard_features(train_dataset[0], train_dataset[1], 30)
@@ -43,7 +43,7 @@ class ScipyCrossValidator(CrossValidator):
 		self.model.score(train_data, train_labels)
 
 	# implementing the val function declared as abstract in parent class
-	def val(self, val_dataset):
+	def val(self, val_dataset, summary_writer):
 		if self.__construct_features is False:
 			val_data, val_labels = utils.unify_time_windows(val_dataset[0], val_dataset[1], 30)
 		else:

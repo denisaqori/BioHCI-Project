@@ -10,7 +10,6 @@ class CrossValidator(ABC):
 				 learning_def, all_categories):
 		self._subject_dict = subject_dict
 		self._data_splitter = data_splitter
-		# self._dataset_processor = dataset_processor
 		self._feature_constructor = feature_constructor
 		self.__model = model
 		self._learning_def = learning_def
@@ -18,9 +17,6 @@ class CrossValidator(ABC):
 		self._num_folds = parameter.num_folds
 		self._all_categories = all_categories
 
-		# self._cat_mapping = self.__map_categories(all_categories)
-
-		# self.all_int_categories = self.convert_categories(all_categories)
 		self.all_int_categories = utils.convert_categories(all_categories, all_categories)
 
 		self._all_val_accuracies = []

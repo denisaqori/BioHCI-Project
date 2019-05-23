@@ -22,12 +22,11 @@ class KeypointFeatureConstructor(FeatureConstructor):
 
         self.descriptor_computer = descriptor_computer
 
-    def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
-        feature_axis = 1
-
-        feature_dataset = self.descriptor_computer.produce_dataset_descriptors(processed_dataset)
-
-        return None
+    def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
+        # run dataset_processor on subject_dataset to compact, chunk the dataset.
+        # processed_dataset = self.dataset_processor.process_dataset(subject_dataset)
+        feature_dataset = self.descriptor_computer.produce_dataset_descriptors(subject_dataset)
+        return feature_dataset
 
 
 if __name__ == "__main__":

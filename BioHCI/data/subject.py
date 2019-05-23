@@ -34,15 +34,21 @@ class Subject:
                                              each element of subj_category_data.
         """
         print("\nBuilding the subject dataset: ")
-        subj_category_data = None
-        subj_category_names = None
+        subj_category_data = []
+        subj_category_names = []
 
         # if each subject has a directory for each category
         if self.__parameter.cat_names == 'dir':
             for cat_data_container in os.listdir(self.__subj_data_path):
                 subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
                 if os.path.isdir(subj_cat_data_path):
-                    subj_category_data, subj_category_names = self.__read_files(subj_cat_data_path, cat_data_container)
+                    category_data, category_names = self.__read_files(subj_cat_data_path, cat_data_container)
+                    subj_category_data.append(category_data)
+                    subj_category_names.append(category_names)
+
+            subj_category_data = [item for sublist in subj_category_data for item in sublist]
+            subj_category_names = [item for sublist in subj_category_names for item in sublist]
+
         # if each subject has one file per category
         elif self.__parameter.cat_names == 'file':
             subj_cat_data_path = self.__subj_data_path

@@ -2,6 +2,8 @@
 Created: 3/27/19
 © Denisa Qori McDonald 2019 All Rights Reserved
 """
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
@@ -12,6 +14,8 @@ from BioHCI.helpers import utilities as utils
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import threading
+import concurrent.futures
 
 
 class DescriptorEvaluator:
@@ -25,7 +29,8 @@ class DescriptorEvaluator:
             self.__dataset_descriptors_dict = descriptor_computer.produce_dataset_descriptors(subject_dataset)
         self.descriptor_computer = descriptor_computer
 
-        dataset_eval_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/dataset_evals'
+        dataset_eval_path = '/home/denisa/GitHub/BioHCI ' \
+                            'Project/BioHCI/data_processing/keypoint_description/dataset_evals'
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
 
     @property
@@ -42,6 +47,7 @@ class DescriptorEvaluator:
     def compute_heatmap(self, all_dataset_categories):
 
         heatmap = None
+
         if not os.path.exists(self.get_matrix_full_name()):
             for subj_name, subj in self.__dataset_descriptors_dict.items():
                 subj_data = subj.data
@@ -59,12 +65,15 @@ class DescriptorEvaluator:
                         keypress2 = subj_data[j + 1]
                         cat2 = subj_int_cat[j]
                         # print("cat 1: ", cat1, "cat 2: ", cat2)
-                        print("Number of levenshtine dist computed (out of 16110 expected): ", num)
+                        print("Number of levenshtine dist computed: ", num)
 
                         # lev_dist = self.levenshtein_distance(keypress1, keypress2)
                         lev_dist = self.real_levenshtein_distance(keypress1, keypress2)
-                        heatmap[cat1, cat2] = heatmap[cat1, cat2] + lev_dist
-                        num = num + 1
+
+                        with threading.Lock():
+                            # the next two lines need to be locked
+                            heatmap[cat1, cat2] = heatmap[cat1, cat2] + lev_dist
+                            num = num + 1
 
                 self.save_obj(heatmap, ".pkl", "_matrix")
 
@@ -134,7 +143,7 @@ class DescriptorEvaluator:
     def save_obj(self, obj, ext, extra_name=""):
         dataset_eval_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
                                                          self.descriptor_computer.parameters.study_name +
-                                                         "_desc_type_" + str(
+                                                         str(
                                                              self.descriptor_computer.desc_type))
                                             + self.descriptor_computer.dataset_desc_name + extra_name + ext)
         if ext == ".pkl":
@@ -189,6 +198,7 @@ if __name__ == "__main__":
     data = DataConstructor(parameters)
     subject_dataset = data.get_subject_dataset()
 
+    """
     # JUSD compution - unnormalized
     descriptor_1_computer = DescriptorComputer(DescType.JUSD, parameters, normalize=False)
     descriptor_1_eval = DescriptorEvaluator(descriptor_1_computer, subject_dataset)
@@ -212,11 +222,16 @@ if __name__ == "__main__":
     avg_same_1_norm, avg_diff_1_norm, std_same_1_norm, std_diff_1_norm, cv_same_1_norm, cv_diff_1_norm = \
         descriptor_1_eval_norm.get_avg_category_distance(heatmap_matrix_1_norm)
     ratio_1_norm = avg_same_1_norm / avg_diff_1_norm
+    """
 
     # MSBSD compution - normalized
     descriptor_2_computer_norm = DescriptorComputer(DescType.MSBSD, parameters, normalize=True)
     descriptor_2_eval_norm = DescriptorEvaluator(descriptor_2_computer_norm, subject_dataset)
-    heatmap_matrix_2_norm = descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories())
+
+    executor = ThreadPoolExecutor(max_workers=64)
+    heatmap_matrix_2_norm = executor.submit(descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories()))
+
+    # heatmap_matrix_2_norm = descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories())
     avg_same_2_norm, avg_diff_2_norm, std_same_2_norm, std_diff_2_norm, cv_same_2_norm, cv_diff_2_norm = \
         descriptor_2_eval_norm.get_avg_category_distance(heatmap_matrix_2_norm)
     ratio_2_norm = avg_same_2_norm / avg_diff_2_norm

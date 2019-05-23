@@ -5,6 +5,9 @@ import torch
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
+from BioHCI.data_processing.keypoint_description.desc_type import DescType
+from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
+from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definition.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definition.non_neural_net_def import NonNeuralNetworkDefinition
@@ -43,9 +46,8 @@ def main():
 
 	# the object with variable definition based on the specified configuration file. It includes data description,
 	# definitions of run parameters (independent of deep definition vs not)
-	parameters = config.populate_study_parameters("CTS_one_subj_firm.toml")
+	parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
 	# parameters = config.populate_study_parameters("EEG_Workload.toml")
-	# config.dump(parameters, parameters.study_name + ".toml")
 	print(parameters)
 
 	# generating the data from files
@@ -75,17 +77,16 @@ def main():
 	# TODO fix the feature_axis and input_size to not be magic numbers
 	data_augmenter = DataAugmenter()
 	dataset_processor = DatasetProcessor(parameters, balancer=category_balancer, data_augmenter=data_augmenter)
-	feature_axis = 2
-	feature_constructor = StatFeatureConstructor(dataset_processor, parameters, feature_axis=feature_axis)
+	descriptor_computer = DescriptorComputer(DescType.JUSD, parameters, normalize=True,
+										 		dataset_desc_name="_pipeline_test")
+	feature_constructor = KeypointFeatureConstructor(dataset_processor, parameters, descriptor_computer)
 
 	# if we want a deep definition model, define it specifically in the NeuralNetworkDefinition class
 	datast_categories = data.get_all_dataset_categories()
 	# in order to build networks, we need to know input size. At this point it depends on the number of current
 	# attributes, as well as the number of functions applied to those attributes (in feature_constructor) to create
 	# the ultimate features
-	# sample_subj_dataset = random.sample(train_val_dictionary.items(), 1)[0][1].data[0]
-	# input_size = len(feature_constructor.features) * sample_subj_dataset.shape[feature_axis]
-	input_size = 8
+	input_size = 16
 
 	if parameters.neural_net is True:
 		learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
@@ -104,8 +105,10 @@ def main():
 		cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, model, parameters,
 							  learning_def, datast_categories)
 	else:
-		cv = ScipyCrossValidator(subject_dict, data_splitter, feature_constructor, model,
-								 parameters, learning_def, datast_categories)
+		cv = None
+	# else:
+	# 	cv = ScipyCrossValidator(subject_dict, data_splitter, feature_constructor, model,
+	# 							 parameters, learning_def, datast_categories)
 
 	# results of run
 	log_dir_path = "Results/" + parameters.study_name + "/run summaries"
