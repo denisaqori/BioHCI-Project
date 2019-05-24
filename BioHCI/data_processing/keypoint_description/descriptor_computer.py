@@ -27,8 +27,7 @@ class DescriptorComputer:
         self.__dataset_desc_path = None
         assert isinstance(dataset_desc_name, str)
         self.dataset_desc_name = dataset_desc_name
-        dataset_desc_path = '/home/denisa/GitHub/BioHCI ' \
-                            'Project/BioHCI/data_processing/keypoint_description/dataset_descriptors'
+        dataset_desc_path = './BioHCI/data_processing/keypoint_description/dataset_descriptors'
         self.all_dataset_desc_dir = utils.create_dir(dataset_desc_path)
 
         assert isinstance(normalize, bool)
