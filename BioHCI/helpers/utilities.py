@@ -54,17 +54,17 @@ def create_dir(root_dir_path, subdir_name_list=None):
 
 def get_root_path(val):
 	if val.lower() == "main":
-		path = '/home/denisa/GitHub/BioHCI Project/'
+		path = './'
 	elif val.lower() == "resources":
-		path = '/home/denisa/GitHub/BioHCI Project/Resources'
+		path = './Resources'
 	elif val.lower() == "results":
-		path = '/home/denisa/GitHub/BioHCI Project/Results'
+		path = './Results'
 	elif val.lower() == "src":
-		path = '/home/denisa/GitHub/BioHCI Project/BioHCI'
+		path = './BioHCI'
 	elif val.lower() == "saved_models":
-		path = '/home/denisa/GitHub/BioHCI Project/saved_models'
+		path = './saved_models'
 	elif val.lower() == "codebooks":
-		path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/codebooks'
+		path = './BioHCI/data_processing/codebooks'
 	else:
 		path = None
 		print("Root path for " + val + " is set to None...")

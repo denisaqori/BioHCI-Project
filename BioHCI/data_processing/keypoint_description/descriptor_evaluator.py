@@ -29,8 +29,7 @@ class DescriptorEvaluator:
             self.__dataset_descriptors_dict = descriptor_computer.produce_dataset_descriptors(subject_dataset)
         self.descriptor_computer = descriptor_computer
 
-        dataset_eval_path = '/home/denisa/GitHub/BioHCI ' \
-                            'Project/BioHCI/data_processing/keypoint_description/dataset_evals'
+        dataset_eval_path = './BioHCI/data_processing/keypoint_description/dataset_evals'
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
 
     @property
@@ -57,8 +56,8 @@ class DescriptorEvaluator:
                 heatmap = np.zeros((len(set(subj_int_cat)), len(set(subj_int_cat))))
 
                 num = 0
-                for i in range(0, len(subj_data) - 1):
-                    for j in range(0, len(subj_data) - 1):
+                for i in range(0, 5):# len(subj_data) - 1
+                    for j in range(0, 5):# len(subj_data) - 1
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -151,8 +150,8 @@ class DescriptorEvaluator:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
         elif ext == ".png":
             obj.figure.savefig(dataset_eval_path)
-            plt.show()
-            plt.close("all")
+            #plt.show()
+            #plt.close("all")
         else:
             print("Invalid extension. Object not saved!")
 
