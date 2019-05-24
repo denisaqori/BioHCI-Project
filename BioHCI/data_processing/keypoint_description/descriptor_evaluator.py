@@ -20,6 +20,7 @@ import concurrent.futures
 
 class DescriptorEvaluator:
     def __init__(self, descriptor_computer, subject_dataset):
+        self.__heatmap = None
         if descriptor_computer.dataset_desc_path is not None and os.path.exists(
                 descriptor_computer.dataset_desc_path):
             print("Loading dataset descriptors from: ", descriptor_computer.dataset_desc_path)
@@ -45,7 +46,7 @@ class DescriptorEvaluator:
 
     def compute_heatmap(self, all_dataset_categories):
 
-        heatmap = None
+        # heatmap = None
 
         if not os.path.exists(self.get_matrix_full_name()):
             for subj_name, subj in self.__dataset_descriptors_dict.items():
@@ -53,11 +54,11 @@ class DescriptorEvaluator:
                 subj_cat = subj.categories
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
-                heatmap = np.zeros((len(set(subj_int_cat)), len(set(subj_int_cat))))
+                self.__heatmap = np.zeros((len(set(subj_int_cat)), len(set(subj_int_cat))))
 
                 num = 0
-                for i in range(0, 5):# len(subj_data) - 1
-                    for j in range(0, 5):# len(subj_data) - 1
+                for i in range(0, 7):# len(subj_data) - 1
+                    for j in range(0, 7):# len(subj_data) - 1
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -71,22 +72,22 @@ class DescriptorEvaluator:
 
                         with threading.Lock():
                             # the next two lines need to be locked
-                            heatmap[cat1, cat2] = heatmap[cat1, cat2] + lev_dist
+                            self.__heatmap[cat1, cat2] = self.__heatmap[cat1, cat2] + lev_dist
                             num = num + 1
 
-                self.save_obj(heatmap, ".pkl", "_matrix")
+                self.save_obj(self.__heatmap, ".pkl", "_matrix")
 
         else:
             with (open(self.get_matrix_full_name(), "rb")) as openfile:
-                heatmap = pickle.load(openfile)
+                self.__heatmap = pickle.load(openfile)
 
-        if heatmap is not None:
+        if self.__heatmap is not None:
             plt.figure(figsize=(14, 10))
             sns.set(font_scale=1.4)
-            heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
+            heatmap_fig = sns.heatmap(self.__heatmap, xticklabels=5, yticklabels=5)
             self.save_obj(heatmap_fig, ".png", "_heatmap")
 
-        return heatmap
+        # return heatmap
 
     @staticmethod
     def levenshtein_distance(keypress1, keypress2):
@@ -184,6 +185,10 @@ class DescriptorEvaluator:
         cv_diff = std_diff / avg_diff
         return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff
 
+    def get_heatmap(self):
+        assert self.__heatmap is not None
+        return self.__heatmap
+
 
 if __name__ == "__main__":
     config_dir = "config_files"
@@ -228,7 +233,8 @@ if __name__ == "__main__":
     descriptor_2_eval_norm = DescriptorEvaluator(descriptor_2_computer_norm, subject_dataset)
 
     executor = ThreadPoolExecutor(max_workers=64)
-    heatmap_matrix_2_norm = executor.submit(descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories()))
+    executor.submit(descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories()))
+    heatmap_matrix_2_norm = descriptor_2_eval_norm.get_heatmap()
 
     # heatmap_matrix_2_norm = descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories())
     avg_same_2_norm, avg_diff_2_norm, std_same_2_norm, std_diff_2_norm, cv_same_2_norm, cv_diff_2_norm = \
