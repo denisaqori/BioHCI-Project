@@ -38,7 +38,7 @@ class StudyConfig:
 		Creates a configuration file based on the attributes of the StudyParameters object passed.
 
 		Args:
-			study_parameters (StudyParameters): a StudyParameters instance containing key-value pairs
+			study_parameters (Stu  File "/home/denisa/GitHub/BioHCI Project/BioHCI/helpers/study_config.py", line 30, in _loaddyParameters): a StudyParameters instance containing key-value pairs
 			toml_config_file (str): the name of the configuraition file to be created based on the previous argument
 
 		Returns:

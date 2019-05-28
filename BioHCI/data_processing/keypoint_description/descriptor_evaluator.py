@@ -15,7 +15,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 import threading
-import concurrent.futures
 
 
 class DescriptorEvaluator:
@@ -30,7 +29,7 @@ class DescriptorEvaluator:
             self.__dataset_descriptors_dict = descriptor_computer.produce_dataset_descriptors(subject_dataset)
         self.descriptor_computer = descriptor_computer
 
-        dataset_eval_path = './BioHCI/data_processing/keypoint_description/dataset_evals'
+        dataset_eval_path = utils.get_root_path("dataset_eval")
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
 
     @property
@@ -57,14 +56,13 @@ class DescriptorEvaluator:
                 self.__heatmap = np.zeros((len(set(subj_int_cat)), len(set(subj_int_cat))))
 
                 num = 0
-                for i in range(0, 7):# len(subj_data) - 1
-                    for j in range(0, 7):# len(subj_data) - 1
+                for i in range(0, 7):  # len(subj_data) - 1
+                    for j in range(0, 7):  # len(subj_data) - 1
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
                         keypress2 = subj_data[j + 1]
                         cat2 = subj_int_cat[j]
-                        # print("cat 1: ", cat1, "cat 2: ", cat2)
                         print("Number of levenshtine dist computed: ", num)
 
                         # lev_dist = self.levenshtein_distance(keypress1, keypress2)
@@ -151,8 +149,8 @@ class DescriptorEvaluator:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
         elif ext == ".png":
             obj.figure.savefig(dataset_eval_path)
-            #plt.show()
-            #plt.close("all")
+            plt.show()
+            plt.close("all")
         else:
             print("Invalid extension. Object not saved!")
 
@@ -188,6 +186,14 @@ class DescriptorEvaluator:
     def get_heatmap(self):
         assert self.__heatmap is not None
         return self.__heatmap
+
+    def generate_heatmap(self, heatmap):
+        # heatmap = pickle.load("CTS_5taps_per_buttonDescType.MSBSD_l2_scaled_matrix.pkl")
+
+        plt.figure(figsize=(14, 10))
+        sns.set(font_scale=1.4)
+        heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
+        self.save_obj(heatmap_fig, ".png", "_heatmap")
 
 
 if __name__ == "__main__":
@@ -228,7 +234,7 @@ if __name__ == "__main__":
     ratio_1_norm = avg_same_1_norm / avg_diff_1_norm
     """
 
-        # MSBSD compution - normalized
+    # MSBSD compution - normalized
     descriptor_2_computer_norm = DescriptorComputer(DescType.MSBSD, parameters, normalize=True)
     descriptor_2_eval_norm = DescriptorEvaluator(descriptor_2_computer_norm, subject_dataset)
 
@@ -237,18 +243,24 @@ if __name__ == "__main__":
     heatmap_matrix_2_norm = descriptor_2_eval_norm.get_heatmap()
 
     # heatmap_matrix_2_norm = descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories())
+    # remove the next 3 lines
+    # path = "CTS_5taps_per_buttonDescType_MSBSD_l2_scaled_matrix.pkl"
+    # with (open(path, "rb")) as openfile:
+    #     heatmap_matrix_2_norm = pickle.load(openfile)
+    # heatmap_fig = descriptor_2_eval_norm.generate_heatmap(heatmap_matrix_2_norm)
+
     avg_same_2_norm, avg_diff_2_norm, std_same_2_norm, std_diff_2_norm, cv_same_2_norm, cv_diff_2_norm = \
         descriptor_2_eval_norm.get_avg_category_distance(heatmap_matrix_2_norm)
     ratio_2_norm = avg_same_2_norm / avg_diff_2_norm
 
     f = open("desc_eval_msbsd_norm.txt", "w")
-    f.write("avg_same_norm: %f\r\n" %(avg_same_2_norm))
-    f.write("avg_diff_norm: %f\r\n" %(avg_diff_2_norm))
-    f.write("std_same_norm: %f\r\n" %(std_same_2_norm))
-    f.write("std_diff_norm: %f\r\n" %(std_diff_2_norm))
-    f.write("cv_same_norm: %f\r\n" %(cv_same_2_norm))
-    f.write("cv_diff_norm: %f\r\n" %(cv_diff_2_norm))
-    f.write("ratio_norm: %f\r\n" %(ratio_2_norm))
+    f.write("avg_same_norm: %f\r\n" % (avg_same_2_norm))
+    f.write("avg_diff_norm: %f\r\n" % (avg_diff_2_norm))
+    f.write("std_same_norm: %f\r\n" % (std_same_2_norm))
+    f.write("std_diff_norm: %f\r\n" % (std_diff_2_norm))
+    f.write("cv_same_norm: %f\r\n" % (cv_same_2_norm))
+    f.write("cv_diff_norm: %f\r\n" % (cv_diff_2_norm))
+    f.write("ratio_norm: %f\r\n" % (ratio_2_norm))
     f.close()
 
     print("")
