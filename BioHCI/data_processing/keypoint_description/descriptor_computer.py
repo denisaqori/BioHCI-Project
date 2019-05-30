@@ -16,32 +16,55 @@ import pickle
 from sklearn import preprocessing
 import sys
 import BioHCI.helpers.type_aliases as types
+from typing import Optional
+from os.path import join
 
 
 class DescriptorComputer:
-    def __init__(self, desc_type: DescType, parameters: StudyParameters, normalize: bool, dataset_desc_name: str = ""):
+    def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
+                 normalize: bool, extra_name: str = "") -> None:
 
         self.desc_type = desc_type
-
-        # set name and path of descriptor to be saved
-        self.__dataset_desc_path = None
-        assert isinstance(dataset_desc_name, str)
-        self.dataset_desc_name = dataset_desc_name
-
-        dataset_desc_path = utils.get_root_path("dataset_desc")
-        self.all_dataset_desc_dir = utils.create_dir(dataset_desc_path)
-
-        assert isinstance(normalize, bool)
-        self.normalize = normalize
+        self.__dataset_descriptors = None
 
         assert isinstance(parameters, StudyParameters)
         self.parameters = parameters
 
+        assert isinstance(normalize, bool)
+        self.normalize = normalize
+
+        # set name and path of descriptor to be saved
+        assert isinstance(extra_name, str)
+        self.extra_name = extra_name
+
+        self.__dataset_desc_root_path = utils.get_root_path("dataset_desc")
+        # if there is no root directory for dataset descriptors, create it
+        utils.create_dir(self.__dataset_desc_root_path)
+        # create the full path to save the current descriptor if it does not exist, or to load from if it does
+        # crate the full name of the dataset as well, without the path to get there
+        self.__dataset_desc_path, self.__dataset_desc_name = self.__produce_dataset_desc_path_and_name()
+
+        if os.path.exists(self.dataset_desc_path):
+            print("Loading dataset descriptors from: ", self.dataset_desc_path)
+            self.__dataset_descriptors = self.load_descriptors(self.dataset_desc_path)
+        else:
+            print("Producing dataset descriptors...")
+            self.__dataset_descriptors = self.produce_dataset_descriptors(subject_dataset)
+        print("")
+
     @property
-    def dataset_desc_path(self) -> str:
+    def dataset_desc_name(self) -> Optional[str]:
+        return self.__dataset_desc_name
+
+    @property
+    def dataset_desc_path(self) -> Optional[str]:
         return self.__dataset_desc_path
 
-    def produce_dataset_descriptors(self, subject_dataset: types.subj_dataset):
+    @property
+    def dataset_descriptors(self) -> Optional[types.subj_dataset]:
+        return self.__dataset_descriptors
+
+    def produce_dataset_descriptors(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
         descriptor_subj_dataset = {}
         for subj_name, subj in subject_dataset.items():
             subj_data = subj.data
@@ -58,35 +81,42 @@ class DescriptorComputer:
         if self.normalize:
             descriptor_subj_dataset = self.normalize_l2(descriptor_subj_dataset)
 
-        self.save_to_file(descriptor_subj_dataset)
+        self.save_descriptors(descriptor_subj_dataset)
         return descriptor_subj_dataset
 
-    def save_to_file(self, obj) -> str:
+    def __produce_dataset_desc_path_and_name(self):
+        dataset_desc_name = self.parameters.study_name + "_" + str(self.desc_type)
+
+        # check if normalization is to happen
+        if self.normalize:
+            dataset_desc_name = dataset_desc_name + "_l2_scaled"
+
+        # check if there is an extra name to add to the existing descriptor name
+        if self.extra_name is not None:
+            dataset_desc_name = dataset_desc_name + self.extra_name
+
+        dataset_desc_path = join(self.__dataset_desc_root_path, dataset_desc_name + ".pkl")
+        dataset_desc_name = dataset_desc_name
+        return dataset_desc_path, dataset_desc_name
+
+    @staticmethod
+    def load_descriptors(dataset_desc_path: str) -> types.subj_dataset:
+        with open(dataset_desc_path, "rb") as input_file:
+            dataset_desc = pickle.load(input_file)
+        return dataset_desc
+
+    def save_descriptors(self, descriptors: types.subj_dataset) -> None:
         """
-        Returns the path to the numpy array containing the dataset description whose name is passed as an
-        argument
+        Saves the computed dataset descriptors
 
         Args:
-        dataset_desc_name: The name of the dataset descriptors whose path is to be returned
-
-        Returns:
-            dataset_desc_path: the absolute path to that numpy array containing dataset descriptors
+            descriptors (dict): a dictionary mapping a subject name to his/her dataset of descriptors
         """
-        dataset_desc_path = os.path.abspath(os.path.join(self.all_dataset_desc_dir, self.parameters.study_name +
-                                                         "_desc_type_" + str(self.desc_type)))
-        if self.dataset_desc_name is not None:
-            dataset_desc_path = dataset_desc_path + self.dataset_desc_name + ".pkl"
-        else:
-            dataset_desc_path = dataset_desc_path + ".pkl"
+        if not os.path.exists(self.__dataset_desc_path):
+            with open(self.__dataset_desc_path, 'wb') as f:
+                pickle.dump(descriptors, f, pickle.HIGHEST_PROTOCOL)
 
-        if not os.path.exists(dataset_desc_path):
-            with open(dataset_desc_path, 'wb') as f:
-                pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-        self.__dataset_desc_path = dataset_desc_path
-        return dataset_desc_path
-
-    def normalize_l2(self, dataset_desc):
+    def normalize_l2(self, dataset_desc: types.subj_dataset):
         """
         If the type of descriptor is JUSD, normalizes each instance of dataset_desc - converts each row into unit norm.
         If the type of descriptor is MSBSD, first splits each row in half, normalized each half row, and then puts them
@@ -124,7 +154,6 @@ class DescriptorComputer:
             new_subj.data = subj_normalized_keypresses
             normalized_subj_dataset[subj_name] = new_subj
 
-        self.dataset_desc_name += "_l2_scaled"
         return normalized_subj_dataset
 
 
@@ -143,5 +172,6 @@ if __name__ == "__main__":
     data = DataConstructor(parameters)
     subject_dataset = data.get_subject_dataset()
 
-    descriptor_computer = DescriptorComputer(DescType.JUSD, parameters, normalize=True, dataset_desc_name="_test")
+    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
+                                             extra_name="_test")
     all_desc = descriptor_computer.produce_dataset_descriptors(subject_dataset)

@@ -15,40 +15,37 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 import threading
+import BioHCI.helpers.type_aliases as types
+from typing import List, Tuple, Optional
+from os.path import join
 
 
 class DescriptorEvaluator:
-    def __init__(self, descriptor_computer, subject_dataset):
+    def __init__(self, descriptor_computer: DescriptorComputer, all_dataset_categories: List[str]) -> None:
         self.__heatmap = None
-        if descriptor_computer.dataset_desc_path is not None and os.path.exists(
-                descriptor_computer.dataset_desc_path):
-            print("Loading dataset descriptors from: ", descriptor_computer.dataset_desc_path)
-            self.__dataset_descriptors_dict = self.load_descriptors(descriptor_computer.dataset_desc_path)
-        else:
-            print("Producing dataset descriptors...")
-            self.__dataset_descriptors_dict = descriptor_computer.produce_dataset_descriptors(subject_dataset)
         self.descriptor_computer = descriptor_computer
 
         dataset_eval_path = utils.get_root_path("dataset_eval")
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
 
+        self.compute_heatmap(all_dataset_categories)
+
     @property
-    def dataset_descriptors_dict(self):
-        assert self.dataset_descriptors_dict is not None
-        return self.__dataset_descriptors_dict
+    def dataset_eval_name(self) -> str:
+        return self.descriptor_computer.dataset_desc_name + "_heatmap"
 
-    @staticmethod
-    def load_descriptors(dataset_desc_path):
-        with open(dataset_desc_path, "rb") as input_file:
-            dataset_desc = pickle.load(input_file)
-        return dataset_desc
+    @property
+    def dataset_descriptors(self) -> types.subj_dataset:
+        return self.descriptor_computer.dataset_descriptors
 
-    def compute_heatmap(self, all_dataset_categories):
+    @property
+    def heatmap(self) -> Optional[np.ndarray]:
+        return self.__heatmap
 
-        # heatmap = None
+    def compute_heatmap(self, all_dataset_categories: List[str]) -> None:
 
-        if not os.path.exists(self.get_matrix_full_name()):
-            for subj_name, subj in self.__dataset_descriptors_dict.items():
+        if not os.path.exists(self.get_heatmap_obj_path()):
+            for subj_name, subj in self.dataset_descriptors.items():
                 subj_data = subj.data
                 subj_cat = subj.categories
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
@@ -56,8 +53,8 @@ class DescriptorEvaluator:
                 self.__heatmap = np.zeros((len(set(subj_int_cat)), len(set(subj_int_cat))))
 
                 num = 0
-                for i in range(0, 7):  # len(subj_data) - 1
-                    for j in range(0, 7):  # len(subj_data) - 1
+                for i in range(0, len(subj_data) - 1):
+                    for j in range(0, len(subj_data) - 1):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -65,7 +62,6 @@ class DescriptorEvaluator:
                         cat2 = subj_int_cat[j]
                         print("Number of levenshtine dist computed: ", num)
 
-                        # lev_dist = self.levenshtein_distance(keypress1, keypress2)
                         lev_dist = self.real_levenshtein_distance(keypress1, keypress2)
 
                         with threading.Lock():
@@ -73,22 +69,19 @@ class DescriptorEvaluator:
                             self.__heatmap[cat1, cat2] = self.__heatmap[cat1, cat2] + lev_dist
                             num = num + 1
 
-                self.save_obj(self.__heatmap, ".pkl", "_matrix")
-
+                self.save_obj(self.__heatmap, ".pkl")
         else:
-            with (open(self.get_matrix_full_name(), "rb")) as openfile:
+            with (open(self.get_heatmap_obj_path(), "rb")) as openfile:
                 self.__heatmap = pickle.load(openfile)
 
         if self.__heatmap is not None:
             plt.figure(figsize=(14, 10))
             sns.set(font_scale=1.4)
             heatmap_fig = sns.heatmap(self.__heatmap, xticklabels=5, yticklabels=5)
-            self.save_obj(heatmap_fig, ".png", "_heatmap")
-
-        # return heatmap
+            self.save_obj(heatmap_fig, ".png")
 
     @staticmethod
-    def levenshtein_distance(keypress1, keypress2):
+    def levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
         lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
         for i in range(1, keypress1.shape[0]):
             for j in range(1, keypress2.shape[0]):
@@ -107,7 +100,7 @@ class DescriptorEvaluator:
         return minimal_cost
 
     @staticmethod
-    def real_levenshtein_distance(keypress1, keypress2):
+    def real_levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
         lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
         for i in range(1, keypress1.shape[0]):
             for j in range(1, keypress2.shape[0]):
@@ -138,31 +131,25 @@ class DescriptorEvaluator:
         minimal_cost = lev_matrix[keypress1.shape[0] - 1, keypress2.shape[0] - 1]
         return minimal_cost
 
-    def save_obj(self, obj, ext, extra_name=""):
-        dataset_eval_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
-                                                         self.descriptor_computer.parameters.study_name +
-                                                         str(
-                                                             self.descriptor_computer.desc_type))
-                                            + self.descriptor_computer.dataset_desc_name + extra_name + ext)
+    def save_obj(self, obj, ext: str, extra_name: str = "") -> None:
+        path = join(self.dataset_eval_dir, self.dataset_eval_name + extra_name + ext)
+
         if ext == ".pkl":
-            with open(dataset_eval_path, 'wb') as f:
+            with open(path, 'wb') as f:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
         elif ext == ".png":
-            obj.figure.savefig(dataset_eval_path)
+            obj.figure.savefig(path)
             plt.show()
             plt.close("all")
         else:
             print("Invalid extension. Object not saved!")
 
-    def get_matrix_full_name(self):
-        matrix_path = os.path.abspath(os.path.join(self.dataset_eval_dir,
-                                                   self.descriptor_computer.parameters.study_name + "_desc_type_" + str(
-                                                       self.descriptor_computer.desc_type))
-                                      + self.descriptor_computer.dataset_desc_name + "_matrix.pkl")
-        return matrix_path
+    def get_heatmap_obj_path(self) -> str:
+        path = join(self.dataset_eval_dir, self.dataset_eval_name + ".pkl")
+        return path
 
     @staticmethod
-    def get_avg_category_distance(heatmap_matrix):
+    def get_category_distance_stats(heatmap_matrix: np.ndarray) -> Tuple[float, float, float, float, float, float]:
 
         same_list = []
         diff_list = []
@@ -183,17 +170,38 @@ class DescriptorEvaluator:
         cv_diff = std_diff / avg_diff
         return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff
 
-    def get_heatmap(self):
-        assert self.__heatmap is not None
-        return self.__heatmap
+    def generate_heatmap_fig_from_obj(self, heatmap: np.ndarray) -> None:
+        """
+        Given a heatmap matrix, produces its heatmap figure with the same name, except for the extension (.pkl vs .png)
 
-    def generate_heatmap(self, heatmap):
-        # heatmap = pickle.load("CTS_5taps_per_buttonDescType.MSBSD_l2_scaled_matrix.pkl")
+        Args:
+            heatmap(ndarray): a matrix containing the distances between classes among all samples
 
+        Returns:
+
+        """
         plt.figure(figsize=(14, 10))
         sns.set(font_scale=1.4)
         heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
-        self.save_obj(heatmap_fig, ".png", "_heatmap")
+        self.save_obj(heatmap_fig, ".png")
+
+    def generate_heatmap_fig_from_obj_name(self, heatmap_name: str) -> None:
+        """
+        Given a heatmap name, produces its heatmap figure.
+
+        Args:
+            heatmap_name: the name of the pickled heatmap object to convert into a figure
+
+        Returns:
+
+        """
+
+        assert heatmap_name.endswith(".pkl")
+        path = join(self.dataset_eval_dir, heatmap_name)
+        if os.path.exists(path):
+            with (open(path, "rb")) as openfile:
+                heatmap = pickle.load(openfile)
+                self.generate_heatmap_fig_from_obj(heatmap)
 
 
 if __name__ == "__main__":
@@ -235,32 +243,23 @@ if __name__ == "__main__":
     """
 
     # MSBSD compution - normalized
-    descriptor_2_computer_norm = DescriptorComputer(DescType.MSBSD, parameters, normalize=True)
-    descriptor_2_eval_norm = DescriptorEvaluator(descriptor_2_computer_norm, subject_dataset)
+    msbsd_computer_norm = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=True)
+    msbsd_eval_norm = DescriptorEvaluator(msbsd_computer_norm, data.get_all_dataset_categories())
 
-    executor = ThreadPoolExecutor(max_workers=64)
-    executor.submit(descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories()))
-    heatmap_matrix_2_norm = descriptor_2_eval_norm.get_heatmap()
+    # executor = ThreadPoolExecutor(max_workers=32)
+    # executor.submit(descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories()))
 
-    # heatmap_matrix_2_norm = descriptor_2_eval_norm.compute_heatmap(data.get_all_dataset_categories())
-    # remove the next 3 lines
-    # path = "CTS_5taps_per_buttonDescType_MSBSD_l2_scaled_matrix.pkl"
-    # with (open(path, "rb")) as openfile:
-    #     heatmap_matrix_2_norm = pickle.load(openfile)
-    # heatmap_fig = descriptor_2_eval_norm.generate_heatmap(heatmap_matrix_2_norm)
-
-    avg_same_2_norm, avg_diff_2_norm, std_same_2_norm, std_diff_2_norm, cv_same_2_norm, cv_diff_2_norm = \
-        descriptor_2_eval_norm.get_avg_category_distance(heatmap_matrix_2_norm)
-    ratio_2_norm = avg_same_2_norm / avg_diff_2_norm
+    statistics = msbsd_eval_norm.get_category_distance_stats(msbsd_eval_norm.heatmap)
+    ratio_2_norm = statistics[0] / statistics[1]
 
     f = open("desc_eval_msbsd_norm.txt", "w")
-    f.write("avg_same_norm: %f\r\n" % (avg_same_2_norm))
-    f.write("avg_diff_norm: %f\r\n" % (avg_diff_2_norm))
-    f.write("std_same_norm: %f\r\n" % (std_same_2_norm))
-    f.write("std_diff_norm: %f\r\n" % (std_diff_2_norm))
-    f.write("cv_same_norm: %f\r\n" % (cv_same_2_norm))
-    f.write("cv_diff_norm: %f\r\n" % (cv_diff_2_norm))
-    f.write("ratio_norm: %f\r\n" % (ratio_2_norm))
+    f.write("avg_same_norm: %f\r\n" % statistics[0])
+    f.write("avg_diff_norm: %f\r\n" % statistics[1])
+    f.write("std_same_norm: %f\r\n" % statistics[2])
+    f.write("std_diff_norm: %f\r\n" % statistics[3])
+    f.write("cv_same_norm: %f\r\n" % statistics[4])
+    f.write("cv_diff_norm: %f\r\n" % statistics[5])
+    f.write("ratio_norm: %f\r\n" % ratio_2_norm)
     f.close()
 
     print("")
