@@ -33,17 +33,16 @@ class DescriptorComputer:
         assert isinstance(normalize, bool)
         self.normalize = normalize
 
-        # set name and path of descriptor to be saved
         assert isinstance(extra_name, str)
         self.extra_name = extra_name
 
         self.__dataset_desc_root_path = utils.get_root_path("dataset_desc")
         # if there is no root directory for dataset descriptors, create it
         utils.create_dir(self.__dataset_desc_root_path)
-        # create the full path to save the current descriptor if it does not exist, or to load from if it does
-        # crate the full name of the dataset as well, without the path to get there
+        # create the full name of the dataset as well, without the path to get there
         self.__dataset_desc_path, self.__dataset_desc_name = self.__produce_dataset_desc_path_and_name()
 
+        # create the full path to save the current descriptor if it does not exist, or to load from if it does
         if os.path.exists(self.dataset_desc_path):
             print("Loading dataset descriptors from: ", self.dataset_desc_path)
             self.__dataset_descriptors = self.load_descriptors(self.dataset_desc_path)
@@ -65,6 +64,16 @@ class DescriptorComputer:
         return self.__dataset_descriptors
 
     def produce_dataset_descriptors(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
+        """
+        Produces and saves to a file the descriptors for the subject dataset.
+
+        Args:
+            subject_dataset (dict): dictionary mapping a subject name to a Subject object.
+
+        Returns:
+            descriptor_subj_dataset (dict): a dictionary mapping a subject name to as Subject object,
+                whose data is comprised of its descriptors for each category.
+        """
         descriptor_subj_dataset = {}
         for subj_name, subj in subject_dataset.items():
             subj_data = subj.data
@@ -85,6 +94,13 @@ class DescriptorComputer:
         return descriptor_subj_dataset
 
     def __produce_dataset_desc_path_and_name(self):
+        """
+        Creates the name of the dataset descriptor based on its characteristics, as well as the path it is to be stored.
+
+        Returns:
+            dataset_desc_path, dataset_desc_name (str, str): the path and the name of the dataset descriptor object.
+
+        """
         dataset_desc_name = self.parameters.study_name + "_" + str(self.desc_type)
 
         # check if normalization is to happen
@@ -101,6 +117,17 @@ class DescriptorComputer:
 
     @staticmethod
     def load_descriptors(dataset_desc_path: str) -> types.subj_dataset:
+        """
+        Loads descriptors from a pickled object.
+
+        Args:
+            dataset_desc_path (path): path of the file where object to be loaded is stored.
+
+        Returns:
+            dataset_desc (dict): a dictionary mapping a subject name to as Subject object,
+                whose data is comprised of its descriptors for each category.
+
+        """
         with open(dataset_desc_path, "rb") as input_file:
             dataset_desc = pickle.load(input_file)
         return dataset_desc

@@ -20,6 +20,7 @@ from typing import List, Tuple, Optional
 from os.path import join
 
 
+# TODO: implement logging
 class DescriptorEvaluator:
     def __init__(self, descriptor_computer: DescriptorComputer, all_dataset_categories: List[str]) -> None:
         self.__heatmap = None
@@ -145,11 +146,23 @@ class DescriptorEvaluator:
             print("Invalid extension. Object not saved!")
 
     def get_heatmap_obj_path(self) -> str:
+        """
+        Returns: path of the generated heatmap object.
+        """
         path = join(self.dataset_eval_dir, self.dataset_eval_name + ".pkl")
         return path
 
     @staticmethod
     def get_category_distance_stats(heatmap_matrix: np.ndarray) -> Tuple[float, float, float, float, float, float]:
+        """
+        Calculates statistics on the heatmap object passed, regarding class similarities and differences.
+
+        Args:
+            heatmap_matrix (ndarray): a matrix containing the distances between classes among all samples
+
+        Returns:
+
+        """
 
         same_list = []
         diff_list = []
@@ -177,8 +190,6 @@ class DescriptorEvaluator:
         Args:
             heatmap(ndarray): a matrix containing the distances between classes among all samples
 
-        Returns:
-
         """
         plt.figure(figsize=(14, 10))
         sns.set(font_scale=1.4)
@@ -191,8 +202,6 @@ class DescriptorEvaluator:
 
         Args:
             heatmap_name: the name of the pickled heatmap object to convert into a figure
-
-        Returns:
 
         """
 

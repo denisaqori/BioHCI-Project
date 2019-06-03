@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
-    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("CTS_Keyboard.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)
@@ -46,8 +46,8 @@ if __name__ == "__main__":
     category_balancer = WithinSubjectOversampler()
     dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
-    descriptor_computer = DescriptorComputer(DescType.JUSD, parameters, normalize=True,
-                                             dataset_desc_name="_test")
+    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
+                                             extra_name="_test")
     feature_constructor = KeypointFeatureConstructor(dataset_processor, parameters, descriptor_computer)
     feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
     print("")
