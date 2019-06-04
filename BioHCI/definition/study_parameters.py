@@ -9,8 +9,8 @@ from BioHCI.helpers import utilities as util
 from typing import List, Optional, Match, Iterator
 
 
-class StudyParameters:
-    def __init__(self):
+class StudyParameters(object):
+    def __init__(self, attr_dict=None):
         # directory where the text data to be processed is found (all files in there are used)
         # 'Resources/fNIRS_boredom_data' correspond to boredom data
         self.__dir_path = None
@@ -65,6 +65,12 @@ class StudyParameters:
         self.__num_threads = None  # The number of threads to be used during training (for gradient computing and
         # loading)
         self.__neural_net = None
+
+        if attr_dict is not None:
+            for attribute, value in attr_dict.items():
+                if value == "None":
+                    value = None
+                setattr(self, attribute, value)
 
     def __str__(self) -> str:
         s = "\nStudyParameters: \n"
@@ -162,7 +168,7 @@ class StudyParameters:
                 if number.start() > col_start:
                     end_idx = int(number.group())
 
-            self.__relevant_columns = list(range(start_idx, end_idx+1))
+            self.__relevant_columns = list(range(start_idx, end_idx))
 
         else:
             assert (isinstance(relevant_columns, list)), "The relevant columns to process need to be passed in a list."
@@ -177,7 +183,8 @@ class StudyParameters:
 
     @column_names.setter
     def column_names(self, column_names: List[str]):
-        assert len(column_names) == len(self.__relevant_columns), "There needs to be a column name for each relevant " \
+        if column_names is not None:
+            assert len(column_names) == len(self.__relevant_columns), "There needs to be a column name for each relevant " \
                                                                   "column."
         self.__column_names = column_names
 
@@ -196,7 +203,7 @@ class StudyParameters:
 
     @cat_names.setter
     def cat_names(self, cat_names: str) -> None:
-        assert cat_names is 'file'.lower() or cat_names is 'dir'.lower()
+        assert cat_names == 'file'.lower() or cat_names == 'dir'.lower()
         self.__cat_names = cat_names.lower()
 
     @property
@@ -265,7 +272,7 @@ class StudyParameters:
             assert (isinstance(nfft, int) and int(nfft) > 0), "FFT windowing segment needs to be a positive integer."
             self.__nfft = nfft
         else:
-            assert (self.compute_fft is "None"), "If the compute_fft attribute is set to False, " \
+            assert (self.nfft is None), "If the compute_fft attribute is set to False, " \
                                                  "the nfft attribute needs to be set to \"None\"."
             self.__nfft = None
 
@@ -280,7 +287,7 @@ class StudyParameters:
                                                                             "positive integer."
             self.__sampling_freq = sampling_freq
         else:
-            assert (self.compute_fft is "None"), "If the compute_fft attribute is set to False, " \
+            assert (self.sampling_freq is None), "If the compute_fft attribute is set to False, " \
                                                  "the sampling_freq attribute needs to be set to \"None\"."
             self.__sampling_freq = None
 
@@ -394,6 +401,15 @@ class StudyParameters:
         print("Setting every attribute in the sole StudyParameter instance to 'None'.")
         for attr, val in vars(self).items():
             self.__setattr__(attr, None)
+
+    # @staticmethod
+    # def set_attr(dict):
+    #     parameters = StudyParameters()
+    #     for attribute, value in dict.items():
+    #         if value == "None":
+    #             value = None
+    #         setattr(parameters, attribute, value)
+    #     return parameters
 
 
 if __name__ == "__main__":

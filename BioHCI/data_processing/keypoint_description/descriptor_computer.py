@@ -79,6 +79,7 @@ class DescriptorComputer:
             subj_data = subj.data
             subj_keypress_desc = []
             for i, keypress in enumerate(subj_data):
+                print ("Subject: ", subj_name, "; Keypress: ", i)
                 interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
                 subj_keypress_desc.append(interval_desc_list)
 
