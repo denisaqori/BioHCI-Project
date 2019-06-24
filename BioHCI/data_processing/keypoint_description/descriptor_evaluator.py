@@ -161,6 +161,12 @@ class DescriptorEvaluator:
             heatmap_matrix (ndarray): a matrix containing the distances between classes among all samples
 
         Returns:
+            avg_same (float): average distance among same-class tensors
+            avg_diff (float): average distance among tensors from different classes
+            std_same (float): standard deviation of the distance among same-class tensors
+            std_diff (float): standard deviation of the distance among tensors from different classes
+            cv_same (float): coefficient of variation among same-class tensors
+            cv_diff (float): coefficient of variation among tensors of different classes
 
         """
 

@@ -16,9 +16,10 @@ import pickle
 from sklearn import preprocessing
 import sys
 import BioHCI.helpers.type_aliases as types
-from typing import Optional
+from typing import Optional, List
 from os.path import join
-
+import multiprocessing
+import time
 
 class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
@@ -77,13 +78,20 @@ class DescriptorComputer:
         descriptor_subj_dataset = {}
         for subj_name, subj in subject_dataset.items():
             subj_data = subj.data
-            subj_keypress_desc = []
-            for i, keypress in enumerate(subj_data):
-                print ("Subject: ", subj_name, "; Keypress: ", i)
-                interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
-                subj_keypress_desc.append(interval_desc_list)
 
+            num_processes = multiprocessing.cpu_count()
+            start_time = time.time()
+
+            with multiprocessing.Pool(processes=num_processes) as pool:
+                subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
+            duration_with_pool = utils.time_since(start_time)
+
+            print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(
+                subj_name, num_processes, duration_with_pool))
+
+            # put lists in proper format
             subj_keypress_desc = [desc for sublist in subj_keypress_desc for desc in sublist]
+
             new_subj = copy(subj)
             new_subj.data = subj_keypress_desc
             descriptor_subj_dataset[subj_name] = new_subj
@@ -93,6 +101,21 @@ class DescriptorComputer:
 
         self.save_descriptors(descriptor_subj_dataset)
         return descriptor_subj_dataset
+
+    def produce_subj_keypress_descriptors(self, keypress: np.ndarray) -> List[np.ndarray]:
+        """
+
+        Args:
+            keypress:
+
+        Returns:
+
+        """
+        print (multiprocessing.current_process())
+        interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
+        # print ("Subject: ", subj_name)
+
+        return interval_desc_list
 
     def __produce_dataset_desc_path_and_name(self):
         """
@@ -194,7 +217,7 @@ if __name__ == "__main__":
 
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
-    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)
@@ -203,3 +226,4 @@ if __name__ == "__main__":
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
                                              extra_name="_test")
     all_desc = descriptor_computer.produce_dataset_descriptors(subject_dataset)
+    print("")
