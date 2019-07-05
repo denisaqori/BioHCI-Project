@@ -113,7 +113,6 @@ class DescriptorComputer:
         """
         print (multiprocessing.current_process())
         interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
-        # print ("Subject: ", subj_name)
 
         return interval_desc_list
 
@@ -217,7 +216,8 @@ if __name__ == "__main__":
 
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
-    parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
+    # parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
+    parameters = config.populate_study_parameters("CTS_5taps_per_button:/.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)
