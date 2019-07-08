@@ -39,9 +39,12 @@ class DescriptorComputer:
 
         self.__dataset_desc_root_path = utils.get_root_path("dataset_desc")
         # if there is no root directory for dataset descriptors, create it
-        utils.create_dir(self.__dataset_desc_root_path)
+        self.dataset_desc_dir = utils.create_dir(self.__dataset_desc_root_path)
         # create the full name of the dataset as well, without the path to get there
         self.__dataset_desc_path, self.__dataset_desc_name = self.__produce_dataset_desc_path_and_name()
+
+        # remove any files remaining from previous tests
+        # self.cleanup()
 
         # create the full path to save the current descriptor if it does not exist, or to load from if it does
         if os.path.exists(self.dataset_desc_path):
@@ -206,6 +209,19 @@ class DescriptorComputer:
 
         return normalized_subj_dataset
 
+    def cleanup(self) -> None:
+        """
+        Removes any files that contain the string "_test" in the dataset descriptors directory.
+
+        Returns: None
+
+        """
+        for filename in os.listdir(self.dataset_desc_dir):
+            if "_test" in filename:
+                full_path_to_remove = join(self.dataset_desc_dir, filename)
+
+                print("Deleting file {}".format(full_path_to_remove))
+                os.remove(full_path_to_remove)
 
 if __name__ == "__main__":
     print("Running feature_constructor module...")

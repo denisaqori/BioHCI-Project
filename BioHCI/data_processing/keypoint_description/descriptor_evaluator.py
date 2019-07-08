@@ -19,24 +19,69 @@ import os
 import BioHCI.helpers.type_aliases as types
 from typing import List, Tuple, Optional
 from os.path import join
+import logging
+from datetime import datetime
 
 
-shared_array_base = multiprocessing.Array(ctypes.c_double, 36*36, lock=True)
-shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-heatmap = shared_array.reshape((36, 36))
-
-# TODO: implement logging
 class DescriptorEvaluator:
-    def __init__(self, descriptor_computer: DescriptorComputer, all_dataset_categories: List[str]) -> None:
+    def __init__(self, descriptor_computer: DescriptorComputer, all_dataset_categories: List[str], heatmap_global:
+    np.ndarray) -> None:
 
-        self.__heatmap = None
+        # always use heatmap_global, not self.__heatmap in the parallelized section when writing to the array. Each
+        # process has its own copy of a class and its variables, so self.__heatmap would not reflect all changes if
+        # it was written to by several processes. For each process, its self.__heatmap is set to the same memory
+        # location as heatmap_global.
+
+        self.__heatmap = heatmap_global
         self.descriptor_computer = descriptor_computer
 
         dataset_eval_path = utils.get_root_path("dataset_eval")
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
+
+        # remove any files remaining from previous tests
         self.cleanup()
 
+        self.__num_processes = multiprocessing.cpu_count()
         self.compute_heatmap(all_dataset_categories)
+
+        # defining the logger before the multiprocessing task causes a "cannot pickle RLock error" since
+        # the logger holds a lock to the file.
+        self.__result_logger = self.define_result_logger()
+        print("")
+
+    def define_result_logger(self) -> logging.Logger:
+        """
+        Creates a custom logger to write the results of the dataset evaluation on the console and file.
+
+        Returns:
+            logger(Logging.logger): the logger used to report statistical results.
+
+        """
+        # Create a custom logger
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.DEBUG)
+
+        # Create handlers
+        c_handler = logging.StreamHandler()
+        c_handler.setLevel(logging.INFO)
+
+        results_log_path = join(self.dataset_eval_dir, self.dataset_eval_name + "_statistics.txt")
+        f_handler = logging.FileHandler(filename=results_log_path)
+        f_handler.setLevel(logging.DEBUG)
+
+        # Add handlers to the logger
+        logger.addHandler(c_handler)
+        logger.addHandler(f_handler)
+
+        return logger
+
+    @property
+    def num_processes(self) -> int:
+        return self.__num_processes
+
+    @property
+    def result_logger(self) -> logging.Logger:
+        return self.__result_logger
 
     @property
     def dataset_eval_name(self) -> str:
@@ -51,19 +96,20 @@ class DescriptorEvaluator:
         return self.__heatmap
 
     def compute_heatmap(self, all_dataset_categories: List[str]) -> None:
+        """
+
+        Args:
+            all_dataset_categories:
+
+        Returns:
+
+        """
 
         if not os.path.exists(self.get_heatmap_obj_path()):
             for subj_name, subj in self.dataset_descriptors.items():
                 subj_data = subj.data
                 subj_cat = subj.categories
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
-
-                lock = multiprocessing.Lock()
-                heatmap_shape = (len(set(subj_int_cat)), len(set(subj_int_cat)))
-
-                # shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0]*heatmap_shape[1], lock=lock)
-                # shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-                # self.__heatmap = shared_array.reshape(heatmap_shape)
 
                 tuple_list = []
                 # for i in range(0, len(subj_data) - 1):
@@ -78,46 +124,61 @@ class DescriptorEvaluator:
 
                         tuple_list.append((keypress1, cat1, keypress2, cat2))
 
-                num_processes = multiprocessing.cpu_count()
+                print(f"Id of heatmap as seen by main: {hex(id(self.heatmap))}")
+                print(f"Total number of tensors to compare is {len(tuple_list)}")
+
                 start_time = time.time()
-                print("Starting...")
-                print("Id of heatmap as seen by main: ", hex(id(heatmap)))
-                with multiprocessing.Pool(processes=num_processes) as pool:
+                with multiprocessing.Pool(processes=self.num_processes) as pool:
                     pool.map(self.compute_distance_parallelized, tuple_list)
                 duration_with_pool = utils.time_since(start_time)
-                # print(heatmap)
 
                 print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(
-                    subj_name, num_processes, duration_with_pool))
-                self.save_obj(self.__heatmap, ".pkl")
+                    subj_name, self.num_processes, duration_with_pool))
+                self.save_obj(self.heatmap, ".pkl")
         else:
             print("Opening existing heatmap...")
             with (open(self.get_heatmap_obj_path(), "rb")) as openfile:
                 self.__heatmap = pickle.load(openfile)
 
-        if self.__heatmap is not None:
+        if self.heatmap is not None:
             plt.figure(figsize=(14, 10))
             sns.set(font_scale=1.4)
-            heatmap_fig = sns.heatmap(self.__heatmap, xticklabels=5, yticklabels=5)
+            heatmap_fig = sns.heatmap(self.heatmap, xticklabels=5, yticklabels=5)
             self.save_obj(heatmap_fig, ".png")
 
-        print("End of descriptor evaluator!")
+        print(f"End of descriptor evaluator {self.dataset_eval_name}!")
 
     def compute_distance_parallelized(self, args):
+        """
+
+        Args:
+            args:
+
+        Returns:
+
+        """
         keypress1, cat1, keypress2, cat2 = args
 
-        lev_dist = self.real_levenshtein_distance(keypress1, keypress2)
-        # self.__heatmap[cat1, cat2] = self.__heatmap[cat1, cat2] + lev_dist
+        lev_dist = self.euclidean_levenshtein_distance(keypress1, keypress2)
 
-        print (multiprocessing.current_process())
-        print(hex(id(heatmap)))
-        heatmap[cat1, cat2] = heatmap[cat1, cat2] + lev_dist
-
-        print("[{}, {}] - {}".format(cat1, cat2, heatmap[cat1,cat2]))
-        #print("")
+        heatmap_global[cat1, cat2] = heatmap_global[cat1, cat2] + lev_dist
+        with counter.get_lock():
+            counter.value += 1
+            if counter.value % 100 == 0:
+                print(f"{counter.value}: Process {multiprocessing.current_process()}; Heatmap memory ID: "
+                      f"{hex(id(self.heatmap))}")
 
     @staticmethod
-    def real_levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
+    def euclidean_levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
+        """
+
+        Args:
+            keypress1:
+            keypress2:
+
+        Returns:
+
+        """
         lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
         for i in range(1, keypress1.shape[0]):
             for j in range(1, keypress2.shape[0]):
@@ -149,6 +210,17 @@ class DescriptorEvaluator:
         return minimal_cost
 
     def save_obj(self, obj, ext: str, extra_name: str = "") -> None:
+        """
+
+        Args:
+            obj: object to save
+            ext (str): extension of the file which will be created to save the object
+            extra_name (str): any additional string to be added to the descriptor evaluator's name which will be used
+                to name the file.
+
+        Returns: None
+
+        """
         path = join(self.dataset_eval_dir, self.dataset_eval_name + extra_name + ext)
 
         if ext == ".pkl":
@@ -185,7 +257,6 @@ class DescriptorEvaluator:
             cv_diff (float): coefficient of variation among tensors of different classes
 
         """
-
         same_list = []
         diff_list = []
         for i in range(0, heatmap_matrix.shape[0]):
@@ -204,6 +275,35 @@ class DescriptorEvaluator:
         cv_same = std_same / avg_same
         cv_diff = std_diff / avg_diff
         return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff
+
+    def log_statistics(self) -> None:
+        """
+        Calls get_category_distance_stats() to obtain distance statistics among tensors, and logs the results in in a
+        text file named after the descriptor evaluator, together with the fully computed heatmap.
+
+        Returns: None
+
+        """
+        now = datetime.now()
+        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}\n\n")
+
+        self.result_logger.debug(f"Heatmap: \n")
+        self.result_logger.debug(f"{self.heatmap}\n\n")
+
+        avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff = self.get_category_distance_stats(self.heatmap)
+        ratio_same_diff = avg_same / avg_diff
+
+        self.result_logger.info(f"Average distance among same-class tensors is                                  {avg_same}\n")
+        self.result_logger.info(f"Average distance among tensors of different classes is                        {avg_diff}\n")
+        self.result_logger.info(f"Standard deviation of the distance among same-class tensors is                {std_same}\n")
+        self.result_logger.info(f"Standard deviation of the distance among tensors of different classes is      {std_diff}\n")
+        self.result_logger.info(f"Coefficient of variation among same-class tensors is                          {cv_same}\n")
+        self.result_logger.info(f"Coefficient of variation among tensors of different classes is                {cv_diff}\n")
+        self.result_logger.info(f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff}\n")
+        self.result_logger.info(
+            f"**********************************************************************************************************************")
+        self.result_logger.info(
+            f"**********************************************************************************************************************\n")
 
     def generate_heatmap_fig_from_obj(self, heatmap: np.ndarray) -> None:
         """
@@ -234,7 +334,13 @@ class DescriptorEvaluator:
                 heatmap = pickle.load(openfile)
                 self.generate_heatmap_fig_from_obj(heatmap)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
+        """
+        Removes any files that contain the string "_test" in the dataset evaluation directory.
+
+        Returns: None
+
+        """
         for filename in os.listdir(self.dataset_eval_dir):
             if "_test" in filename:
                 full_path_to_remove = join(self.dataset_eval_dir, filename)
@@ -242,8 +348,9 @@ class DescriptorEvaluator:
                 print("Deleting file {}".format(full_path_to_remove))
                 os.remove(full_path_to_remove)
 
+
 if __name__ == "__main__":
-    np.set_printoptions(threshold=10000, linewidth=100000, precision=8)
+    np.set_printoptions(threshold=10000, linewidth=100000, precision=3)
     config_dir = "config_files"
     config = StudyConfig(config_dir)
 
@@ -255,53 +362,24 @@ if __name__ == "__main__":
     data = DataConstructor(parameters)
     subject_dataset = data.get_subject_dataset()
 
-    """
-    # JUSD compution - unnormalized
-    descriptor_1_computer = DescriptorComputer(DescType.JUSD, parameters, normalize=False)
-    descriptor_1_eval = DescriptorEvaluator(descriptor_1_computer, subject_dataset)
-    heatmap_matrix_1 = descriptor_1_eval.compute_heatmap(data.get_all_dataset_categories())
-    avg_same_1, avg_diff_1, std_same_1, std_diff_1, cv_same_1, cv_diff_1 = \
-        descriptor_1_eval.get_avg_category_distance(heatmap_matrix_1)
-    ratio_1 = avg_same_1 / avg_diff_1
-        print (multiprocessing.current_process())
-    # MSBSD compution - unnormalized
-    descriptor_2_computer = DescriptorComputer(DescType.MSBSD, parameters, normalize=False)
-    descriptor_2_eval = DescriptorEvaluator(descriptor_2_computer, subject_dataset)
-    heatmap_matrix_2 = descriptor_2_eval.compute_heatmap(data.get_all_dataset_categories())
-    avg_same_2, avg_diff_2, std_same_2, std_diff_2, cv_same_2, cv_diff_2 = \
-        descriptor_2_eval.get_avg_category_distance(heatmap_matrix_2)
-    ratio_2 = avg_same_2 / avg_diff_2
+    # create descriptor computer
+    desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=False,
+                                       extra_name="_test_2")
+    # get all the categories of the dataset
+    all_dataset_categories = data.get_all_dataset_categories()
 
-    # JUSD compution - normalized
-    descriptor_1_computer_norm = DescriptorComputer(DescType.JUSD, parameters, normalize=True)
-    descriptor_1_eval_norm = DescriptorEvaluator(descriptor_1_computer_norm, subject_dataset)
-    heatmap_matrix_1_norm = descriptor_1_eval_norm.compute_heatmap(data.get_all_dataset_categories())
-    avg_same_1_norm, avg_diff_1_norm, std_same_1_norm, std_diff_1_norm, cv_same_1_norm, cv_diff_1_norm = \
-        descriptor_1_eval_norm.get_avg_category_distance(heatmap_matrix_1_norm)
-    ratio_1_norm = avg_same_1_norm / avg_diff_1_norm
-    """
+    # create a counter, lock to give to shared array, and determine the shape of the array
+    counter = multiprocessing.Value('i', 0)
+    lock = multiprocessing.Lock()
+    heatmap_shape = (len(set(all_dataset_categories)), len(set(all_dataset_categories)))
 
-    # MSBSD compution - unnormalized
-    msbsd_computer_norm = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=False,
-                                             extra_name="_test_2")
-    msbsd_eval_norm = DescriptorEvaluator(msbsd_computer_norm, data.get_all_dataset_categories())
-    print(heatmap)
+    # create shared numpy array
+    shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0] * heatmap_shape[1], lock=lock)
+    shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
+    heatmap_global = shared_array.reshape(heatmap_shape)
 
-    # MSBSD compution - normalized
-    # msbsd_computer_norm = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=True)
-    # msbsd_eval_norm = DescriptorEvaluator(msbsd_computer_norm, data.get_all_dataset_categories())
-    #
-    # statistics = msbsd_eval_norm.get_category_distance_stats(msbsd_eval_norm.heatmap)
-    # ratio_2_norm = statistics[0] / statistics[1]
-    #
-    # f = open("desc_eval_msbsd_norm.txt", "w")
-    # f.write("avg_same_norm: %f\r\n" % statistics[0])
-    # f.write("avg_diff_norm: %f\r\n" % statistics[1])
-    # f.write("std_same_norm: %f\r\n" % statistics[2])
-    # f.write("std_diff_norm: %f\r\n" % statistics[3])
-    # f.write("cv_same_norm: %f\r\n" % statistics[4])
-    # f.write("cv_diff_norm: %f\r\n" % statistics[5])
-    # f.write("ratio_norm: %f\r\n" % ratio_2_norm)
-    # f.close()
-    #print(msbsd_eval_norm.heatmap)
+    # evaluate distances between tensors and compute statistics on them
+    desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
+    desc_eval.log_statistics()
+
     print("")
