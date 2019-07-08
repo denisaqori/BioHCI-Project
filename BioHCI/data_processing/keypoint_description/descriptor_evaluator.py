@@ -97,11 +97,13 @@ class DescriptorEvaluator:
 
     def compute_heatmap(self, all_dataset_categories: List[str]) -> None:
         """
+        Computes pairwise distances of all tensors in the descriptors (internal to the class) and accumulates the sum
+        of the distances among pairs of all categories into a heatmap.
 
         Args:
-            all_dataset_categories:
+            all_dataset_categories (list): a list of all categories of the subject dataset.
 
-        Returns:
+        Returns: None
 
         """
 
@@ -150,11 +152,15 @@ class DescriptorEvaluator:
 
     def compute_distance_parallelized(self, args):
         """
+        Computes the distance between two tensors. This is the target function of a multiprocessing pool. Adds the
+        computed distance to the appropriate heatmap coordinates, which is defined by the categories each of the two
+        tensors belongs to. The heatmap object is shared among processes. !!!!! Make sure to edit heatmap_global,
+        not self.heatmap or self.__heatmap.
 
         Args:
-            args:
+            args (tuple): a touple containing the first tensor, its category, the second tensor, its category
 
-        Returns:
+        Returns: None
 
         """
         keypress1, cat1, keypress2, cat2 = args
@@ -171,12 +177,16 @@ class DescriptorEvaluator:
     @staticmethod
     def euclidean_levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
         """
+        Computes the euclidean levenshtein distance between two tensors. This type of distance is similar to the
+        levenshtein distance used on strings, but incorporates euclidean distance instead of the 0 or 1 values used
+        for strings. Intuitively it measures the minimal cost of converting one tensor to another.
 
         Args:
-            keypress1:
-            keypress2:
+            keypress1 (np.ndarray): the first tensor
+            keypress2 (np.ndarray): the second tensor
 
         Returns:
+            minimal_cost (float): the minimal cost of converting one tensor to another; distance between two tensors.
 
         """
         lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
@@ -211,6 +221,7 @@ class DescriptorEvaluator:
 
     def save_obj(self, obj, ext: str, extra_name: str = "") -> None:
         """
+        Saves an object to a file (pickles or saves a figure to png).
 
         Args:
             obj: object to save
@@ -293,13 +304,13 @@ class DescriptorEvaluator:
         avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff = self.get_category_distance_stats(self.heatmap)
         ratio_same_diff = avg_same / avg_diff
 
-        self.result_logger.info(f"Average distance among same-class tensors is                                  {avg_same}\n")
-        self.result_logger.info(f"Average distance among tensors of different classes is                        {avg_diff}\n")
-        self.result_logger.info(f"Standard deviation of the distance among same-class tensors is                {std_same}\n")
-        self.result_logger.info(f"Standard deviation of the distance among tensors of different classes is      {std_diff}\n")
-        self.result_logger.info(f"Coefficient of variation among same-class tensors is                          {cv_same}\n")
-        self.result_logger.info(f"Coefficient of variation among tensors of different classes is                {cv_diff}\n")
-        self.result_logger.info(f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff}\n")
+        self.result_logger.info(f"Average distance among same-class tensors is                                  {avg_same:.3f}\n")
+        self.result_logger.info(f"Average distance among tensors of different classes is                        {avg_diff:.3f}\n")
+        self.result_logger.info(f"Standard deviation of the distance among same-class tensors is                {std_same:.3f}\n")
+        self.result_logger.info(f"Standard deviation of the distance among tensors of different classes is      {std_diff:.3f}\n")
+        self.result_logger.info(f"Coefficient of variation among same-class tensors is                          {cv_same:.3f}\n")
+        self.result_logger.info(f"Coefficient of variation among tensors of different classes is                {cv_diff:.3f}\n")
+        self.result_logger.info(f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff:.3f}\n")
         self.result_logger.info(
             f"**********************************************************************************************************************")
         self.result_logger.info(
