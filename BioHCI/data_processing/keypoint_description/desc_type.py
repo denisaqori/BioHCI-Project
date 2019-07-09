@@ -7,5 +7,6 @@ from enum import Enum, unique
 
 @unique
 class DescType(Enum):
+    RawData = 0
     JUSD = 1
     MSBSD = 2

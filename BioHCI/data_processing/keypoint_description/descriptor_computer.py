@@ -78,26 +78,30 @@ class DescriptorComputer:
             descriptor_subj_dataset (dict): a dictionary mapping a subject name to as Subject object,
                 whose data is comprised of its descriptors for each category.
         """
-        descriptor_subj_dataset = {}
-        for subj_name, subj in subject_dataset.items():
-            subj_data = subj.data
+        if self.desc_type == DescType.RawData:
+            descriptor_subj_dataset = subject_dataset
 
-            num_processes = multiprocessing.cpu_count()
-            start_time = time.time()
+        else:
+            descriptor_subj_dataset = {}
+            for subj_name, subj in subject_dataset.items():
+                subj_data = subj.data
 
-            with multiprocessing.Pool(processes=num_processes) as pool:
-                subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
-            duration_with_pool = utils.time_since(start_time)
+                num_processes = multiprocessing.cpu_count()
+                start_time = time.time()
 
-            print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(
-                subj_name, num_processes, duration_with_pool))
+                with multiprocessing.Pool(processes=num_processes) as pool:
+                    subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
+                duration_with_pool = utils.time_since(start_time)
 
-            # put lists in proper format
-            subj_keypress_desc = [desc for sublist in subj_keypress_desc for desc in sublist]
+                print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(
+                    subj_name, num_processes, duration_with_pool))
 
-            new_subj = copy(subj)
-            new_subj.data = subj_keypress_desc
-            descriptor_subj_dataset[subj_name] = new_subj
+                # put lists in proper format
+                subj_keypress_desc = [desc for sublist in subj_keypress_desc for desc in sublist]
+
+                new_subj = copy(subj)
+                new_subj.data = subj_keypress_desc
+                descriptor_subj_dataset[subj_name] = new_subj
 
         if self.normalize:
             descriptor_subj_dataset = self.normalize_l2(descriptor_subj_dataset)

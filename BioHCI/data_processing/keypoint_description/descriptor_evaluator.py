@@ -39,7 +39,7 @@ class DescriptorEvaluator:
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
 
         # remove any files remaining from previous tests
-        self.cleanup()
+        # self.cleanup()
 
         self.__num_processes = multiprocessing.cpu_count()
         self.compute_heatmap(all_dataset_categories)
@@ -296,7 +296,7 @@ class DescriptorEvaluator:
 
         """
         now = datetime.now()
-        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}\n\n")
+        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}\n")
 
         self.result_logger.debug(f"Heatmap: \n")
         self.result_logger.debug(f"{self.heatmap}\n\n")
@@ -304,13 +304,20 @@ class DescriptorEvaluator:
         avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff = self.get_category_distance_stats(self.heatmap)
         ratio_same_diff = avg_same / avg_diff
 
-        self.result_logger.info(f"Average distance among same-class tensors is                                  {avg_same:.3f}\n")
-        self.result_logger.info(f"Average distance among tensors of different classes is                        {avg_diff:.3f}\n")
-        self.result_logger.info(f"Standard deviation of the distance among same-class tensors is                {std_same:.3f}\n")
-        self.result_logger.info(f"Standard deviation of the distance among tensors of different classes is      {std_diff:.3f}\n")
-        self.result_logger.info(f"Coefficient of variation among same-class tensors is                          {cv_same:.3f}\n")
-        self.result_logger.info(f"Coefficient of variation among tensors of different classes is                {cv_diff:.3f}\n")
-        self.result_logger.info(f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff:.3f}\n")
+        self.result_logger.info(
+            f"Average distance among same-class tensors is                                  {avg_same:.3f}")
+        self.result_logger.info(
+            f"Average distance among tensors of different classes is                        {avg_diff:.3f}")
+        self.result_logger.info(
+            f"Standard deviation of the distance among same-class tensors is                {std_same:.3f}")
+        self.result_logger.info(
+            f"Standard deviation of the distance among tensors of different classes is      {std_diff:.3f}")
+        self.result_logger.info(
+            f"Coefficient of variation among same-class tensors is                          {cv_same:.3f}")
+        self.result_logger.info(
+            f"Coefficient of variation among tensors of different classes is                {cv_diff:.3f}")
+        self.result_logger.info(
+            f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff:.3f}\n")
         self.result_logger.info(
             f"**********************************************************************************************************************")
         self.result_logger.info(
@@ -374,7 +381,7 @@ if __name__ == "__main__":
     subject_dataset = data.get_subject_dataset()
 
     # create descriptor computer
-    desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=False,
+    desc_computer = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=False,
                                        extra_name="_test_2")
     # get all the categories of the dataset
     all_dataset_categories = data.get_all_dataset_categories()
