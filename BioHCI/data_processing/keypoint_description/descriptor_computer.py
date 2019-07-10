@@ -91,6 +91,8 @@ class DescriptorComputer:
 
                 with multiprocessing.Pool(processes=num_processes) as pool:
                     subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
+                pool.close()
+                pool.join()
                 duration_with_pool = utils.time_since(start_time)
 
                 print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(

@@ -114,10 +114,10 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
                 tuple_list = []
-                for i in range(0, len(subj_data)):
-                    for j in range(0, len(subj_data)):
-                # for i in range(0, 25):
-                #     for j in range(i+1, 25):
+                # for i in range(0, len(subj_data)):
+                #     for j in range(0, len(subj_data)):
+                for i in range(4, 7):
+                    for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -135,6 +135,8 @@ class DescriptorEvaluator:
                 start_time = time.time()
                 with multiprocessing.Pool(processes=self.num_processes) as pool:
                     pool.map(self.compute_distance_parallelized, tuple_list)
+                pool.close()
+                pool.join()
                 duration_with_pool = utils.time_since(start_time)
 
                 print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(
@@ -145,11 +147,13 @@ class DescriptorEvaluator:
             with (open(self.get_heatmap_obj_path(), "rb")) as openfile:
                 self.__heatmap = pickle.load(openfile)
 
+        """
         if self.heatmap is not None:
             plt.figure(figsize=(14, 10))
             sns.set(font_scale=1.4)
             heatmap_fig = sns.heatmap(self.heatmap, xticklabels=5, yticklabels=5)
             self.save_obj(heatmap_fig, ".png")
+        """
 
         print(f"End of descriptor evaluator {self.dataset_eval_name}!")
 
@@ -242,8 +246,8 @@ class DescriptorEvaluator:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
         elif ext == ".png":
             obj.figure.savefig(path)
-            plt.show()
-            plt.close("all")
+            # plt.show()
+            # plt.close("all")
         else:
             print("Invalid extension. Object not saved!")
 
@@ -299,7 +303,8 @@ class DescriptorEvaluator:
 
         """
         now = datetime.now()
-        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}\n")
+        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}")
+        self.result_logger.info(f"{self.dataset_eval_name}\n")
 
         self.result_logger.debug(f"Heatmap: \n")
         self.result_logger.debug(f"{self.heatmap}\n\n")
@@ -325,6 +330,11 @@ class DescriptorEvaluator:
             f"**********************************************************************************************************************")
         self.result_logger.info(
             f"**********************************************************************************************************************\n")
+        # close and detach all handlers
+        handlers = self.result_logger.handlers[:]
+        for handler in handlers:
+            handler.close()
+            self.result_logger.removeHandler(handler)
 
     def generate_heatmap_fig_from_obj(self, heatmap: np.ndarray) -> None:
         """
@@ -391,16 +401,15 @@ if __name__ == "__main__":
     lock = multiprocessing.Lock()
     heatmap_shape = (len(set(all_dataset_categories)), len(set(all_dataset_categories)))
 
-    # create shared numpy array
-    shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0] * heatmap_shape[1], lock=lock)
-    shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-    heatmap_global = shared_array.reshape(heatmap_shape)
-
-
     # generate statistics for all descriptors
     for desc_type in DescType:
         for norm_bool in [True, False]:
             print(f"Descriptor computing and evaluation on {desc_type} with l2-normalization set to {norm_bool}.")
+
+            # create shared numpy array
+            shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0] * heatmap_shape[1], lock=lock)
+            shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
+            heatmap_global = shared_array.reshape(heatmap_shape)
 
             # create descriptor computer
             desc_computer = DescriptorComputer(desc_type, subject_dataset, parameters, normalize=norm_bool)
@@ -408,6 +417,10 @@ if __name__ == "__main__":
             desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
             desc_eval.log_statistics()
     """
+    # create shared numpy array
+    shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0] * heatmap_shape[1], lock=lock)
+    shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
+    heatmap_global = shared_array.reshape(heatmap_shape)
 
     # create descriptor computer
     desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=False,
@@ -418,4 +431,5 @@ if __name__ == "__main__":
 
     print("")
     """
+
 
