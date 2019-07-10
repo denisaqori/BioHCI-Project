@@ -1,5 +1,5 @@
-#_StudyParameters__dir_path = "/home/takodev/bhceye/biohci-project/Resources/CTS_5taps_per_button"
-_StudyParameters__dir_path = "/home/denisa/GitHub/BioHCI Project/Resources/CTS_5taps_per_button"
+_StudyParameters__dir_path = "/home/takodev/bhceye/biohci-project/Resources/CTS_5taps_per_button"
+#_StudyParameters__dir_path = "/home/denisa/GitHub/BioHCI Project/Resources/CTS_5taps_per_button"
 _StudyParameters__study_name = "CTS_5taps_per_button"
 _StudyParameters__sensor_name = "Capacitor"
 _StudyParameters__file_format = ".csv"
