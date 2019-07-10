@@ -39,9 +39,9 @@ class DescriptorEvaluator:
         self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
 
         # remove any files remaining from previous tests
-        # self.cleanup()
+        self.cleanup()
 
-        self.__num_processes = multiprocessing.cpu_count()
+        self.__num_processes = multiprocessing.cpu_count() * 2
         self.compute_heatmap(all_dataset_categories)
 
         # defining the logger before the multiprocessing task causes a "cannot pickle RLock error" since
@@ -114,19 +114,22 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
                 tuple_list = []
-                # for i in range(0, len(subj_data) - 1):
-                #     for j in range(0, len(subj_data) - 1):
-                for i in range(0, 7):
-                    for j in range(0, 7):
+                for i in range(0, len(subj_data)):
+                    for j in range(0, len(subj_data)):
+                # for i in range(0, 25):
+                #     for j in range(i+1, 25):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
                         keypress2 = subj_data[j]
                         cat2 = subj_int_cat[j]
 
+                        print(f"i: {i}, j: {j}      cat 1: {cat1}, cat 2: {cat2}")
+
                         tuple_list.append((keypress1, cat1, keypress2, cat2))
 
-                print(f"Id of heatmap as seen by main: {hex(id(self.heatmap))}")
+                print(f"Id of heatmap as seen by main: {hex(id(heatmap_global))}")
+                print(f"Id of heatmap as seen by compute_heatmap() method: {hex(id(self.heatmap))}")
                 print(f"Total number of tensors to compare is {len(tuple_list)}")
 
                 start_time = time.time()
@@ -171,8 +174,7 @@ class DescriptorEvaluator:
         with counter.get_lock():
             counter.value += 1
             if counter.value % 100 == 0:
-                print(f"{counter.value}: Process {multiprocessing.current_process()}; Heatmap memory ID: "
-                      f"{hex(id(self.heatmap))}")
+                print(f"{counter.value}: Process {multiprocessing.current_process()}")
 
     @staticmethod
     def euclidean_levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
@@ -190,8 +192,9 @@ class DescriptorEvaluator:
 
         """
         lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
-        for i in range(1, keypress1.shape[0]):
-            for j in range(1, keypress2.shape[0]):
+        # changed initial index from 1 to 0 (no idea why I was skipping it before)
+        for i in range(0, keypress1.shape[0]):
+            for j in range(0, keypress2.shape[0]):
 
                 k1_i = keypress1[i, :]
                 k2_j = keypress2[j, :]
@@ -368,7 +371,7 @@ class DescriptorEvaluator:
 
 
 if __name__ == "__main__":
-    np.set_printoptions(threshold=10000, linewidth=100000, precision=3)
+    np.set_printoptions(threshold=10000, linewidth=100000, precision=1)
     config_dir = "config_files"
     config = StudyConfig(config_dir)
 
@@ -380,9 +383,6 @@ if __name__ == "__main__":
     data = DataConstructor(parameters)
     subject_dataset = data.get_subject_dataset()
 
-    # create descriptor computer
-    desc_computer = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=False,
-                                       extra_name="_test_2")
     # get all the categories of the dataset
     all_dataset_categories = data.get_all_dataset_categories()
 
@@ -396,8 +396,26 @@ if __name__ == "__main__":
     shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
     heatmap_global = shared_array.reshape(heatmap_shape)
 
+
+    # generate statistics for all descriptors
+    for desc_type in DescType:
+        for norm_bool in [True, False]:
+            print(f"Descriptor computing and evaluation on {desc_type} with l2-normalization set to {norm_bool}.")
+
+            # create descriptor computer
+            desc_computer = DescriptorComputer(desc_type, subject_dataset, parameters, normalize=norm_bool)
+            # evaluate distances between tensors and compute statistics on them
+            desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
+            desc_eval.log_statistics()
+    """
+
+    # create descriptor computer
+    desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=False,
+                                       extra_name="_test_2")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     desc_eval.log_statistics()
 
     print("")
+    """
+

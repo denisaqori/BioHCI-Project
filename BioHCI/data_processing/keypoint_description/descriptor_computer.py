@@ -191,7 +191,7 @@ class DescriptorComputer:
             subj_normalized_keypresses = []
             for i, keypress in enumerate(subj_data):
 
-                if self.desc_type == DescType.JUSD:
+                if self.desc_type == DescType.JUSD or self.desc_type == DescType.RawData:
                     keypress_normalized = preprocessing.normalize(keypress, norm='l2')
 
                 elif self.desc_type == DescType.MSBSD:
