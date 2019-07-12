@@ -23,9 +23,7 @@ class KeypointFeatureConstructor(FeatureConstructor):
         self.descriptor_computer = descriptor_computer
 
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
-        # run dataset_processor on subject_dataset to compact, chunk the dataset.
-        # processed_dataset = self.dataset_processor.process_dataset(subject_dataset)
-        feature_dataset = self.descriptor_computer.produce_dataset_descriptors(subject_dataset)
+        feature_dataset = self.descriptor_computer.dataset_descriptors
         return feature_dataset
 
 
@@ -47,7 +45,7 @@ if __name__ == "__main__":
     dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
-                                             extra_name="_test")
+                                             extra_name="")
     feature_constructor = KeypointFeatureConstructor(dataset_processor, parameters, descriptor_computer)
     feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
     print("")

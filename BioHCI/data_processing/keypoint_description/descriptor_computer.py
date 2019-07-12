@@ -89,7 +89,8 @@ class DescriptorComputer:
                 num_processes = multiprocessing.cpu_count()
                 start_time = time.time()
 
-                with multiprocessing.Pool(processes=num_processes) as pool:
+                print (f"Total number of descriptor sets to compute: {len(subj_data)}")
+                with multiprocessing.Pool(processes=num_processes * 2) as pool:
                     subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
                 pool.close()
                 pool.join()
