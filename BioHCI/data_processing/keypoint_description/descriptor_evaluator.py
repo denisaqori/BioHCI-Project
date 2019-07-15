@@ -7,6 +7,7 @@ import ctypes
 import time
 
 import numpy as np
+from scipy import stats
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
@@ -147,13 +148,11 @@ class DescriptorEvaluator:
             with (open(self.get_heatmap_obj_path(), "rb")) as openfile:
                 self.__heatmap = pickle.load(openfile)
 
-        """
         if self.heatmap is not None:
             plt.figure(figsize=(14, 10))
             sns.set(font_scale=1.4)
             heatmap_fig = sns.heatmap(self.heatmap, xticklabels=5, yticklabels=5)
             self.save_obj(heatmap_fig, ".png")
-        """
 
         print(f"End of descriptor evaluator {self.dataset_eval_name}!")
 
@@ -246,8 +245,8 @@ class DescriptorEvaluator:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
         elif ext == ".png":
             obj.figure.savefig(path)
-            # plt.show()
-            # plt.close("all")
+            plt.show()
+            plt.close("all")
         else:
             print("Invalid extension. Object not saved!")
 
@@ -396,16 +395,20 @@ if __name__ == "__main__":
     # get all the categories of the dataset
     all_dataset_categories = data.get_all_dataset_categories()
 
-    # create a counter, lock to give to shared array, and determine the shape of the array
-    counter = multiprocessing.Value('i', 0)
-    lock = multiprocessing.Lock()
+    # determine the shape of the array
     heatmap_shape = (len(set(all_dataset_categories)), len(set(all_dataset_categories)))
 
+
+
+    """
     # generate statistics for all descriptors
     for desc_type in DescType:
         for norm_bool in [True, False]:
             print(f"Descriptor computing and evaluation on {desc_type} with l2-normalization set to {norm_bool}.")
 
+            # create a counter, lock to give to shared array
+            counter = multiprocessing.Value('i', 0)
+            lock = multiprocessing.Lock()
             # create shared numpy array
             shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0] * heatmap_shape[1], lock=lock)
             shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
@@ -417,19 +420,25 @@ if __name__ == "__main__":
             desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
             desc_eval.log_statistics()
     """
+
+
+    counter = multiprocessing.Value('i', 0)
+    lock = multiprocessing.Lock()
     # create shared numpy array
     shared_array_base = multiprocessing.Array(ctypes.c_double, heatmap_shape[0] * heatmap_shape[1], lock=lock)
     shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
     heatmap_global = shared_array.reshape(heatmap_shape)
 
     # create descriptor computer
-    desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=False,
-                                       extra_name="_test_2")
+    desc_computer = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=True,
+                                       extra_name="")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
+    # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
     desc_eval.log_statistics()
 
     print("")
-    """
+
+
 
 
