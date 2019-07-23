@@ -1,21 +1,21 @@
 from abc import ABC
 import BioHCI.helpers.type_aliases as types
-from BioHCI.data_processing.dataset_processor import DatasetProcessor
 from BioHCI.definition.study_parameters import StudyParameters
 from typing import Optional
 
 
 class FeatureConstructor(ABC):
-    def __init__(self, dataset_processor: DatasetProcessor, parameters: StudyParameters):
+    def __init__(self, parameters:StudyParameters):
         assert (parameters.construct_features is True)
         assert (parameters.feature_window is not None), "In order for features to be created, the feature window " \
                                                         "attribute should be set to an integer greater than 0, " \
                                                         "and be of NoneType."
         self.parameters = parameters
         self.feature_window = parameters.feature_window
-        self.dataset_processor = dataset_processor
+        self.__feature_dataset = None
 
-    def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
+    # def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
+    def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> None:
         """
         Constructs features on subject data based on the initialized FeatureConstructor object.
 
@@ -37,9 +37,21 @@ class FeatureConstructor(ABC):
                                             "initiate one of its children instead. The produced feature_dataset is " \
                                             "currently set to None."
 
-        return feature_dataset
+        self.__feature_dataset = feature_dataset
 
     def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         return None
 
+    @property
+    def feature_dataset(self):
+        return self.__feature_dataset
 
+    @property
+    def num_features(self) -> Optional[int]:
+        any_subj_name, any_subj = next(iter(self.feature_dataset.items()))
+        num = any_subj.data[0].shape[-1]
+        return num
+
+    @property
+    def mult_attr(self):
+        return None

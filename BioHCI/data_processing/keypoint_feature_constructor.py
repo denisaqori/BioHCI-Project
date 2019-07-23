@@ -15,17 +15,30 @@ from typing import Optional
 
 
 class KeypointFeatureConstructor(FeatureConstructor):
-    def __init__(self, dataset_processor: DatasetProcessor, parameters: StudyParameters,
+    def __init__(self, parameters: StudyParameters,
                  descriptor_computer: DescriptorComputer) -> None:
-        super().__init__(dataset_processor, parameters)
-        print("MSBSD Feature Constructor being initiated...")
 
+        print("Keypoint Feature Constructor being initiated...")
         self.descriptor_computer = descriptor_computer
+
+        super().__init__(parameters)
+
+        if self.descriptor_computer.desc_type == DescType.JUSD:
+            self.__mult_attr = 8
+        elif self.descriptor_computer.desc_type == DescType.MSBSD:
+            self.__mult_attr = 16
+        elif self.descriptor_computer.desc_type == DescType.RawData:
+            self.__mult_attr = 1
+
+        print("")
+
+    @property
+    def mult_attr(self):
+        return self.__mult_attr
 
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         feature_dataset = self.descriptor_computer.dataset_descriptors
         return feature_dataset
-
 
 if __name__ == "__main__":
     print("Running msbsd_feature_constructor module...")
@@ -36,6 +49,7 @@ if __name__ == "__main__":
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
     parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
+    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)
@@ -44,8 +58,9 @@ if __name__ == "__main__":
     category_balancer = WithinSubjectOversampler()
     dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
-    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
-                                             extra_name="")
-    feature_constructor = KeypointFeatureConstructor(dataset_processor, parameters, descriptor_computer)
-    feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
+    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True, extra_name="")
+    feature_constructor = KeypointFeatureConstructor(subject_dict, dataset_processor, parameters, descriptor_computer)
+
+    feature_dataset = feature_constructor.feature_dataset
+    num_features = feature_constructor.num_features
     print("")

@@ -20,8 +20,8 @@ class StatFeatureConstructor(FeatureConstructor):
     Statistical Information:
     """
 
-    def __init__(self, dataset_processor: DatasetProcessor, parameters: StudyParameters) -> None:
-        super().__init__(dataset_processor, parameters)
+    def __init__(self, parameters: StudyParameters,
+                 dataset_processor: DatasetProcessor) -> None:
         print("Statistical Feature Constructor being initiated.")
 
         assert parameters.construct_features is True
@@ -29,6 +29,9 @@ class StatFeatureConstructor(FeatureConstructor):
 
         # methods to calculate particular features
         self.__stat_features = [self.min_features, self.max_features, self.mean_features, self.std_features]
+        self.dataset_processor = dataset_processor
+        super().__init__(parameters)
+        self.__mult_attr = len(self.__stat_features)
 
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         """
@@ -106,6 +109,9 @@ class StatFeatureConstructor(FeatureConstructor):
         diff = np.expand_dims(diff, axis=feature_axis)
         return diff
 
+    @property
+    def mult_attr(self):
+        return self.__mult_attr
 
 if __name__ == "__main__":
     print("Running feature_constructor module...")
@@ -124,6 +130,8 @@ if __name__ == "__main__":
     category_balancer = WithinSubjectOversampler()
     dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
 
-    feature_constructor = StatFeatureConstructor(dataset_processor, parameters)
-    feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
+    feature_constructor = StatFeatureConstructor(subject_dict, parameters, dataset_processor)
+
+    feature_dataset = feature_constructor.feature_dataset
+    num_features = feature_constructor.num_features
     print("")

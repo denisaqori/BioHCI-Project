@@ -28,13 +28,8 @@ class DescriptorComputer:
         self.desc_type = desc_type
         self.__dataset_descriptors = None
 
-        assert isinstance(parameters, StudyParameters)
         self.parameters = parameters
-
-        assert isinstance(normalize, bool)
         self.normalize = normalize
-
-        assert isinstance(extra_name, str)
         self.extra_name = extra_name
 
         self.__dataset_desc_root_path = utils.get_root_path("dataset_desc")
@@ -44,7 +39,7 @@ class DescriptorComputer:
         self.__dataset_desc_path, self.__dataset_desc_name = self.__produce_dataset_desc_path_and_name()
 
         # remove any files remaining from previous tests
-        # self.cleanup()
+        self.cleanup()
 
         # create the full path to save the current descriptor if it does not exist, or to load from if it does
         if os.path.exists(self.dataset_desc_path):
@@ -76,7 +71,7 @@ class DescriptorComputer:
 
         Returns:
             descriptor_subj_dataset (dict): a dictionary mapping a subject name to as Subject object,
-                whose data is comprised of its descriptors for each category.
+                whose data is comprised of its descriptors for each categ Arjola Demiriory.
         """
         if self.desc_type == DescType.RawData:
             descriptor_subj_dataset = subject_dataset
@@ -196,13 +191,28 @@ class DescriptorComputer:
 
                 if self.desc_type == DescType.JUSD or self.desc_type == DescType.RawData:
                     keypress_normalized = preprocessing.normalize(keypress, norm='l2')
-
-                elif self.desc_type == DescType.MSBSD:
                     keypress_split = np.split(keypress, 2, axis=1)
                     normalized_splits = []
                     for split in keypress_split:
                         normalized_split = preprocessing.normalize(split, norm='l2')
                         normalized_splits.append(normalized_split)
+
+                    keypress_normalized = np.concatenate(normalized_splits, axis=1)
+
+                elif self.desc_type == DescType.MSBSD:
+                    keypress_split = np.split(keypress, [8, 16], axis=1)
+                    normalized_splits = []
+
+                    for i,split in enumerate(keypress_split):
+                        normalized_split = None
+                        if i == 0 or i == 1:
+                            normalized_split = preprocessing.normalize(split, norm='l2')
+                        # elif i == 2 or i == 3:
+                        #     normalized_split = preprocessing.normalize(split, norm='l1')
+                        elif i == 2:
+                            normalized_split = split
+                        normalized_splits.append(normalized_split)
+
                     keypress_normalized = np.concatenate(normalized_splits, axis=1)
                 else:
                     print("There is no such descriptor: ", self.desc_type)
@@ -240,7 +250,7 @@ if __name__ == "__main__":
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
     # parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
-    parameters = config.populate_study_parameters("CTS_5taps_per_button:/.toml")
+    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)
@@ -248,5 +258,5 @@ if __name__ == "__main__":
 
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
                                              extra_name="_test")
-    all_desc = descriptor_computer.produce_dataset_descriptors(subject_dataset)
+    descriptors = descriptor_computer.dataset_descriptors
     print("")

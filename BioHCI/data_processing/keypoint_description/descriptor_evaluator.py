@@ -22,6 +22,7 @@ from typing import List, Tuple, Optional
 from os.path import join
 import logging
 from datetime import datetime
+from statsmodels.stats.weightstats import ztest
 
 
 class DescriptorEvaluator:
@@ -115,17 +116,17 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
                 tuple_list = []
-                # for i in range(0, len(subj_data)):
-                #     for j in range(0, len(subj_data)):
-                for i in range(4, 7):
-                    for j in range(4, 7):
+                for i in range(0, len(subj_data)):
+                    for j in range(0, len(subj_data)):
+                # for i in range(4, 7):
+                #     for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
                         keypress2 = subj_data[j]
                         cat2 = subj_int_cat[j]
 
-                        print(f"i: {i}, j: {j}      cat 1: {cat1}, cat 2: {cat2}")
+                        # print(f"i: {i}, j: {j}      cat 1: {cat1}, cat 2: {cat2}")
 
                         tuple_list.append((keypress1, cat1, keypress2, cat2))
 
@@ -258,7 +259,8 @@ class DescriptorEvaluator:
         return path
 
     @staticmethod
-    def get_category_distance_stats(heatmap_matrix: np.ndarray) -> Tuple[float, float, float, float, float, float]:
+    def get_category_distance_stats(heatmap_matrix: np.ndarray) -> Tuple[float, float, float, float, float, float,
+                                                                         float, float, float, float]:
         """
         Calculates statistics on the heatmap object passed, regarding class similarities and differences.
 
@@ -291,7 +293,13 @@ class DescriptorEvaluator:
 
         cv_same = std_same / avg_same
         cv_diff = std_diff / avg_diff
-        return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff
+
+        # same calculation as z_score in this case
+        z_score, p_val_z = stats.ttest_ind(same_list, diff_list)
+        f_stat, p_val_f = stats.f_oneway(same_list, diff_list)
+        # z_score, p_val = ztest(same_list, diff_list)
+
+        return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff, z_score, p_val_z, f_stat, p_val_f
 
     def log_statistics(self) -> None:
         """
@@ -308,7 +316,9 @@ class DescriptorEvaluator:
         self.result_logger.debug(f"Heatmap: \n")
         self.result_logger.debug(f"{self.heatmap}\n\n")
 
-        avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff = self.get_category_distance_stats(self.heatmap)
+        avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff, z_score, p_val_z, \
+            f_stat, p_val_f = self.get_category_distance_stats(self.heatmap)
+
         ratio_same_diff = avg_same / avg_diff
 
         self.result_logger.info(
@@ -324,7 +334,15 @@ class DescriptorEvaluator:
         self.result_logger.info(
             f"Coefficient of variation among tensors of different classes is                {cv_diff:.3f}")
         self.result_logger.info(
-            f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff:.3f}\n")
+            f"Ratio of same-class average distance to different class average distance is   {ratio_same_diff:.3f}")
+        self.result_logger.info(
+            f"The z-score of same-class distances and different-class distances is          {z_score:.3f}")
+        self.result_logger.info(
+            f"The p-value determined by the z-test is                                       {p_val_z:.3f}")
+        self.result_logger.info(
+            f"The f-statistic of same-class distances and different-class distances is      {f_stat:.3f}")
+        self.result_logger.info(
+            f"The p-value determined by the f-test is                                       {p_val_f:.3f}\n")
         self.result_logger.info(
             f"**********************************************************************************************************************")
         self.result_logger.info(
@@ -398,8 +416,6 @@ if __name__ == "__main__":
     # determine the shape of the array
     heatmap_shape = (len(set(all_dataset_categories)), len(set(all_dataset_categories)))
 
-
-
     """
     # generate statistics for all descriptors
     for desc_type in DescType:
@@ -421,7 +437,6 @@ if __name__ == "__main__":
             desc_eval.log_statistics()
     """
 
-
     counter = multiprocessing.Value('i', 0)
     lock = multiprocessing.Lock()
     # create shared numpy array
@@ -431,14 +446,11 @@ if __name__ == "__main__":
 
     # create descriptor computer
     desc_computer = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=True,
-                                       extra_name="")
+                                       extra_name="_split_norm_stats_no_cols")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
     desc_eval.log_statistics()
 
     print("")
-
-
-
-
+    # """
