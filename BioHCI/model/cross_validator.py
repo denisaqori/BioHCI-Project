@@ -4,32 +4,39 @@ import numpy as np
 import time
 import BioHCI.helpers.utilities as utils
 from tensorboardX import SummaryWriter
+import BioHCI.helpers.type_aliases as types
+from typing import Optional, List
+
+from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_processing.feature_constructor import FeatureConstructor
+from BioHCI.definition.learning_def import LearningDefinition
+from BioHCI.definition.study_parameters import StudyParameters
+
 
 class CrossValidator(ABC):
-	def __init__(self, subject_dict, data_splitter, feature_constructor, model, parameter,
-				 learning_def, all_categories):
-		self._subject_dict = subject_dict
-		self._data_splitter = data_splitter
-		self._feature_constructor = feature_constructor
+	def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
+	FeatureConstructor, model, parameters: StudyParameters, learning_def: LearningDefinition, all_categories: List[str]):
+		self.__subject_dict = subject_dict
+		self.__data_splitter = data_splitter
+		self.__feature_constructor = feature_constructor
 		self.__model = model
-		self._learning_def = learning_def
-		self._parameter = parameter
-		self._num_folds = parameter.num_folds
-		self._all_categories = all_categories
+		self.__learning_def = learning_def
+		self.__parameters = parameters
+		self.__num_folds = parameters.num_folds
 
-		self.all_int_categories = utils.convert_categories(all_categories, all_categories)
+		self.__all_int_categories = utils.convert_categories(all_categories, all_categories)
 
-		self._all_val_accuracies = []
-		self._all_train_accuracies = []
-		self._all_train_losses = []
+		self.__all_val_accuracies = []
+		self.__all_train_accuracies = []
+		self.__all_train_losses = []
 
 		# declare variables that will contain time needed to compute these operations
-		self._cv_time = 0
-		self._train_time = 0
-		self._val_time = 0
+		self.__cv_time = ""
+		self.__train_time = ""
+		self.__val_time = 0
 
 		self.__tbx_path = utils.create_dir('tensorboardX_runs')
-		self.__writer = SummaryWriter(self.__tbx_path)
+		self.__writer = SummaryWriter(self.tbx_path)
 
 		# create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
 		# below)
@@ -39,30 +46,106 @@ class CrossValidator(ABC):
 		self.perform_cross_validation()
 		self._confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
 
-	def perform_cross_validation(self):
+	@property
+	def subject_dict(self) -> types.subj_dataset:
+		return self.__subject_dict
+
+	@property
+	def data_splitter(self) -> DataSplitter:
+		return self.__data_splitter
+
+	@property
+	def feature_constructor(self) -> FeatureConstructor:
+		return self.__feature_constructor
+
+	@property
+	def model(self):
+		return self.__model
+
+	@property
+	def learning_def(self) -> LearningDefinition:
+		return self.__learning_def
+
+	@property
+	def parameters(self) -> StudyParameters:
+		return self.__parameters
+
+	@property
+	def num_folds(self) -> int:
+		return self.__num_folds
+
+	@property
+	def all_int_categories(self) -> np.ndarray:
+		return self.__all_int_categories
+
+	@property
+	def all_val_accuracies(self) -> List[float]:
+		return self.__all_val_accuracies
+
+	@property
+	def all_train_accuracies(self) -> List[float]:
+		return self.__all_train_accuracies
+
+	@property
+	def all_train_losses(self) -> List[float]:
+		return self.__all_train_losses
+
+	@property
+	def cv_time(self) -> str:
+		return self.__cv_time
+
+	@cv_time.setter
+	def cv_time(self, time: str):
+		self.__cv_time = time
+
+	@property
+	def train_time(self) -> str:
+		return self.__train_time
+
+	@train_time.setter
+	def train_time(self, time: str):
+		self.__train_time = time
+
+	@property
+	def val_time(self):
+		return self.__val_time
+
+	@val_time.setter
+	def val_time(self, time: str):
+		self.__val_time = time
+
+	@property
+	def tbx_path(self):
+		return self.__tbx_path
+
+	@property
+	def writer(self):
+		return self.__writer
+
+	def perform_cross_validation(self) -> None:
 		cv_start = time.time()
 
-		for i in range(0, self._num_folds):
+		for i in range(0, self.num_folds):
 			print("\n\n"
 			"*******************************************************************************************************")
 			print("Run: ", i)
-			train_dict, val_dict = self._data_splitter.split_into_folds(subject_dictionary=self._subject_dict,
-																		num_folds=self._num_folds, val_index=i)
+			train_dict, val_dict = self.data_splitter.split_into_folds(subject_dictionary=self.subject_dict,
+																		num_folds=self.num_folds, val_index=i)
 
-			processed_train = self._feature_constructor.produce_feature_dataset(train_dict)
-			processed_val = self._feature_constructor.produce_feature_dataset(val_dict)
+			processed_train = self.feature_constructor.produce_feature_dataset(train_dict)
+			processed_val = self.feature_constructor.produce_feature_dataset(val_dict)
 
 			# starting training with the above-defined parameters
 			train_start = time.time()
-			self.train(processed_train, self.__writer)
-			self._train_time = utils.time_since(train_start)
+			self.train(processed_train, self.writer)
+			self.train_time = utils.time_since(train_start)
 
 			# start validating the model
 			val_start = time.time()
-			self.val(processed_val, self.__writer)
-			self._val_time = utils.time_since(val_start)
+			self.val(processed_val, self.writer)
+			self.val_time = utils.time_since(val_start)
 
-		self._cv_time = utils.time_since(cv_start)
+		self.cv_time = utils.time_since(cv_start)
 
 	@abstractmethod
 	def _get_data_and_labels(self, python_dataset):
@@ -76,44 +159,30 @@ class CrossValidator(ABC):
 	def val(self, val_dataset, summary_writer):
 		pass
 
-	def get_all_val_accuracies(self):
-		return self._all_val_accuracies
+	@property
+	def avg_train_accuracy(self) -> float:
+		"Compute the average of train accuracy of each fold's last epoch."
 
-	def get_all_train_accuracies(self):
-		return self._all_train_accuracies
-
-	# returns the average of train accuracy of each fold's last epoch
-	def get_avg_train_accuracy(self):
-		# return the average by dividing by the number of folds (=number of accuracies added)
-		avg_accuracy = sum(self._all_train_accuracies) / float(len(self._all_train_accuracies))
-		print("\nAverage train accuracy over", self._num_folds, "is", avg_accuracy)
+		# return the average by dividing the sum by the number of folds (= number of accuracies added)
+		avg_accuracy = sum(self.all_train_accuracies) / float(len(self.all_train_accuracies))
+		print("\nAverage train accuracy over", self.num_folds, "is", avg_accuracy)
 		return avg_accuracy
 
-	def get_avg_val_accuracy(self):
-		avg_accuracy = sum(self._all_val_accuracies) / float(len(self._all_val_accuracies))
-		print("\nAverage val accuracy over", self._num_folds, "is", avg_accuracy)
+	@property
+	def avg_val_accuracy(self) -> float:
+		avg_accuracy = sum(self.all_val_accuracies) / float(len(self.all_val_accuracies))
+		print("\nAverage val accuracy over", self.num_folds, "is", avg_accuracy)
 		return avg_accuracy
 
-	def get_all_train_losses(self):
-		return self._all_train_losses
-
-	def get_avg_train_losses(self):
+	@property
+	def avg_train_losses(self) -> List[float]:
 		avg_losses = []
-		for i in range(self._learning_def.num_epochs):
+		for i in range(self.learning_def.num_epochs):
 			epoch_loss = 0
-			for j, loss_list in enumerate(self._all_train_losses):
+			for j, loss_list in enumerate(self.all_train_losses):
 				epoch_loss = epoch_loss + loss_list[i]
-			avg_losses.append(epoch_loss / self._num_folds)
+			avg_losses.append(epoch_loss / self.num_folds)
 		return avg_losses
-
-	def get_total_cv_time(self):
-		return self._cv_time
-
-	def get_train_time(self):
-		return self._train_time
-
-	def get_val_time(self):
-		return self._val_time
 
 	def mix_subj_chunks(self, subj_dict):
 		"""

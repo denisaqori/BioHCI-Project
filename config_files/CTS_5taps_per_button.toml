@@ -22,4 +22,4 @@ _StudyParameters__feature_window = 1000
 _StudyParameters__feature_overlap = false
 _StudyParameters__num_folds = 5
 _StudyParameters__num_threads = "None"
-_StudyParameters__neural_net = "None"
+_StudyParameters__neural_net = true

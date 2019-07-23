@@ -2,7 +2,7 @@ from BioHCI.definition.learning_def import LearningDefinition
 
 
 class NeuralNetworkDefinition(LearningDefinition):
-	def __init__(self, input_size, output_size, use_cuda):
+	def __init__(self, input_size: int, output_size: int, use_cuda: bool) -> None:
 		# hyper-parameters
 		self.__num_hidden = 120  # number of nodes per hidden layer
 		self.__num_epochs = 10  # number of epochs over which to train
@@ -30,94 +30,79 @@ class NeuralNetworkDefinition(LearningDefinition):
 
 	# getters - the only way to access the class attributes
 	@property
-	def num_hidden(self):
+	def num_hidden(self) -> int:
 		return self.__num_hidden
 
 	@property
-	def num_epochs(self):
+	def num_epochs(self) -> int:
 		return self.__num_epochs
 
 	@property
-	def batch_size(self):
+	def batch_size(self) -> int:
 		return self.__batch_size
 
 	@property
-	def batch_first(self):
+	def batch_first(self) -> bool:
 		return self.__batch_first
 
 	@property
-	def learning_rate(self):
+	def learning_rate(self) -> float:
 		return self.__learning_rate
 
 	@property
-	def dropout_rate(self):
+	def dropout_rate(self) -> float:
 		return self.__dropout_rate
 
 	@property
-	def num_layers(self):
+	def num_layers(self) -> int:
 		return self.__num_layers
 
 	@property
-	def optimizer(self):
-		return self.__optimizer
-
-	@property
-	def criterion(self):
-		return self.__criterion
-
-	@property
-	def use_cuda(self):
+	def use_cuda(self) -> bool:
 		return self.__use_cuda
 
 	@property
-	def input_size(self):
+	def input_size(self) -> int:
 		return self.__input_size
 
 	@property
-	def output_size(self):
+	def output_size(self) -> int:
 		return self.__output_size
 
 	# setters - to be used by a UI; does not include arguments with which the object is created
 	@num_hidden.setter
-	def num_hidden(self, num_hidden):
+	def num_hidden(self, num_hidden: int) -> None:
 		self.__num_hidden = num_hidden
 
 	@input_size.setter
-	def input_size(self, input_size):
+	def input_size(self, input_size: int) -> None:
 		self.__input_size = input_size
 
 	@output_size.setter
-	def output_size(self, output_size):
+	def output_size(self, output_size: int) -> None:
 		self.__output_size = output_size
 
 	@num_epochs.setter
-	def num_epochs(self, num_epochs):
+	def num_epochs(self, num_epochs: int) -> None:
 		self.__num_epochs = num_epochs
 
 	@batch_size.setter
-	def batch_size(self, batch_size):
+	def batch_size(self, batch_size: int) -> None:
 		self._batch_size = batch_size
 
 	@batch_first.setter
-	def batch_first(self, batch_first):
+	def batch_first(self, batch_first: bool) -> None:
 		self.__batch_first = batch_first
 
 	@learning_rate.setter
-	def learning_rate(self, learning_rate):
+	def learning_rate(self, learning_rate: float) -> None:
 		self.__learning_rate = learning_rate
 
 	@dropout_rate.setter
-	def dropout_rate(self, dropout_rate):
+	def dropout_rate(self, dropout_rate: float) -> None:
 		self.__dropout_rate = dropout_rate
 
 	@num_layers.setter
-	def num_layers(self, num_layers):
+	def num_layers(self, num_layers: int) -> None:
 		self.__num_layers = num_layers
 
-	@optimizer.setter
-	def optimizer(self, optimizer):
-		self.__optimizer = optimizer
-
-	@criterion.setter
-	def criterion(self, criterion):
-		self.__criterion = criterion
