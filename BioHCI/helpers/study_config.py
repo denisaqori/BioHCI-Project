@@ -1,4 +1,4 @@
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as util
 import os
 import toml

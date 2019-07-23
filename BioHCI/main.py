@@ -4,18 +4,13 @@ import torch
 
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data_processing.dataset_processor import DatasetProcessor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
-from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
-from BioHCI.definition.neural_net_def import NeuralNetworkDefinition
-from BioHCI.definition.non_neural_net_def import NonNeuralNetworkDefinition
+from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
+from BioHCI.definitions.non_neural_net_def import NonNeuralNetworkDefinition
 from BioHCI.model.nn_cross_validator import NNCrossValidator
-from BioHCI.model.scipy_cross_validator import ScipyCrossValidator
 from BioHCI.helpers.result_logger import Logging
-from BioHCI.data_processing.stat_feature_constructor import StatFeatureConstructor
-from BioHCI.data_processing.data_augmenter import DataAugmenter
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
@@ -44,8 +39,8 @@ def main():
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
 
-    # the object with variable definition based on the specified configuration file. It includes data description,
-    # definitions of run parameters (independent of deep definition vs not)
+    # the object with variable definitions based on the specified configuration file. It includes data description,
+    # definitions of run parameters (independent of deep definitions vs not)
     parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     # parameters = config.populate_study_parameters("EEG_Workload.toml")
     print(parameters)
@@ -67,11 +62,6 @@ def main():
 
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
     data_splitter = WithinSubjectSplitter(subject_dict)
-    train_val_dictionary = data_splitter.get_train_val_dict()
-
-    category_balancer = WithinSubjectOversampler()
-    data_augmenter = DataAugmenter()
-    dataset_processor = DatasetProcessor(parameters, balancer=category_balancer, data_augmenter=data_augmenter)
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
                                              extra_name="_pipeline_test")
 

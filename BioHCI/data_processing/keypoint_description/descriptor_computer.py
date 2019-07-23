@@ -10,7 +10,7 @@ from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.helpers import utilities as utils
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.helpers.study_config import StudyConfig
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 from copy import copy
 import pickle
 from sklearn import preprocessing
@@ -20,6 +20,7 @@ from typing import Optional, List
 from os.path import join
 import multiprocessing
 import time
+
 
 class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
@@ -84,7 +85,7 @@ class DescriptorComputer:
                 num_processes = multiprocessing.cpu_count()
                 start_time = time.time()
 
-                print (f"Total number of descriptor sets to compute: {len(subj_data)}")
+                print(f"Total number of descriptor sets to compute: {len(subj_data)}")
                 with multiprocessing.Pool(processes=num_processes * 2) as pool:
                     subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
                 pool.close()
@@ -116,7 +117,7 @@ class DescriptorComputer:
         Returns:
 
         """
-        print (multiprocessing.current_process())
+        print(multiprocessing.current_process())
         interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
 
         return interval_desc_list
@@ -203,7 +204,7 @@ class DescriptorComputer:
                     keypress_split = np.split(keypress, [8, 16], axis=1)
                     normalized_splits = []
 
-                    for i,split in enumerate(keypress_split):
+                    for i, split in enumerate(keypress_split):
                         normalized_split = None
                         if i == 0 or i == 1:
                             normalized_split = preprocessing.normalize(split, norm='l2')
@@ -239,6 +240,7 @@ class DescriptorComputer:
 
                 print("Deleting file {}".format(full_path_to_remove))
                 os.remove(full_path_to_remove)
+
 
 if __name__ == "__main__":
     print("Running feature_constructor module...")

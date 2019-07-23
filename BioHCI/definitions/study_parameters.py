@@ -174,7 +174,7 @@ class StudyParameters(object):
             assert (isinstance(relevant_columns, list)), "The relevant columns to process need to be passed in a list."
             for elem in relevant_columns:
                 assert (isinstance(elem, int) and int(elem) >= 0), "Each element of the list needs to be a positive " \
-                                                               "integer or zero."
+                                                                   "integer or zero."
                 self.__relevant_columns.append(int(elem))
 
     @property
@@ -184,8 +184,9 @@ class StudyParameters(object):
     @column_names.setter
     def column_names(self, column_names: List[str]):
         if column_names is not None:
-            assert len(column_names) == len(self.__relevant_columns), "There needs to be a column name for each relevant " \
-                                                                  "column."
+            assert len(column_names) == len(
+                self.__relevant_columns), "There needs to be a column name for each relevant " \
+                                          "column."
         self.__column_names = column_names
 
     @property
@@ -273,7 +274,7 @@ class StudyParameters(object):
             self.__nfft = nfft
         else:
             assert (self.nfft is None), "If the compute_fft attribute is set to False, " \
-                                                 "the nfft attribute needs to be set to \"None\"."
+                                        "the nfft attribute needs to be set to \"None\"."
             self.__nfft = None
 
     @property
@@ -284,7 +285,7 @@ class StudyParameters(object):
     def sampling_freq(self, sampling_freq) -> None:
         if self.compute_fft is True:
             assert (isinstance(sampling_freq, int) and int(sampling_freq)) > 0, "Sampling frequency needs to be a " \
-                                                                            "positive integer."
+                                                                                "positive integer."
             self.__sampling_freq = sampling_freq
         else:
             assert (self.sampling_freq is None), "If the compute_fft attribute is set to False, " \
@@ -390,7 +391,7 @@ class StudyParameters(object):
     @num_folds.setter
     def num_folds(self, num_folds: int) -> None:
         assert int(num_folds) > 0, "Number of folds for cross validation needs to " \
-                                                                      "be a positive integer."
+                                   "be a positive integer."
         self.__num_folds = num_folds
 
     def clear_attribute_values(self) -> None:
@@ -401,15 +402,6 @@ class StudyParameters(object):
         print("Setting every attribute in the sole StudyParameter instance to 'None'.")
         for attr, val in vars(self).items():
             self.__setattr__(attr, None)
-
-    # @staticmethod
-    # def set_attr(dict):
-    #     parameters = StudyParameters()
-    #     for attribute, value in dict.items():
-    #         if value == "None":
-    #             value = None
-    #         setattr(parameters, attribute, value)
-    #     return parameters
 
 
 if __name__ == "__main__":

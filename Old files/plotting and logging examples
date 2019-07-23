@@ -1,0 +1,131 @@
+_______________________________________________________________________________________________________________________
+Portion below is to be removed, only here for inspiration, or maybe reusble code-blocks
+_______________________________________________________________________________________________________________________
+	# create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation below
+	confusion = torch.zeros(data.get_num_categories(), data.get_num_categories())
+
+	# running cross validation; splitting the dataset into folds, using one as testing once while training on all the
+	# rest for each run, the accuracy is saved, to later be averaged with all runs
+	all_test_accuracies = []
+	all_train_accuracies = []
+	cv_losses = []
+
+	cv_start = time.time()
+	for i in range(0, parameter.num_folds):
+		print(
+			"\n\n"
+			"*******************************************************************************************************")
+		print("Run: ", i)
+		train, test = data_processor.split_in_folds(k=parameter.num_folds, s=i)
+
+		print("Getting training dataset and labels...")
+		# train_dataset, train_labels = data_processor.get_shuffled_dataset_and_labels(train)
+		# the train_dataset is a tuple of TensorDataset type, containing a tensor with train data, and one with train
+		# labels
+		train_data, train_labels = data_processor.get_shuffled_dataset_and_labels(train)
+		train_dataset = TensorDataset(train_data, train_labels)
+		print("Using the PyTorch DataLoader to load the training data (shuffled) with: \nbatch size = ", dl.batch_size,
+			  " & number of threads = ", parameter.get_num_threads())
+		train_data_loader = DataLoader(train_dataset, batch_size=dl.batch_size,
+		num_workers=parameter.get_num_threads(),
+									   shuffle=True, pin_memory=True)
+
+		print("Getting testing dataset and labels...")
+		# the test_dataset is a tuple containing a tensor with test data, and one with test labels (each input into the
+		# evaluator later
+		test_data, test_labels = data_processor.get_shuffled_dataset_and_labels(test)
+		test_dataset = TensorDataset(test_data, test_labels)
+		print("Using the PyTorch DataLoader to load the testing data (shuffled) with: \nbatch size = ", dl.batch_size,
+			  " & number of threads = ", num_threads)
+		test_data_loader = DataLoader(test_dataset, batch_size=dl.batch_size, num_workers=num_threads, shuffle=True,
+									  pin_memory=True)
+
+		# starting training with the above-defined parameters
+		train_start = time.time()
+		trainer = Trainer(train_data_loader, data.categories, model, data, dl.optimizer, dl.criterion, dl.num_epochs,
+						  dl.samples_per_step, dl.batch_size, args.cuda)
+		train_time = utils.time_since(train_start)
+
+		# get the loss over all epochs for this cv-fold and append it to the list
+		cv_losses.append(trainer.all_losses)
+		print("Train Losses: ", trainer.all_losses)
+
+		all_train_accuracies.append(trainer.all_accuracies)
+
+		# this is the network produces by training over the other folds
+		# model_to_eval = torch.load('saved_models/gender-rnn-classification.pt')
+		model_name = data.get_dataset_name() + "-" + model.name + "-batch-" + str(dl.batch_size) + "-seqSize-" \
+					 + str(dl.samples_per_step) + ".pt"
+		model_to_eval = torch.load(os.path.join("saved_No usages founmodels", model_name))
+
+		test_start = time.time()
+		evaluator = Evaluator(test_data_loader, data.categories, model_to_eval, dl.batch_size, confusion, args.cuda)
+		test_time = utils.time_since(test_start)
+
+		fold_accuracy = evaluator.accuracy
+		all_test_accuracies.append(fold_accuracy)
+
+	cv_time = utils.time_since(cv_start)
+
+	# plotting losses for each category over each epoch
+	# this is the average graph of losses for all cross validation folds
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	ax.set_title('Average Loss per Epoch')
+
+	ax.set_xlabel('Number of Epochs')
+	ax.set_ylabel('Average Loss')
+
+	avg_losses = []
+	for i in range(dl.num_epochs):
+		epoch_loss = 0
+		for j, loss_list in enumerate(cv_losses):
+			epoch_loss = epoch_loss + loss_list[i]
+		avg_losses.append(epoch_loss / num_folds)
+
+	plt.plot(avg_losses)
+	plt.show()
+
+	# save the plot
+	train_epochs_path = 'Results/train loss plots/'
+	# plt.savefig(os.path.join(train_epochs_path, model.name + "_Loss_" + str(num_epochs) + "Epochs"))
+
+	print("All Losses: ", cv_losses)
+	print("Avg Losses: ", avg_losses)
+
+	# Show the Confusion Matrix for each class
+	# Normalize by dividing every row by its sum
+	total_sum = 0
+	for i in range(len(data.categories)):
+		total_sum = total_sum + confusion[i].sum()
+		confusion[i] = confusion[i] / confusion[i].sum()
+
+	print("Total Sum of evaluated chunks: ", total_sum)
+	print("All fold accuracies: ", all_test_accuracies)
+
+	# avg_accuracy = sum(all_test_accuracies) / float(len(all_test_accuracies))
+	# print("\nAverage accuracy: ", avg_accuracy)
+
+	# Set up plot
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	cax = ax.matshow(confusion.numpy())
+	fig.colorbar(cax)
+
+	# Set up axes
+	ax.set_xticklabels([''] + data.categories, rotation=90)
+	ax.set_yticklabels([''] + data.categories)
+
+	# Force label at every tick
+	ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+	ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+	# sphinx_gallery_thumbnail_number = 2
+	plt.show()
+
+	# save the results of confusion matrix
+	confusion_matrix_path = 'Results/matrix eval plots/'
+'''
+
+# plt.savefig(os.path.join(confusion_matrix_path, model.name + "_Confusion_" + str(num_epochs) + "Epochs"))
+

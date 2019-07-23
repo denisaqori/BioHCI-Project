@@ -4,7 +4,7 @@ Created: 2/19/19
 """
 
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.dataset_processor import DatasetProcessor
@@ -112,6 +112,7 @@ class StatFeatureConstructor(FeatureConstructor):
     @property
     def mult_attr(self):
         return self.__mult_attr
+
 
 if __name__ == "__main__":
     print("Running feature_constructor module...")

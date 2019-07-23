@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 
 from BioHCI.data.subject import Subject
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers.study_config import StudyConfig
 from typing import List, Dict
 import BioHCI.helpers.type_aliases as types
@@ -161,8 +161,8 @@ if __name__ == "__main__":
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
 
-    # the object with variable definition based on the specified configuration file. It includes data description,
-    # definitions of run parameters (independent of deep definition vs not)
+    # the object with variable definitions based on the specified configuration file. It includes data description,
+    # definitions of run parameters (independent of deep definitions vs not)
     parameters = config.populate_study_parameters("CTS_one_subj_variable.toml")
 
     data = DataConstructor(parameters)

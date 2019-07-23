@@ -9,7 +9,7 @@ from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 import BioHCI.helpers.type_aliases as types
 from typing import Optional
 
@@ -39,6 +39,7 @@ class KeypointFeatureConstructor(FeatureConstructor):
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         feature_dataset = self.descriptor_computer.dataset_descriptors
         return feature_dataset
+
 
 if __name__ == "__main__":
     print("Running msbsd_feature_constructor module...")

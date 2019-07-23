@@ -22,7 +22,6 @@ from typing import List, Tuple, Optional
 from os.path import join
 import logging
 from datetime import datetime
-from statsmodels.stats.weightstats import ztest
 
 
 class DescriptorEvaluator:
@@ -118,8 +117,8 @@ class DescriptorEvaluator:
                 tuple_list = []
                 for i in range(0, len(subj_data)):
                     for j in range(0, len(subj_data)):
-                # for i in range(4, 7):
-                #     for j in range(4, 7):
+                        # for i in range(4, 7):
+                        #     for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -317,7 +316,7 @@ class DescriptorEvaluator:
         self.result_logger.debug(f"{self.heatmap}\n\n")
 
         avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff, z_score, p_val_z, \
-            f_stat, p_val_f = self.get_category_distance_stats(self.heatmap)
+        f_stat, p_val_f = self.get_category_distance_stats(self.heatmap)
 
         ratio_same_diff = avg_same / avg_diff
 

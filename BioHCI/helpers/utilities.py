@@ -8,6 +8,7 @@ import errno
 from os.path import dirname, abspath, join
 from typing import List, Dict
 
+
 # this function calculates timing difference to measure how long running certain parts takes
 def time_since(since):
     now = time.time()
@@ -16,20 +17,20 @@ def time_since(since):
     s -= m * 60
     return '%dm %ds' % (m, s)
 
+
 def time_now():
     return datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
 
 def create_dir(root_dir_path, subdir_name_list=None):
-    '''
-
+    """
     Args:
         root_dir_path:
         subdir_name_list:
 
     Returns:
 
-    '''
+    """
     # parent directory
     root_dir = os.path.join(get_root_path("main"), root_dir_path)
     if not os.path.exists(root_dir):
@@ -52,6 +53,7 @@ def create_dir(root_dir_path, subdir_name_list=None):
 
     return root_dir
 
+
 def get_module_path() -> str:
     """
 
@@ -59,6 +61,7 @@ def get_module_path() -> str:
 
     """
     return dirname(abspath(__file__))
+
 
 def get_root_path(val: str) -> str:
     """
@@ -94,6 +97,7 @@ def get_root_path(val: str) -> str:
         print("Root path for " + val + " is set to None...")
     return path
 
+
 def get_files_in_dir(root_dir_path):
     if root_dir_path is not None:
 
@@ -106,12 +110,13 @@ def get_files_in_dir(root_dir_path):
     else:
         return None
 
+
 def __map_categories(all_categories: List[str]) -> Dict[str, int]:
     """
         Maps categories from a string element to an integer.
 
     Args:
-        categories (list): List of unique string category names
+        all_categories (list): List of unique string category names
 
     Returns:
         cat (dict): a dictionary mapping a sting to an integer
@@ -127,12 +132,14 @@ def __map_categories(all_categories: List[str]) -> Dict[str, int]:
 
     return cat
 
+
 def convert_categories(all_categories: List[str], categories_subset: List[str]) -> np.ndarray:
     """
     Converts a list of categories from strings to integers based on the internal attribute _cat_mapping.
 
     Args:
-        categories (list): List of string category names of a dataset
+        all_categories: List of string category names of a dataset
+        categories_subset:
 
     Returns:
         converted_categories (list): List of the corresponding integer id of the string categories
@@ -147,6 +154,7 @@ def convert_categories(all_categories: List[str], categories_subset: List[str]) 
 
     converted_categories = np.array(converted_categories)
     return converted_categories
+
 
 if __name__ == "__main__":
     res = get_root_path("dataset_desc")

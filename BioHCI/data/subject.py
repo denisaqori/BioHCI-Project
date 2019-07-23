@@ -3,7 +3,7 @@ import numpy as np
 import re
 import sys
 from typing import List, Tuple
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 
 labeled_dataset = Tuple[List[np.ndarray], List[str]]
 

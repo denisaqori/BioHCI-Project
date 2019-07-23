@@ -1,17 +1,16 @@
 from abc import ABC
 import BioHCI.helpers.type_aliases as types
-from BioHCI.definition.study_parameters import StudyParameters
+from BioHCI.definitions.study_parameters import StudyParameters
 from typing import Optional
 
 
 class FeatureConstructor(ABC):
-    def __init__(self, parameters:StudyParameters):
+    def __init__(self, parameters: StudyParameters):
         assert (parameters.construct_features is True)
         assert (parameters.feature_window is not None), "In order for features to be created, the feature window " \
                                                         "attribute should be set to an integer greater than 0, " \
                                                         "and be of NoneType."
         self.parameters = parameters
-        self.feature_window = parameters.feature_window
         self.__feature_dataset = None
 
     # def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
@@ -30,7 +29,6 @@ class FeatureConstructor(ABC):
                                     FeatureConstructor.
         """
         assert subject_dataset is not None, "subject_dataset needs to be set."
-
 
         feature_dataset = self._produce_specific_features(subject_dataset)
         assert feature_dataset is not None, "Class FeatureConstructor is Abstract and should not be initiated - " \

@@ -65,6 +65,7 @@ class IntervalDescription:
         return octave
 
     def _smooth_interval(self, interval, sigma):
+
         """
         Each column of the input interval is smoothed at a particular scale.
 
@@ -161,7 +162,6 @@ class IntervalDescription:
                     # print("Found keypoint in signal ", i, "at location ", j, "!")
                     keypoint_idx.append((i, j))
         return keypoint_idx
-
 
     def describe_keypoints(self, octave, keypoint_list=None):
         """
@@ -268,8 +268,8 @@ class IntervalDescription:
         Constructs a neighbourhood around a point to be described, with nb*a/2 points before and after that point.
 
         Args:
-            signal_1d (ndarray): one column of an interval
-            point_idx (int): the index of the point in the interval to be described (whose neighbourhood to get)
+            signal_1d(ndarray): one column of an interval
+            point_idx(int): the index of the point in the interval to be described (whose neighbourhood to get)
             nb: number of blocks to describe the point
             a: number of points in each block
 
@@ -338,8 +338,8 @@ class IntervalDescription:
 
         # 2 2-D arrays are returned: first standing for gradients in rows, and second for gradients in columns
         gradient_rows, gradient_cols = np.gradient(keypoint_neighborhood_2D)
-        filtered_gradient_rows = scipy.ndimage.gaussian_filter(input=gradient_rows, sigma=nb * a / 2)
-        filtered_gradient_cols = scipy.ndimage.gaussian_filter(input=gradient_cols, sigma=nb * a / 2)
+        # filtered_gradient_rows = scipy.ndimage.gaussian_filter(input=gradient_rows, sigma=nb * a / 2)
+        # filtered_gradient_cols = scipy.ndimage.gaussian_filter(input=gradient_cols, sigma=nb * a / 2)
 
         # decided to not filter gradients - better class separability
         filtered_gradient_rows = gradient_rows
@@ -354,12 +354,11 @@ class IntervalDescription:
             gradients_rows_1D = self._get_block_gradients(blocks)
             all_gradients.append(gradients_rows_1D)
 
-        # changed from 0 to 1
-        # for i in range(0, filtered_gradient_cols.shape[1]):
-        #     filtered_gradient_cols_1D = filtered_gradient_cols[:, i]
-        #     blocks = self._create_blocks(filtered_gradient_cols_1D, point_idx, a)
-        #     gradients_cols_1D = self._get_block_gradients(blocks)
-        #     all_gradients.append(gradients_cols_1D)
+        for i in range(0, filtered_gradient_cols.shape[1]):
+            filtered_gradient_cols_1D = filtered_gradient_cols[:, i]
+            blocks = self._create_blocks(filtered_gradient_cols_1D, point_idx, a)
+            gradients_cols_1D = self._get_block_gradients(blocks)
+            all_gradients.append(gradients_cols_1D)
 
         all_gradient_sums = np.concatenate(all_gradients)
 
@@ -437,5 +436,3 @@ class IntervalDescription:
 
         gradient_sums = np.array(all_gradients).flatten()
         return gradient_sums
-
-
