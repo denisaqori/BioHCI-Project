@@ -33,11 +33,19 @@ class DescriptorEvaluator:
         # it was written to by several processes. For each process, its self.__heatmap is set to the same memory
         # location as heatmap_global.
 
+        print(f"\nPerforming descriptor dataset evaluation...\n")
+
         self.__heatmap = heatmap_global
         self.descriptor_computer = descriptor_computer
 
-        dataset_eval_path = utils.get_root_path("dataset_eval")
-        self.dataset_eval_dir = utils.create_dir(dataset_eval_path)
+        # if there is no root directory for dataset descriptors, create it
+        self.__dataset_eval_dir = utils.create_dir(utils.get_root_path("saved_objects") + "/descriptor_evaluation")
+        # create the full path of the dataset evaluation object
+        self.__eval_obj_path = join(self.dataset_eval_dir, self.dataset_eval_name)
+
+        # create a directory under Results to save the resulting heatmap figure and result logs.
+        results_eval = parameters.study_name + "/descriptor_evaluation"
+        self.__results_eval_dir = utils.create_dir(join(utils.get_root_path("Results"), results_eval))
 
         # remove any files remaining from previous tests
         self.cleanup()
@@ -89,6 +97,18 @@ class DescriptorEvaluator:
         return self.descriptor_computer.dataset_desc_name + "_heatmap"
 
     @property
+    def dataset_eval_dir(self) -> str:
+        return self.__dataset_eval_dir
+
+    @property
+    def eval_obj_path(self) -> str:
+        return self.__eval_obj_path
+
+    @property
+    def results_eval_dir(self) -> str:
+        return self.__results_eval_dir
+
+    @property
     def dataset_descriptors(self) -> types.subj_dataset:
         return self.descriptor_computer.dataset_descriptors
 
@@ -107,25 +127,25 @@ class DescriptorEvaluator:
         Returns: None
 
         """
+        print("\nComputing evaluation matrix...")
 
         if not os.path.exists(self.get_heatmap_obj_path()):
+            start_time = time.time()
             for subj_name, subj in self.dataset_descriptors.items():
                 subj_data = subj.data
                 subj_cat = subj.categories
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
                 tuple_list = []
-                for i in range(0, len(subj_data)):
-                    for j in range(0, len(subj_data)):
-                        # for i in range(4, 7):
-                        #     for j in range(4, 7):
+                # for i in range(0, len(subj_data)):
+                #     for j in range(0, len(subj_data)):
+                for i in range(4, 7):
+                    for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
                         keypress2 = subj_data[j]
                         cat2 = subj_int_cat[j]
-
-                        # print(f"i: {i}, j: {j}      cat 1: {cat1}, cat 2: {cat2}")
 
                         tuple_list.append((keypress1, cat1, keypress2, cat2))
 
@@ -133,16 +153,16 @@ class DescriptorEvaluator:
                 print(f"Id of heatmap as seen by compute_heatmap() method: {hex(id(self.heatmap))}")
                 print(f"Total number of tensors to compare is {len(tuple_list)}")
 
-                start_time = time.time()
                 with multiprocessing.Pool(processes=self.num_processes) as pool:
                     pool.map(self.compute_distance_parallelized, tuple_list)
                 pool.close()
                 pool.join()
-                duration_with_pool = utils.time_since(start_time)
+            duration_with_pool = utils.time_since(start_time)
 
-                print("Computed dataset descriptors for subject {}, using {} processes, for a duration of {}".format(
-                    subj_name, self.num_processes, duration_with_pool))
-                self.save_obj(self.heatmap, ".pkl")
+            print(f"\nComputed dataset evaluation heatmap for {len(subject_dataset)} subject(s), "
+                  f"using {self.num_processes} processes, for a duration of {duration_with_pool}\n")
+
+            self.save(self.heatmap, ".pkl")
         else:
             print("Opening existing heatmap...")
             with (open(self.get_heatmap_obj_path(), "rb")) as openfile:
@@ -152,9 +172,9 @@ class DescriptorEvaluator:
             plt.figure(figsize=(14, 10))
             sns.set(font_scale=1.4)
             heatmap_fig = sns.heatmap(self.heatmap, xticklabels=5, yticklabels=5)
-            self.save_obj(heatmap_fig, ".png")
+            self.save(heatmap_fig, ".png")
 
-        print(f"End of descriptor evaluator {self.dataset_eval_name}!")
+        print(f"\nEnd of descriptor evaluator {self.dataset_eval_name}!\n")
 
     def compute_distance_parallelized(self, args):
         """
@@ -225,9 +245,9 @@ class DescriptorEvaluator:
         minimal_cost = lev_matrix[keypress1.shape[0] - 1, keypress2.shape[0] - 1]
         return minimal_cost
 
-    def save_obj(self, obj, ext: str, extra_name: str = "") -> None:
+    def save(self, obj, ext: str, extra_name: str = "") -> None:
         """
-        Saves an object to a file (pickles or saves a figure to png).
+        Saves an object to a file (pickles or saves a figure to png, or a text file).
 
         Args:
             obj: object to save
@@ -238,15 +258,25 @@ class DescriptorEvaluator:
         Returns: None
 
         """
-        path = join(self.dataset_eval_dir, self.dataset_eval_name + extra_name + ext)
 
         if ext == ".pkl":
+            path = join(self.dataset_eval_dir, self.dataset_eval_name + extra_name + ext)
             with open(path, 'wb') as f:
                 pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+            print(f"Saved file: {path}")
+
         elif ext == ".png":
+            path = join(self.results_eval_dir, self.dataset_eval_name + extra_name + ext)
             obj.figure.savefig(path)
+            print(f"Saved file: {path}")
+
             plt.show()
             plt.close("all")
+
+        # elif ext == ".txt":
+        #     path = join(self.results_eval_dir, self.dataset_eval_name + extra_name + ext)
+            # obj.figure.savefig(path)
+
         else:
             print("Invalid extension. Object not saved!")
 
@@ -296,7 +326,6 @@ class DescriptorEvaluator:
         # same calculation as z_score in this case
         z_score, p_val_z = stats.ttest_ind(same_list, diff_list)
         f_stat, p_val_f = stats.f_oneway(same_list, diff_list)
-        # z_score, p_val = ztest(same_list, diff_list)
 
         return avg_same, avg_diff, std_same, std_diff, cv_same, cv_diff, z_score, p_val_z, f_stat, p_val_f
 
@@ -363,7 +392,8 @@ class DescriptorEvaluator:
         plt.figure(figsize=(14, 10))
         sns.set(font_scale=1.4)
         heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
-        self.save_obj(heatmap_fig, ".png")
+
+        self.save(heatmap_fig, ".png")
 
     def generate_heatmap_fig_from_obj_name(self, heatmap_name: str) -> None:
         """
@@ -373,7 +403,6 @@ class DescriptorEvaluator:
             heatmap_name: the name of the pickled heatmap object to convert into a figure
 
         """
-
         assert heatmap_name.endswith(".pkl")
         path = join(self.dataset_eval_dir, heatmap_name)
         if os.path.exists(path):
@@ -383,18 +412,28 @@ class DescriptorEvaluator:
 
     def cleanup(self) -> None:
         """
-        Removes any files that contain the string "_test" in the dataset evaluation directory.
+        Removes any files that contain the string "_test" in the dataset evaluation directory under saved_objects,
+        as well as any saved heatmaps or statistic text files with that name under Results directory.
 
         Returns: None
 
         """
+        print(f"Deleting any existing files related to dataset descriptor evaluation containing the string '_test'.")
         for filename in os.listdir(self.dataset_eval_dir):
             if "_test" in filename:
                 full_path_to_remove = join(self.dataset_eval_dir, filename)
 
-                print("Deleting file {}".format(full_path_to_remove))
                 os.remove(full_path_to_remove)
+                print(f"Deleted file {full_path_to_remove}")
 
+        for filename in os.listdir(self.results_eval_dir):
+            if "_test" in filename:
+                full_path_to_remove = join(self.results_eval_dir, filename)
+
+                os.remove(full_path_to_remove)
+                print(f"Deleted file {full_path_to_remove}")
+
+        print("Cleanup complete!\n")
 
 if __name__ == "__main__":
     np.set_printoptions(threshold=10000, linewidth=100000, precision=1)
@@ -445,7 +484,7 @@ if __name__ == "__main__":
 
     # create descriptor computer
     desc_computer = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=True,
-                                       extra_name="_split_norm_stats_no_cols")
+                                       extra_name="_test_test")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
