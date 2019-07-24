@@ -26,6 +26,7 @@ class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
                  normalize: bool, extra_name: str = "") -> None:
 
+        print("\nProducing dataset descriptors...\n")
         self.desc_type = desc_type
         self.__dataset_descriptors = None
 
@@ -48,7 +49,7 @@ class DescriptorComputer:
             print("Loading dataset descriptors from: ", self.desc_obj_path)
             self.__dataset_descriptors = self.load_descriptors(self.desc_obj_path)
         else:
-            print("Producing dataset descriptors...")
+            print("Computing dataset descriptors...")
             self.__dataset_descriptors = self.produce_dataset_descriptors(subject_dataset)
         print("")
 
@@ -172,7 +173,7 @@ class DescriptorComputer:
         Args:
             descriptors (dict): a dictionary mapping a subject name to his/her dataset of descriptors
         """
-        print(f"\nSaving dataset descriptors in {self.saved_desc_dir}")
+        print(f"\nSaving dataset descriptors to {self.desc_obj_path}")
         if not os.path.exists(self.desc_obj_path):
             with open(self.desc_obj_path, 'wb') as f:
                 pickle.dump(descriptors, f, pickle.HIGHEST_PROTOCOL)
@@ -239,12 +240,13 @@ class DescriptorComputer:
         Returns: None
 
         """
+        print(f"Deleting any existing files related to dataset descriptor evaluation containing the string '_test'.")
         for filename in os.listdir(self.saved_desc_dir):
             if "_test" in filename:
                 full_path_to_remove = join(self.saved_desc_dir, filename)
 
-                print("Deleting file {}".format(full_path_to_remove))
                 os.remove(full_path_to_remove)
+                print(f"Deleted file {full_path_to_remove}")
 
 
 if __name__ == "__main__":

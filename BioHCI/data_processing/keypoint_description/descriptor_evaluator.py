@@ -74,7 +74,7 @@ class DescriptorEvaluator:
         c_handler = logging.StreamHandler()
         c_handler.setLevel(logging.INFO)
 
-        results_log_path = join(self.dataset_eval_dir, self.dataset_eval_name + "_statistics.txt")
+        results_log_path = join(self.results_eval_dir, self.dataset_eval_name + "_statistics.txt")
         f_handler = logging.FileHandler(filename=results_log_path)
         f_handler.setLevel(logging.DEBUG)
 
@@ -82,6 +82,7 @@ class DescriptorEvaluator:
         logger.addHandler(c_handler)
         logger.addHandler(f_handler)
 
+        print(f"Logging into file: {results_log_path}")
         return logger
 
     @property
@@ -247,7 +248,7 @@ class DescriptorEvaluator:
 
     def save(self, obj, ext: str, extra_name: str = "") -> None:
         """
-        Saves an object to a file (pickles or saves a figure to png, or a text file).
+        Saves an object to a file (pickles or saves a figure to png).
 
         Args:
             obj: object to save
@@ -272,10 +273,6 @@ class DescriptorEvaluator:
 
             plt.show()
             plt.close("all")
-
-        # elif ext == ".txt":
-        #     path = join(self.results_eval_dir, self.dataset_eval_name + extra_name + ext)
-            # obj.figure.savefig(path)
 
         else:
             print("Invalid extension. Object not saved!")
@@ -483,8 +480,8 @@ if __name__ == "__main__":
     heatmap_global = shared_array.reshape(heatmap_shape)
 
     # create descriptor computer
-    desc_computer = DescriptorComputer(DescType.MSBSD, subject_dataset, parameters, normalize=True,
-                                       extra_name="_test_test")
+    desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
+                                       extra_name="_test")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
