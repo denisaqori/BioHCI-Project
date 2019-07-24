@@ -26,7 +26,7 @@ class DatasetProcessor:
     def chunk_data(self, subj_dict, samples_per_interval, split_axis, interval_overlap):
         """
         Creates chunks of samples_per_chunk instances, so that the samples input to a classifier or deep neural
-        network architecture preserve some timing/continuity information. If at the end of a category there are
+        architectures architecture preserve some timing/continuity information. If at the end of a category there are
         instances that don't add up to a full chunk (made up of samples_per_chunk samples), it pads the chunk with
         zeros at the end.
 

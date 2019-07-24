@@ -16,7 +16,7 @@ class Logging:
         # the file ton which log Results are to be written
         self._log_file = self.open_file()
 
-    # write run parameters, definitions definitions and Results to file; files are named by network type and dataset
+    # write run parameters, definitions definitions and Results to file; files are named by architectures type and dataset
     # name;
     # if the file exists, append the result (don't overwrite), otherwise write to file
     def open_file(self):
@@ -32,7 +32,7 @@ class Logging:
 
         return log_file
 
-    # write run information to file - model, data details as well as training and evaluation Results
+    # write run information to file - learning, data details as well as training and evaluation Results
     def log_to_file(self):
 
         self._log_file.write(str(datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p") + "\n"))

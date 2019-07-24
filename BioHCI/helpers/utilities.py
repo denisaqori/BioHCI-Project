@@ -84,8 +84,8 @@ def get_root_path(val: str) -> str:
         path = join(dirname(dirname(get_module_path())), "Results")
     elif val.lower() == "src" or val.lower() == "biohci" or val.lower() == "source":
         path = dirname(get_module_path())
-    elif val.lower() == "saved_models" or val.lower() == "saved models" or val.lower() == "models":
-        path = join(dirname(dirname(get_module_path())), "saved_models")
+    elif val.lower() == "saved_objects" or val.lower() == "saved objects" or val.lower() == "objects":
+        path = join(dirname(get_module_path()), "saved_objects")
     elif val.lower() == "codebooks":
         path = join(dirname(get_module_path()), "data_processing/codebooks")
     elif val.lower() == "dataset_desc":

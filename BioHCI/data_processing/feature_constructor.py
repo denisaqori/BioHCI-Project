@@ -14,7 +14,7 @@ class FeatureConstructor(ABC):
         self.__feature_dataset = None
 
     # def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
-    def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> None:
+    def produce_feature_dataset(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
         """
         Constructs features on subject data based on the initialized FeatureConstructor object.
 
@@ -35,18 +35,18 @@ class FeatureConstructor(ABC):
                                             "initiate one of its children instead. The produced feature_dataset is " \
                                             "currently set to None."
 
-        self.__feature_dataset = feature_dataset
+        return feature_dataset
 
     def _produce_specific_features(self, processed_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         return None
 
-    @property
-    def feature_dataset(self):
-        return self.__feature_dataset
+    # @property
+    # def feature_dataset(self):
+    #     return self.__feature_dataset
 
     @property
     def num_features(self) -> Optional[int]:
-        any_subj_name, any_subj = next(iter(self.feature_dataset.items()))
+        any_subj_name, any_subj = next(iter(self.__feature_dataset.items()))
         num = any_subj.data[0].shape[-1]
         return num
 

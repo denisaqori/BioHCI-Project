@@ -8,15 +8,12 @@ from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
-from BioHCI.definitions.non_neural_net_def import NonNeuralNetworkDefinition
-from BioHCI.model.nn_cross_validator import NNCrossValidator
+from BioHCI.learning.nn_cross_validator import NNCrossValidator
 from BioHCI.helpers.result_logger import Logging
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
-from BioHCI.network.cnn_lstm import CNN_LSTM
-
-from BioHCI.network.svc_wrapper import SVM
+from BioHCI.architectures.cnn_lstm import CNN_LSTM
 
 
 def main():
@@ -73,32 +70,27 @@ def main():
     input_size = feature_constructor.mult_attr * num_attr
 
     datast_categories = data.get_all_dataset_categories()
-    if parameters.neural_net is True:
-        learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
-                                               use_cuda=args.cuda)
-        model = CNN_LSTM(nn_learning_def=learning_def)
-        print("\nNetwork Architecture: \n", model)
 
-        if args.cuda:
-            model.cuda()
-    else:
-        learning_def = NonNeuralNetworkDefinition(model_name="SVM")
-        model = SVM(learning_def)  # now with default parameters
+    assert parameters.neural_net is True
+    learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
+                                           use_cuda=args.cuda)
+    model = CNN_LSTM(nn_learning_def=learning_def)
+    print("\nNetwork Architecture: \n", model)
+
+    if args.cuda:
+        model.cuda()
 
     # cross-validation
-    if parameters.neural_net is True:
-        cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, model, parameters,
-                              learning_def, datast_categories)
-    else:
-        cv = None
-    # else:
-    # 	cv = ScipyCrossValidator(subject_dict, data_splitter, feature_constructor, model,
-    # 							 parameters, learning_def, datast_categories)
+    assert parameters.neural_net is True
+    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, model, parameters, learning_def,
+                          datast_categories)
+
+    cv.perform_cross_validation()
 
     # results of run
-    log_dir_path = "Results/" + parameters.study_name + "/run summaries"
-    logging = Logging(log_dir_path, parameters, data, learning_def, cv)
-    logging.log_to_file()
+    # log_dir_path = "Results/" + parameters.study_name + "/run summaries"
+    # logging = Logging(log_dir_path, parameters, data, learning_def, cv)
+    # logging.log_to_file()
 
     print("\nEnd of main program.")
 

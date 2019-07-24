@@ -9,7 +9,7 @@ class NeuralNetworkDefinition(LearningDefinition):
         # self.__samples_per_seq = 25  # the number of measurements to be included in one sequence
         self.__learning_rate = 0.1  # If you set this too high, it might explode. If too low, it might not learn
         self.__batch_size = 1  # The number of instances in one batch
-        self.__dropout_rate = 0.05  # dropout rate: if 0, no dropout - to be passed to the network model
+        self.__dropout_rate = 0.05  # dropout rate: if 0, no dropout - to be passed to the architectures learning
         self.__num_layers = 2  # number of layers of LSTM
         self.__batch_first = True
 
@@ -19,7 +19,7 @@ class NeuralNetworkDefinition(LearningDefinition):
         self.__input_size = input_size
         self.__output_size = output_size
 
-        # initialize the network, pick the optimizer and the loss function
+        # initialize the architectures, pick the optimizer and the loss function
         # in each case batch_size is set to true, so that input and output are expected to have the batch number as
         # the first dimension (dim=0) instead of it being the second one (dim=1) which is the default
 

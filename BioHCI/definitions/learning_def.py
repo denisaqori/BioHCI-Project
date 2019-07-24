@@ -12,7 +12,7 @@ class LearningDefinition(ABC):
     # 	pass
 
     # @property
-    # def model(self):
+    # def learning(self):
     # 	return self.__model
 
     @property

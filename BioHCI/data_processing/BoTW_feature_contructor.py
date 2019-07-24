@@ -57,7 +57,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
             shape is (nubmer of chunks, instances per chunk, number of clusters(=number of final attributes)).
 
         """
-        # load the model
+        # load the learning
         assert self.codebook_name is not None
         codebook_path = self._get_codebook_path(self.codebook_name)
 
@@ -123,7 +123,7 @@ class BoTWFeatureConstructor(FeatureConstructor):
         codebook_path = self._get_codebook_path(codebook_name)
         if not os.path.exists(codebook_path):
             kmeans = KMeans(n_clusters=kmeans_nclusters).fit(dataset_desc)
-            # save the model to disk
+            # save the learning to disk
             pickle.dump(kmeans, open(codebook_path, 'wb'))
         else:
             print("Codebook: ", codebook_name, "already exists in ", self.all_codebooks_dir)

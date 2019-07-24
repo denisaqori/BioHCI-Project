@@ -7,7 +7,7 @@ import seaborn as sns
 from BioHCI.helpers import utilities as utils
 
 
-# TODO: a save_name in cross validator to save a set of results consistently (relatively) - model name,
+# TODO: a save_name in cross validator to save a set of results consistently (relatively) - learning name,
 #  log file name, train loss/accuracy plots, confusion matrix, validation accuracy plots
 class ResultsVisualizer:
     def __init__(self, parameters, cross_validation):
