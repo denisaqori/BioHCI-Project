@@ -2,13 +2,16 @@ from BioHCI.data.data_splitter import DataSplitter
 from copy import copy
 import math
 import numpy as np
+import BioHCI.helpers.utilities as utils
 
+#TODO: rewrite to split even data that is not the same length
 
 # This class includes data from each subject in the testing, training, and validation sets.
 class WithinSubjectSplitter(DataSplitter):
     def __init__(self, subject_dictionary, train_val_percent=0.8, test_percent=0.2):
         super(WithinSubjectSplitter, self).__init__(subject_dictionary, train_val_percent, test_percent)
 
+    #TODO: change similarly to split into folds
     def split_dataset(self, subject_dict, split_percent):
         """ Splits the dictionary passed as an argument into two sets, one to be used for training and validation,
             the other for testing.
@@ -75,6 +78,52 @@ class WithinSubjectSplitter(DataSplitter):
             test_dict[subj_name + '_test'] = subj_test
 
         return train_val_dict, test_dict
+
+    def new_split_into_folds(self, feature_dictionary, num_folds, val_index):
+        assert isinstance(num_folds, int), "num_folds needs to be an integer"
+        assert isinstance(val_index, int), "val_index needs to be an integer"
+        assert val_index < num_folds, "Not enough folds to index with val_index"
+
+        train_dict = {}
+        val_dict = {}
+        for subj_name, subject in feature_dictionary.items():
+            train_list = []
+            val_list = []
+
+            category_to_idx_ls = utils.find_indices_of_duplicates(subject.categories)
+
+
+
+            for category in category_to_idx_ls.items():
+                assert (num_folds <= ), "Number of folds to split the data into should be smaller " \
+                                               "than or equal to the first dimension of the " \
+                                               "subject's categories (number of instances)"
+
+                # split the current category of the current subject across axis 0 into num_folds equal parts. The
+                # parts need not be exactly equal, a some have an extra instance than the rest
+                # look up numpy's array_split() for more information
+                folds_list = np.array_split(category, num_folds, axis=0)
+                val_list.append(folds_list.pop(val_index))
+
+                # concatenate the remaining folds and append them to the train list
+                train_array = folds_list.pop(0)
+                for idx, fold in enumerate(folds_list):
+                    train_array = np.concatenate((train_array, fold), axis=0)
+                train_list.append(train_array)
+
+            # populate the train and validation dictionaries with the data for each category
+            val_subj = copy(subject)
+            val_subj.data = val_list
+            val_subj.all_data_bool = False
+            val_dict[subj_name.replace("_train", "")] = val_subj
+
+            train_subj = copy(subject)
+            train_subj.data = train_list
+            train_subj.all_data_bool = False
+            train_dict[subj_name.replace("_val", "")] = train_subj
+
+        return train_dict, val_dict
+
 
     def split_into_folds(self, subject_dictionary, num_folds, val_index):
         """

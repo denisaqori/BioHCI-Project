@@ -138,10 +138,10 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
                 tuple_list = []
-                # for i in range(0, len(subj_data)):
-                #     for j in range(0, len(subj_data)):
-                for i in range(4, 7):
-                    for j in range(4, 7):
+                for i in range(0, len(subj_data)):
+                    for j in range(0, len(subj_data)):
+                        # for i in range(4, 7):
+                        #     for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -431,6 +431,7 @@ class DescriptorEvaluator:
                 print(f"Deleted file {full_path_to_remove}")
 
         print("Cleanup complete!\n")
+
 
 if __name__ == "__main__":
     np.set_printoptions(threshold=10000, linewidth=100000, precision=1)

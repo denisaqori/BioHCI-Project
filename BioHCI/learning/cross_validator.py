@@ -136,16 +136,15 @@ class CrossValidator(ABC):
             print("\n\n"
                   "***************************************************************************************************")
             print("Run: ", i)
-            train_dict, val_dict = self.data_splitter.split_into_folds(subject_dictionary=self.subject_dict,
-                                                                       num_folds=self.num_folds, val_index=i)
 
-            #TODO: fix to ensure expected splitting
-            processed_train = self.feature_constructor.produce_feature_dataset(train_dict)
-            processed_val = self.feature_constructor.produce_feature_dataset(val_dict)
+            feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+            train_dataset, val_dataset = self.data_splitter.new_split_into_folds(feature_dictionary=feature_dataset,
+                                                                       num_folds=self.num_folds, val_index=i)
+            # balance each
 
             # starting training with the above-defined parameters
             train_start = time.time()
-            self.train(processed_train, self.writer)
+            self.train(train, self.writer)
             self.train_time = utils.time_since(train_start)
 
             # start validating the learning
