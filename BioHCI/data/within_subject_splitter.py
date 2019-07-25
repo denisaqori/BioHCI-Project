@@ -6,6 +6,8 @@ import BioHCI.helpers.utilities as utils
 
 #TODO: rewrite to split even data that is not the same length
 
+#TODO: rewrite to split even data that is not the same length
+
 # This class includes data from each subject in the testing, training, and validation sets.
 class WithinSubjectSplitter(DataSplitter):
     def __init__(self, subject_dictionary, train_val_percent=0.8, test_percent=0.2):
