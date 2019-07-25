@@ -3,7 +3,7 @@ Created: 5/7/19
 © Denisa Qori McDonald 2019 All Rights Reserved
 """
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data_processing.dataset_processor import DatasetProcessor
+from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
@@ -13,7 +13,7 @@ from BioHCI.definitions.study_parameters import StudyParameters
 import BioHCI.helpers.type_aliases as types
 from typing import Optional
 
-
+#TODO: add functionality to pad each key-press if desired
 class KeypointFeatureConstructor(FeatureConstructor):
     def __init__(self, parameters: StudyParameters,
                  descriptor_computer: DescriptorComputer) -> None:
@@ -33,13 +33,12 @@ class KeypointFeatureConstructor(FeatureConstructor):
         print("")
 
     @property
-    def mult_attr(self):
+    def mult_attr(self) -> int:
         return self.__mult_attr
 
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         feature_dataset = self.descriptor_computer.dataset_descriptors
         return feature_dataset
-
 
 if __name__ == "__main__":
     print("Running msbsd_feature_constructor module...")
@@ -57,11 +56,11 @@ if __name__ == "__main__":
     subject_dict = data.get_subject_dataset()
 
     category_balancer = WithinSubjectOversampler()
-    dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
+    dataset_processor = StatDatasetProcessor(parameters, balancer=category_balancer)
 
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True, extra_name="")
-    feature_constructor = KeypointFeatureConstructor(subject_dict, dataset_processor, parameters, descriptor_computer)
+    feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
-    feature_dataset = feature_constructor.feature_dataset
+    feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
     num_features = feature_constructor.num_features
     print("")

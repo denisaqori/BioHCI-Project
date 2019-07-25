@@ -4,11 +4,14 @@ import math
 import numpy as np
 
 
+#TODO: rewrite to split even data that is not the same length
+
 # This class includes data from each subject in the testing, training, and validation sets.
 class WithinSubjectSplitter(DataSplitter):
     def __init__(self, subject_dictionary, train_val_percent=0.8, test_percent=0.2):
         super(WithinSubjectSplitter, self).__init__(subject_dictionary, train_val_percent, test_percent)
 
+    #TODO: change similarly to split into folds
     def split_dataset(self, subject_dict, split_percent):
         """ Splits the dictionary passed as an argument into two sets, one to be used for training and validation,
             the other for testing.

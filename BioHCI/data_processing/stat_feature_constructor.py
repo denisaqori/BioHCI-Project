@@ -7,7 +7,7 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data_processing.dataset_processor import DatasetProcessor
+from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 import numpy as np
 import BioHCI.helpers.type_aliases as types
@@ -21,7 +21,7 @@ class StatFeatureConstructor(FeatureConstructor):
     """
 
     def __init__(self, parameters: StudyParameters,
-                 dataset_processor: DatasetProcessor) -> None:
+                 dataset_processor: StatDatasetProcessor) -> None:
         print("Statistical Feature Constructor being initiated.")
 
         assert parameters.construct_features is True
@@ -110,7 +110,7 @@ class StatFeatureConstructor(FeatureConstructor):
         return diff
 
     @property
-    def mult_attr(self):
+    def mult_attr(self) -> int:
         return self.__mult_attr
 
 
@@ -129,10 +129,10 @@ if __name__ == "__main__":
     subject_dict = data.get_subject_dataset()
 
     category_balancer = WithinSubjectOversampler()
-    dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
+    dataset_processor = StatDatasetProcessor(parameters, balancer=category_balancer)
 
-    feature_constructor = StatFeatureConstructor(subject_dict, parameters, dataset_processor)
+    feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 
-    feature_dataset = feature_constructor.feature_dataset
+    feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)
     num_features = feature_constructor.num_features
     print("")

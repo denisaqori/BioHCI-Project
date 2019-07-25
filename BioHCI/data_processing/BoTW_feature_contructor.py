@@ -7,7 +7,7 @@ import math
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data_processing.dataset_processor import DatasetProcessor
+from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
 import BioHCI.helpers.utilities as utils
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 
@@ -725,7 +725,7 @@ if __name__ == "__main__":
 
     # define a category balancer (implementing the abstract CategoryBalancer)
     category_balancer = WithinSubjectOversampler()
-    dataset_processor = DatasetProcessor(parameters, balancer=category_balancer)
+    dataset_processor = StatDatasetProcessor(parameters, balancer=category_balancer)
 
     feature_constructor = BoTWFeatureConstructor(dataset_processor, parameters, feature_axis=2)
     dataset_desc_name = "CTS_firm_chunk_" + str(parameters.samples_per_chunk) + "_interval_" + str(

@@ -1,9 +1,11 @@
 import numpy as np
 from copy import copy
+import BioHCI.helpers.type_aliases as types
+from BioHCI.definitions.study_parameters import StudyParameters
 
 
-class DatasetProcessor:
-    def __init__(self, parameters, balancer=None, data_augmenter=None):
+class StatDatasetProcessor:
+    def __init__(self, subject_dict: types.subj_dataset, parameters: StudyParameters):
         """
         Args:
             samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
@@ -13,17 +15,21 @@ class DatasetProcessor:
                 If set to True, additionally new chunks are created based on existing ones, taking the bottom half of
                 the instances of the previous chunk, and the top half of those of the next chunk.
         """
-        self.parameters = parameters
-        self.balancer = balancer
-        self.data_augmenter = data_augmenter
+        self.__parameters = parameters
+        self.__subject_dict = subject_dict
 
         self.data_chunked = False  # used to ensure order of operations (ex: chunking before compacting) for the data
         self.data_compacted = False  # similar to the above (ex. compacting before balancing)
 
-        self.data_augmented = False
-        self.data_balanced = False
+    @property
+    def subject_dict(self) -> types.subj_dataset:
+        return self.__subject_dict
 
-    def chunk_data(self, subj_dict, samples_per_interval, split_axis, interval_overlap):
+    @property
+    def parameters(self) -> StudyParameters:
+        return self.__parameters
+
+    def chunk_data(self, subject_dict, samples_per_interval, split_axis, interval_overlap):
         """
         Creates chunks of samples_per_chunk instances, so that the samples input to a classifier or deep neural
         architectures architecture preserve some timing/continuity information. If at the end of a category there are
@@ -43,7 +49,7 @@ class DatasetProcessor:
 
         chunked_subj_dict = {}  # dictionary to return
         # iterate over the subject dictionary and get the corresponding data and category lists
-        for subj_name, subject in subj_dict.items():
+        for subj_name, subject in subject_dict.items():
             subj_data = subject.data
             subj_cat_names = subject.categories
 
@@ -171,18 +177,6 @@ class DatasetProcessor:
                 has data from the same category split into different ndarrays, those arrays are concatenated into one
                 (across axis=0) in the new Subject object, for each 'subject name' -> Subject object pair of the
                 dictionary
-
-        Examples:
-        >>> p1_tuple = ([np.array([1, 2, 3]), np.array([4, 5, 6]), np.array([7, 8, 9])], ['a', 'b', 'a'])
-        >>> p2_tuple = ([np.array([10, 11, 12]), np.array([13, 14, 15]), np.array([16, 17, 18])], ['b', 'c', 'a'])
-        >>> p3_tuple = ([np.array([19, 20, 21]), np.array([22, 23, 24]), np.array([25, 26, 27])], ['b', 'b', 'b'])
-        >>> subj_dict = {'p1': p1_tuple, 'p2': p2_tuple, 'p3': p3_tuple}
-        >>> DatasetProcessor(subj_dict, 30).compact_subject_categories(subj_dict)['p1']
-        ([array([1, 2, 3, 7, 8, 9]), array([4, 5, 6])], ['a', 'b'])
-        >>> DatasetProcessor(self.subj_dict, self.samples_per_chunk).compact_subject_categories(subj_dict)['p2']
-        ([array([10, 11, 12]), array([13, 14, 15]), array([16, 17, 18])], ['b', 'c', 'a'])
-        >>> compact_subject_categories({'p1': p1_tuple, 'p2': p2_tuple, 'p3': p3_tuple})['p3']
-        ([array([19, 20, 21, 22, 23, 24, 25, 26, 27])], ['b'])
         """
 
         assert self.data_chunked is True, "Data has not been chunked in DataSplitter, so no interval overlap is " \
@@ -242,13 +236,8 @@ class DatasetProcessor:
         Returns:
             ordered_dict (dictionary): a dictionary sorted by key, mapping every unique value of the list, to the list
             of the indices at which that value is found in ls.
-
-        Examples:
-            >>> find_indices_of_duplicates(['a', 'b', 'c', 'd', 'a', 'd'])['a']
-            [0, 4]
-            >>> find_indices_of_duplicates(['a', 'b', 'c', 'd', 'a', 'd'])['c']
-            [2]
         """
+
         # create a set of all list elements to ensure that it has only the unique values of the list
         elem_set = set(ls)
         # dictionary to return
@@ -266,79 +255,14 @@ class DatasetProcessor:
 
         return name_to_indices
 
-    def balance_categories(self, compacted_subj_dict):
-        """
-        Balances the samples in the given training or testing set (dictionary) so that each category has the same
-        number of samples. It uses the internal CategoryBalancer strategy to determine the type of balancing applied
-        to the dataset.
-
-        Args:
-            compacted_subj_dict (dict): A dictionary mapping subject names to the corresponding Subject object.
-                For each Subject object, the data from each category is in one ndarray only, and each category appears
-                exactly once. The data list corresponds to the category list.
-
-        Returns:
-            balanced_dictionary (dict): A dictionary similar to the above, where each category has the same number of
-                samples.
-
-        """
-        assert self.data_compacted is True, "Data has not been compacted in DatasetProcessor, so data from one " \
-                                            "category may not be uniquely able to be indexed. First call " \
-                                            "compact_subject_categorie(chunked_subj_dict), then call this method " \
-                                            "again."
-
-        assert self.data_chunked is True, "Data has not been chunked in DatasetProcessor. First call chunk_data(" \
-                                          "subj_dict, samples_per_chunk, interval_overlap), then call this " \
-                                          "method again."
-
-        if self.balancer is None:
-            print("No category balancer (balancer) argument set in the DatasetProcessor Object. Skipping this step "
-                  "and returning original dictionary (passed as an argument to this funtion) which has been chunked "
-                  "and compacted...")
-            return compacted_subj_dict
-
-        else:
-            # chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
-            # 								  self.parameters.feature_overlap)
-            balanced_dictionary = self.balancer.balance(compacted_subj_dict)
-            print("Returning category-balanced dictionary...")
-            return balanced_dictionary
-
-    def set_category_balancer(self, balancer):
-        """
-        Sets the category balancer to
-
-        Args:
-            balancer: a subclass of abstract CategoryBalancer strategy
-        """
-
-        self.balancer = balancer
-
-    def set_feature_constructor(self, feature_constructor):
-        self.feature_constructor = feature_constructor
-
-    def set_data_augmenter(self, data_augmenter):
-        self.data_augmenter = data_augmenter
-
-    # TODO: this variable checks are not fool-proof, they are easy to break if we call the below functions
-    # individually on two different datasets out of order
     def process_dataset(self, subject_dictionary):
 
         if (self.parameters.chunk_instances is not None):
-            # use the built-in variables to ensure order: 1) chunking 2) compacting 3) balancing
+            # use the built-in variables to ensure order: 1) chunking 2) compacting
             chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
                                                 self.parameters.interval_overlap)
             compacted_data = self.compact_subject_categories(chunked_subj_dict)
-            balanced_dataset = self.balance_categories(compacted_data)
 
-            # reset these internal variables so that the same data_processor object can be used on more than one dataset
-            self.reset_order_booleans()
-
-            return balanced_dataset
+            return compacted_data
         else:
             return subject_dictionary
-
-    def reset_order_booleans(self):
-        self.data_chunked = False
-        self.data_compacted = False
-        self.data_augmented = False

@@ -155,6 +155,35 @@ def convert_categories(all_categories: List[str], categories_subset: List[str]) 
     converted_categories = np.array(converted_categories)
     return converted_categories
 
+def find_indices_of_duplicates(ls):
+    """
+    Calculates the indices of every unique value of the list.
+
+    Args:
+        ls (list): a list of values (strings)
+
+    Returns:
+        ordered_dict (dictionary): a dictionary sorted by key, mapping every unique value of the list, to the list
+        of the indices at which that value is found in ls.
+    """
+
+    # create a set of all list elements to ensure that it has only the unique values of the list
+    elem_set = set(ls)
+    # dictionary to return
+    name_to_indices = {}
+
+    # for each unique list element
+    for set_elem in elem_set:
+        same_elem = []
+    # find the index/indices that belong to it in the original list
+        for i, list_elem in enumerate(ls):
+            if set_elem == list_elem:
+                same_elem.append(i)
+        # assign the list of its indices to the list value
+        name_to_indices[set_elem] = same_elem
+
+    return name_to_indices
+
 
 if __name__ == "__main__":
     res = get_root_path("dataset_desc")

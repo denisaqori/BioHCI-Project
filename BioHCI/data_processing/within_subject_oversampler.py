@@ -1,7 +1,7 @@
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 import numpy as np
 from copy import copy
-
+import BioHCI.helpers.type_aliases as types
 
 class WithinSubjectOversampler(CategoryBalancer):
 
@@ -9,6 +9,18 @@ class WithinSubjectOversampler(CategoryBalancer):
         cat_balanced = self.balance_categories(compacted_subj_dict)
         # cat_subj_balanced = self.balance_subj_representation(cat_balanced)
         return cat_balanced
+
+    def balance_tester(self, subject_feature_dataset: types.subj_dataset):
+        for subj_name, subject in subject_feature_dataset.items():
+            cat_data = subject.data
+            cat_names = subject.categories
+
+            if len(cat_names) == len(set(cat_names)):
+                print ("Subject categories are already balanced.")
+                balanced_dataset = subject_feature_dataset
+            else:
+                print(f"Balancing categories for subject {subj_name}")
+
 
     def balance_categories(self, compacted_subj_dict):
         """
