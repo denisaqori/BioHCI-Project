@@ -132,25 +132,24 @@ class CrossValidator(ABC):
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
+        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+
         for i in range(0, self.num_folds):
             print("\n\n"
                   "***************************************************************************************************")
             print("Run: ", i)
-
-            feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
-
             train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
                 feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
             # balance each dataset individually
 
             # starting training with the above-defined parameters
             train_start = time.time()
-            self.train(train, self.writer)
+            self.train(train_dataset, self.writer)
             self.train_time = utils.time_since(train_start)
 
             # start validating the learning
             val_start = time.time()
-            self.val(processed_val, self.writer)
+            self.val(val_dataset, self.writer)
             self.val_time = utils.time_since(val_start)
 
         self.cv_time = utils.time_since(cv_start)
@@ -213,17 +212,42 @@ class CrossValidator(ABC):
         all_cat = []
 
         for subj_name, subj in subj_dict.items():
-            subj_data = subj.data
-            subj_cat = subj.categories
-
-            for i, cat_data in enumerate(subj_data):
+            for i, cat_data in enumerate(subj.data):
                 for j in range(0, cat_data.shape[0]):
                     chunk = cat_data[j, :, :]  # current chunk
-                    cat = subj_cat[i]  # current category - same within all the chunks of the innermost loop
+                    cat = subj.categories[i]  # current category - same within all the chunks of the innermost loop
 
                     all_data.append(chunk)
                     all_cat.append(cat)
 
         all_data = np.stack(all_data, axis=0)
         all_cat = np.array(all_cat)
+        return all_data, all_cat
+
+    def mix_subj_data(self, subj_dict: types.subj_dataset) -> Tuple[List[np.ndarray], List[str]]:
+        """
+        Creates a dataset of chunks of all subjects with the corresponding categories. At this point the subject data
+        is not separated anymore.
+
+        Args:
+            subj_dict (dict): a dictionary mapping a subject name to a Subject object
+
+        Returns:
+            all_data (ndarray): a 3D numpy array containing the train dataset of shape (number of chunks x number of
+                instances per chunk x number of features)
+            all_cat (ndarray): a 1D numpy arrray containing the category labels of all_data, of shape (number of
+                chunks).
+        """
+
+        # data to stack - subjects end up mixed together in the ultimate dataset
+        all_data = []
+        # list of all categories to return
+        all_cat = []
+
+        for subj_name, subj in subj_dict.items():
+            for i, data in enumerate(subj.data):
+
+                all_data.append(data)
+                all_cat.append(subj.categories[i])
+
         return all_data, all_cat

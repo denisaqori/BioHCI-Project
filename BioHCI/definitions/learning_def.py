@@ -18,3 +18,7 @@ class LearningDefinition(ABC):
     @property
     def input_size(self):
         return self.__input_size
+
+    @property
+    def batch_size(self):
+        return 0
