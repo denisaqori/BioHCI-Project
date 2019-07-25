@@ -20,6 +20,7 @@ class StatDatasetProcessor:
 
         self.data_chunked = False  # used to ensure order of operations (ex: chunking before compacting) for the data
         self.data_compacted = False  # similar to the above (ex. compacting before balancing)
+        self.data_balanced = True
 
     @property
     def subject_dict(self) -> types.subj_dataset:
@@ -255,6 +256,50 @@ class StatDatasetProcessor:
 
         return name_to_indices
 
+    def balance_categories(self, compacted_subj_dict):
+        """
+        Balances the samples in the given training or testing set (dictionary) so that each category has the same
+        number of samples. It uses the internal CategoryBalancer strategy to determine the type of balancing applied
+        to the dataset.
+        Args:
+            compacted_subj_dict (dict): A dictionary mapping subject names to the corresponding Subject object.
+                For each Subject object, the data from each category is in one ndarray only, and each category appears
+                exactly once. The data list corresponds to the category list.
+        Returns:
+            balanced_dictionary (dict): A dictionary similar to the above, where each category has the same number of
+                samples.
+        """
+        assert self.data_compacted is True, "Data has not been compacted in DatasetProcessor, so data from one " \
+                                            "category may not be uniquely able to be indexed. First call " \
+                                            "compact_subject_categorie(chunked_subj_dict), then call this method " \
+                                            "again."
+
+        assert self.data_chunked is True, "Data has not been chunked in DatasetProcessor. First call chunk_data(" \
+                                          "subj_dict, samples_per_chunk, interval_overlap), then call this " \
+                                          "method again."
+
+        if self.balancer is None:
+            print("No category balancer (balancer) argument set in the DatasetProcessor Object. Skipping this step "
+                  "and returning original dictionary (passed as an argument to this funtion) which has been chunked "
+                  "and compacted...")
+            return compacted_subj_dict
+
+        else:
+            # chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
+            # 								  self.parameters.feature_overlap)
+            balanced_dictionary = self.balancer.balance(compacted_subj_dict)
+            print("Returning category-balanced dictionary...")
+            return balanced_dictionary
+
+    def set_category_balancer(self, balancer):
+        """
+        Sets the category balancer to
+        Args:
+            balancer: a subclass of abstract CategoryBalancer strategy
+        """
+
+        self.balancer = balancer
+
     def process_dataset(self, subject_dictionary):
 
         if (self.parameters.chunk_instances is not None):
@@ -262,7 +307,8 @@ class StatDatasetProcessor:
             chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
                                                 self.parameters.interval_overlap)
             compacted_data = self.compact_subject_categories(chunked_subj_dict)
+            balanced_data =self.balance_categories(compacted_data)
 
-            return compacted_data
+            return balanced_data
         else:
             return subject_dictionary

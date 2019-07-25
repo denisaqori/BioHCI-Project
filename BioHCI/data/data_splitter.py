@@ -16,12 +16,10 @@ class DataSplitter(ABC):
         self.__train_val_dictionary = subject_dictionary
         self.__test_dictionary = {}
 
-    @abstractmethod
-    def split_dataset(self, subject_dictionary, split_percent):
+    def split_dataset_raw(self, subject_dictionary, split_percent):
         return {}, {}
 
-    @abstractmethod
-    def split_into_folds(self, subject_dictionary, num_folds, val_index):
+    def split_into_folds_raw(self, subject_dictionary, num_folds, val_index):
         pass
 
     def flatten_dataset(self):
@@ -41,6 +39,9 @@ class DataSplitter(ABC):
     def test_dict(self):
         return self.__test_dictionary
 
-    @abstractmethod
-    def new_split_into_folds(self, feature_dictionary, num_folds, val_index):
+    def split_into_folds_features(self, feature_dictionary, num_folds, val_index):
         pass
+
+    def split_dataset_features(self, feature_dataset, test_percent):
+        pass
+

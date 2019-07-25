@@ -37,7 +37,7 @@ class CrossValidator(ABC):
         self.__train_time = ""
         self.__val_time = 0
 
-        #TODO: logger should probably be initialized here too
+        # TODO: logger should probably be initialized here too
         tbx_name = parameters.study_name + "/tensorboardX_runs"
         self.__tbx_path = utils.create_dir(join(utils.get_root_path("Results"), tbx_name))
 
@@ -138,9 +138,10 @@ class CrossValidator(ABC):
             print("Run: ", i)
 
             feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
-            train_dataset, val_dataset = self.data_splitter.new_split_into_folds(feature_dictionary=feature_dataset,
-                                                                       num_folds=self.num_folds, val_index=i)
-            # balance each
+
+            train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
+                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
+            # balance each dataset individually
 
             # starting training with the above-defined parameters
             train_start = time.time()
