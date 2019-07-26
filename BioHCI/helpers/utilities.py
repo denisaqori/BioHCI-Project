@@ -86,12 +86,6 @@ def get_root_path(val: str) -> str:
         path = dirname(get_module_path())
     elif val.lower() == "saved_objects" or val.lower() == "saved objects" or val.lower() == "objects":
         path = join(dirname(get_module_path()), "saved_objects")
-    elif val.lower() == "codebooks":
-        path = join(dirname(get_module_path()), "data_processing/codebooks")
-    elif val.lower() == "dataset_desc":
-        path = join(dirname(get_module_path()), "data_processing/keypoint_description/dataset_descriptors")
-    elif val.lower() == "dataset_eval":
-        path = join(dirname(get_module_path()), "data_processing/keypoint_description/dataset_evals")
     else:
         path = None
         print("Root path for " + val + " is set to None...")

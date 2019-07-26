@@ -31,13 +31,12 @@ class BoTWFeatureConstructor(FeatureConstructor):
     Bag of Temporal Words:
     """
 
-    def __init__(self, dataset_processor, parameters, feature_axis):
-        super().__init__(dataset_processor, parameters, feature_axis)
+    def __init__(self, parameters):
+        super().__init__(parameters)
         print("Bag of Temporal Words being initiated...")
 
         self.codebook_name = None
-        codebooks_path = '/home/denisa/GitHub/BioHCI Project/BioHCI/data_processing/codebooks'
-        self.all_codebooks_dir = utils.create_dir(codebooks_path)
+        self.all_codebooks_dir = utils.create_dir(utils.get_root_path("saved_objects") + "/codebooks")
 
         self.codebook_plot_path = utils.get_root_path("Results") + "/" + parameters.study_name + "/codebook plots/"
         self.codebook_plots = utils.create_dir(self.codebook_plot_path)

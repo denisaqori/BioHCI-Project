@@ -4,24 +4,25 @@ import BioHCI.helpers.type_aliases as types
 from BioHCI.definitions.study_parameters import StudyParameters
 from typing import List, Dict
 
+
 class StatDatasetProcessor:
     def __init__(self, parameters: StudyParameters):
-        """
-        Args:
-            samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
-            interval_overlap (bool): indicates whether the consecutive created intervals/chunks will have any
-                overlapping instances. If set to False, instances are simply split into groups of samples_per_step.
-                If set to True, additionally new chunks are created based on existing ones, taking the bottom half of
-                the instances of the previous chunk, and the top half of those of the next chunk.
-        """
         self.__parameters = parameters
 
-        self.data_chunked = False  # used to ensure order of operations (ex: chunking before compacting) for the data
-        self.data_compacted = False  # similar to the above
+        self.__data_chunked = False  # used to ensure order of operations (ex: chunking before compacting) for the data
+        self.__data_compacted = False  # similar to the above
 
     @property
     def parameters(self) -> StudyParameters:
         return self.__parameters
+
+    @property
+    def data_chunked(self):
+        return self.__data_chunked
+
+    @property
+    def data_compacted(self):
+        return self.__data_compacted
 
     def chunk_data(self, subject_dict: types.subj_dataset, samples_per_interval: int, split_axis: int,
                    interval_overlap: bool) -> types.subj_dataset:
@@ -32,7 +33,10 @@ class StatDatasetProcessor:
         zeros at the end.
 
         Args:
-            subj_dict (dict): dictionary mapping subject name to its corresponding Subject object
+            subject_dict (dict): dictionary mapping subject name to its corresponding Subject object
+            samples_per_interval:
+            split_axis:
+            interval_overlap:
 
         Returns:
             chunked_subj_dict (dict): the same dataset represented by the input subj_dict, but each category for each
@@ -59,17 +63,18 @@ class StatDatasetProcessor:
             new_subject.data = subj_chunked_data  # append the new data
             chunked_subj_dict[subj_name] = new_subject  # make this subject the value to the key (name) in dictionary
 
-        self.data_chunked = True
+        self.__data_chunked = True
         return chunked_subj_dict
 
     def _chunk_category(self, category: np.ndarray, samples_per_interval: int, split_axis: int, interval_overlap:
-    bool) -> np.ndarray:
+                        bool) -> np.ndarray:
+
         """
         Helper function of chunk_data. Chunks the data for one subject's category.
 
         Args:
             category (2D ndarray): contains data from one category belonging to one subject
-            samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
+            samples_per_interval (int): an integer indicating how many instances/samples should be in one chunk of data
             split_axis (int): axis along which to split so chunks are created
             interval_overlap (bool): indicates whether the consecutive create intervals/chunks will have any
                 overlapping instances. If set to False, instances are simply split into groups of samples_per_step.
@@ -80,6 +85,7 @@ class StatDatasetProcessor:
             chunked_category (np.ndarray): the array 'category' passed split along a new dimension
 
         """
+
         # create list according to which the first dimension of the category numpy array will be split
         assert (0 <= split_axis <= len(category.shape) - 1), "Axis to be split along needs to exist in the " \
                                                              "category argument."
@@ -156,7 +162,6 @@ class StatDatasetProcessor:
 
         return all_chunks
 
-
     def compact_subject_categories(self, chunked_subj_dict: types.subj_dataset) -> types.subj_dataset:
         """
         To be called after the data has been chunked (and padded when necessary). It assumes any
@@ -216,7 +221,7 @@ class StatDatasetProcessor:
             else:
                 compacted_subj_dict[subj_name] = subject
 
-        self.data_compacted = True
+        self.__data_compacted = True
         return compacted_subj_dict
 
     # To run doctests on any function/method of this module, open the terminal and type:
@@ -252,7 +257,7 @@ class StatDatasetProcessor:
 
     def process_dataset(self, subject_dictionary: types.subj_dataset) -> types.subj_dataset:
 
-        if (self.parameters.chunk_instances is not None):
+        if self.parameters.chunk_instances is not None:
             # use the built-in variables to ensure order: 1) chunking 2) compacting
             chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
                                                 self.parameters.interval_overlap)
