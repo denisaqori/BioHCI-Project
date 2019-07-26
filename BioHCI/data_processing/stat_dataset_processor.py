@@ -2,35 +2,29 @@ import numpy as np
 from copy import copy
 import BioHCI.helpers.type_aliases as types
 from BioHCI.definitions.study_parameters import StudyParameters
-
+from typing import List, Dict
 
 class StatDatasetProcessor:
-    def __init__(self, subject_dict: types.subj_dataset, parameters: StudyParameters):
+    def __init__(self, parameters: StudyParameters):
         """
         Args:
             samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
-            balancer:
             interval_overlap (bool): indicates whether the consecutive created intervals/chunks will have any
                 overlapping instances. If set to False, instances are simply split into groups of samples_per_step.
                 If set to True, additionally new chunks are created based on existing ones, taking the bottom half of
                 the instances of the previous chunk, and the top half of those of the next chunk.
         """
         self.__parameters = parameters
-        self.__subject_dict = subject_dict
 
         self.data_chunked = False  # used to ensure order of operations (ex: chunking before compacting) for the data
-        self.data_compacted = False  # similar to the above (ex. compacting before balancing)
-        self.data_balanced = True
-
-    @property
-    def subject_dict(self) -> types.subj_dataset:
-        return self.__subject_dict
+        self.data_compacted = False  # similar to the above
 
     @property
     def parameters(self) -> StudyParameters:
         return self.__parameters
 
-    def chunk_data(self, subject_dict, samples_per_interval, split_axis, interval_overlap):
+    def chunk_data(self, subject_dict: types.subj_dataset, samples_per_interval: int, split_axis: int,
+                   interval_overlap: bool) -> types.subj_dataset:
         """
         Creates chunks of samples_per_chunk instances, so that the samples input to a classifier or deep neural
         architectures architecture preserve some timing/continuity information. If at the end of a category there are
@@ -68,20 +62,22 @@ class StatDatasetProcessor:
         self.data_chunked = True
         return chunked_subj_dict
 
-    # TODO: write test cases
-    def _chunk_category(self, category, samples_per_interval, split_axis, interval_overlap):
+    def _chunk_category(self, category: np.ndarray, samples_per_interval: int, split_axis: int, interval_overlap:
+    bool) -> np.ndarray:
         """
         Helper function of chunk_data. Chunks the data for one subject's category.
 
         Args:
             category (2D ndarray): contains data from one category belonging to one subject
             samples_per_chunk (int): an integer indicating how many instances/samples should be in one chunk of data
+            split_axis (int): axis along which to split so chunks are created
             interval_overlap (bool): indicates whether the consecutive create intervals/chunks will have any
                 overlapping instances. If set to False, instances are simply split into groups of samples_per_step.
                 If set to True, besides that, new chunks are created based on existing ones, taking the bottom half
                 of the previous chunk, and the top half of instances of the next one.
 
         Returns:
+            chunked_category (np.ndarray): the array 'category' passed split along a new dimension
 
         """
         # create list according to which the first dimension of the category numpy array will be split
@@ -125,8 +121,7 @@ class StatDatasetProcessor:
 
         return chunked_category
 
-    # TODO: write test cases
-    def _overlap_intervals(self, category_chunks):
+    def _overlap_intervals(self, category_chunks: List[np.ndarray]) -> List[np.ndarray]:
         """
         Creates overlapping chunks of data form a list of chunks (2D ndarrays).
 
@@ -137,8 +132,7 @@ class StatDatasetProcessor:
         Returns:
             all_chunks (list of ndarrays): a list of all the original chunks as well as the newly created ones
                 based on two adjacent chunks. The total number of elements in the list returned is 2*(number of
-                elements in
-                the argument list) - 1.
+                elements in the argument list) - 1.
 
         """
         # this list will contain original category chunks as well as constructed overlap ones
@@ -162,8 +156,8 @@ class StatDatasetProcessor:
 
         return all_chunks
 
-    # TODO: fix tests to run with compact_subject_categories as a member
-    def compact_subject_categories(self, chunked_subj_dict):
+
+    def compact_subject_categories(self, chunked_subj_dict: types.subj_dataset) -> types.subj_dataset:
         """
         To be called after the data has been chunked (and padded when necessary). It assumes any
         subject can have data from the same category in different ndarrays, and if that's the case, it recreates the
@@ -227,7 +221,7 @@ class StatDatasetProcessor:
 
     # To run doctests on any function/method of this module, open the terminal and type:
     # python -m doctest -v data_splitter.py
-    def find_indices_of_duplicates(self, ls):
+    def find_indices_of_duplicates(self, ls: List[str]) -> Dict[str, List[int]]:
         """
         Calculates the indices of every unique value of the list.
 
@@ -256,59 +250,13 @@ class StatDatasetProcessor:
 
         return name_to_indices
 
-    def balance_categories(self, compacted_subj_dict):
-        """
-        Balances the samples in the given training or testing set (dictionary) so that each category has the same
-        number of samples. It uses the internal CategoryBalancer strategy to determine the type of balancing applied
-        to the dataset.
-        Args:
-            compacted_subj_dict (dict): A dictionary mapping subject names to the corresponding Subject object.
-                For each Subject object, the data from each category is in one ndarray only, and each category appears
-                exactly once. The data list corresponds to the category list.
-        Returns:
-            balanced_dictionary (dict): A dictionary similar to the above, where each category has the same number of
-                samples.
-        """
-        assert self.data_compacted is True, "Data has not been compacted in DatasetProcessor, so data from one " \
-                                            "category may not be uniquely able to be indexed. First call " \
-                                            "compact_subject_categorie(chunked_subj_dict), then call this method " \
-                                            "again."
-
-        assert self.data_chunked is True, "Data has not been chunked in DatasetProcessor. First call chunk_data(" \
-                                          "subj_dict, samples_per_chunk, interval_overlap), then call this " \
-                                          "method again."
-
-        if self.balancer is None:
-            print("No category balancer (balancer) argument set in the DatasetProcessor Object. Skipping this step "
-                  "and returning original dictionary (passed as an argument to this funtion) which has been chunked "
-                  "and compacted...")
-            return compacted_subj_dict
-
-        else:
-            # chunked_dataset = self.chunk_data(compacted_subj_dict, self.parameters.feature_window, 1,
-            # 								  self.parameters.feature_overlap)
-            balanced_dictionary = self.balancer.balance(compacted_subj_dict)
-            print("Returning category-balanced dictionary...")
-            return balanced_dictionary
-
-    def set_category_balancer(self, balancer):
-        """
-        Sets the category balancer to
-        Args:
-            balancer: a subclass of abstract CategoryBalancer strategy
-        """
-
-        self.balancer = balancer
-
-    def process_dataset(self, subject_dictionary):
+    def process_dataset(self, subject_dictionary: types.subj_dataset) -> types.subj_dataset:
 
         if (self.parameters.chunk_instances is not None):
             # use the built-in variables to ensure order: 1) chunking 2) compacting
             chunked_subj_dict = self.chunk_data(subject_dictionary, self.parameters.samples_per_chunk, 0,
                                                 self.parameters.interval_overlap)
             compacted_data = self.compact_subject_categories(chunked_subj_dict)
-            balanced_data =self.balance_categories(compacted_data)
-
-            return balanced_data
+            return compacted_data
         else:
             return subject_dictionary

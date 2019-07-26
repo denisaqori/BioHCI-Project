@@ -79,7 +79,32 @@ class StatFeatureConstructor(FeatureConstructor):
             new_subj.data = new_cat_data  # assign the above-calculated feature categories
             feature_dataset[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
 
-        return feature_dataset
+        flattened_feature_dataset = self._flatten_dataset_per_subj(feature_dataset)
+
+        return flattened_feature_dataset
+
+    def _flatten_dataset_per_subj(self, feature_dataset):
+
+        dataset = {}
+        for subj_name, subj in feature_dataset.items():
+            cat_list = []
+            data_list = []
+            for i, cat_data in enumerate(subj.data):
+                for j in range(0, cat_data.shape[0]):
+                    chunk = cat_data[j, :, :]  # current chunk
+                    cat = subj.categories[i]  # current category - same within all the chunks of the innermost loop
+
+                    data_list.append(chunk)
+                    cat_list.append(cat)
+
+            new_subj = copy(subj)  # copy the current subject
+            new_subj.data = data_list  # assign the flattened data
+            new_subj.categories = cat_list  # assign the corresponding categories
+
+            dataset[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
+
+        return dataset
+
 
     @staticmethod
     def min_features(cat: np.ndarray, feature_axis: int) -> np.ndarray:
