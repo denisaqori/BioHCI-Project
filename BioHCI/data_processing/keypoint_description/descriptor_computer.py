@@ -7,6 +7,7 @@ import torch
 import os
 from BioHCI.data_processing.keypoint_description.interval_descriptor import IntervalDescription
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
+from BioHCI.data_processing.keypoint_description.sequence_length import SequenceLength
 from BioHCI.helpers import utilities as utils
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.helpers.study_config import StudyConfig
@@ -24,7 +25,7 @@ import time
 
 class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
-                 normalize: bool, extra_name: str = "") -> None:
+                 normalize: bool, seq_len: SequenceLength, extra_name: str = "") -> None:
 
         print("\nProducing dataset descriptors...\n")
         self.desc_type = desc_type
@@ -33,6 +34,7 @@ class DescriptorComputer:
         self.parameters = parameters
         self.normalize = normalize
         self.extra_name = extra_name
+        self.seq_len = seq_len
 
         # self.__dataset_desc_root_path = utils.get_root_path("dataset_desc")
         # if there is no root directory for dataset descriptors, create it
@@ -78,7 +80,7 @@ class DescriptorComputer:
 
         Returns:
             descriptor_subj_dataset (dict): a dictionary mapping a subject name to as Subject object,
-                whose data is comprised of its descriptors for each categ Arjola Demiriory.
+                whose data is comprised of its descriptors for each category.
         """
         if self.desc_type == DescType.RawData:
             descriptor_subj_dataset = subject_dataset
@@ -110,6 +112,8 @@ class DescriptorComputer:
 
         if self.normalize:
             descriptor_subj_dataset = self.normalize_l2(descriptor_subj_dataset)
+
+        descriptor_subj_dataset = self.adjust_sequence_length(descriptor_subj_dataset)
 
         self.save_descriptors(descriptor_subj_dataset)
         return descriptor_subj_dataset
@@ -155,7 +159,8 @@ class DescriptorComputer:
         Loads descriptors from a pickled object.
 
         Args:
-            dataset_desc_path (path): path of the file where object to be loaded is stored.
+            desc_obj_path (path): path of the file where object to be loaded is stored.
+
 
         Returns:
             dataset_desc (dict): a dictionary mapping a subject name to as Subject object,
@@ -197,7 +202,6 @@ class DescriptorComputer:
             for i, keypress in enumerate(subj_data):
 
                 if self.desc_type == DescType.JUSD or self.desc_type == DescType.RawData:
-                    keypress_normalized = preprocessing.normalize(keypress, norm='l2')
                     keypress_split = np.split(keypress, 2, axis=1)
                     normalized_splits = []
                     for split in keypress_split:
@@ -210,13 +214,11 @@ class DescriptorComputer:
                     keypress_split = np.split(keypress, [8, 16], axis=1)
                     normalized_splits = []
 
-                    for i, split in enumerate(keypress_split):
+                    for j, split in enumerate(keypress_split):
                         normalized_split = None
-                        if i == 0 or i == 1:
+                        if j == 0 or j == 1:
                             normalized_split = preprocessing.normalize(split, norm='l2')
-                        # elif i == 2 or i == 3:
-                        #     normalized_split = preprocessing.normalize(split, norm='l1')
-                        elif i == 2:
+                        elif j == 2:
                             normalized_split = split
                         normalized_splits.append(normalized_split)
 
@@ -232,6 +234,66 @@ class DescriptorComputer:
             normalized_subj_dataset[subj_name] = new_subj
 
         return normalized_subj_dataset
+
+    def adjust_sequence_length(self, descriptor_dataset: types.subj_dataset) -> types.subj_dataset:
+        """
+        Adjusts the sequence length as necessary for each sample in the dataset of descriptors.
+
+        Args:
+            descriptor_dataset:
+
+        Returns:
+
+        """
+        if self.seq_len == SequenceLength.Existing:
+            print(
+                f"Only the descriptors discovered are going to be included in the dataset, without any oversampling "
+                f"or undersampling. The length of the descriptor sequence that represents each sample may vary.")
+        elif self.seq_len == SequenceLength.ZeroPad:
+            print(
+                f"Padding samples with zeros so that each sequence has the same desriptor length. ")
+
+            max_len = 0
+            for subj_name, subject in descriptor_dataset.items():
+                for i, sample in enumerate(subject.data):
+                    if sample.shape[0] > max_len:
+                        max_len = sample.shape[0]
+
+            for subj_name, subject in descriptor_dataset.items():
+                for i, sample in enumerate(subject.data):
+                    num_rows_to_add = max_len - sample.shape[0]
+                    subject.data[i] = np.pad(subject.data[i], [(0, num_rows_to_add), (0, 0)], mode='constant',
+                                             constant_values=0)
+        elif self.seq_len == SequenceLength.ExtendEdge:
+            print(
+                f"Padding samples with the last descriptor so that each sequence has the same desriptor length. ")
+
+            max_len = 0
+            for subj_name, subject in descriptor_dataset.items():
+                for i, sample in enumerate(subject.data):
+                    if sample.shape[0] > max_len:
+                        max_len = sample.shape[0]
+
+            for subj_name, subject in descriptor_dataset.items():
+                for i, sample in enumerate(subject.data):
+                    num_rows_to_add = max_len - sample.shape[0]
+                    subject.data[i] = np.pad(subject.data[i], [(0, num_rows_to_add), (0, 0)], mode='edge')
+        elif self.seq_len == SequenceLength.Undersample:
+            print(f"Padding samples so that each sequence has the same descriptor length. ")
+
+            min_len = 200
+            for subj_name, subject in descriptor_dataset.items():
+                for i, sample in enumerate(subject.data):
+                    if sample.shape[0] < min_len:
+                        min_len = sample.shape[0]
+
+            for subj_name, subject in descriptor_dataset.items():
+                for i, sample in enumerate(subject.data):
+                    subject.data[i] = subject.data[i][0:min_len]
+        else:
+            print("Sequence length type undefined. Returning original dataset.")
+
+        return descriptor_dataset
 
     def cleanup(self) -> None:
         """
@@ -266,6 +328,6 @@ if __name__ == "__main__":
     subject_dataset = data.get_subject_dataset()
 
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
-                                             extra_name="_test")
+                                             seq_len=SequenceLength.ExtendEdge, extra_name="_test")
     descriptors = descriptor_computer.dataset_descriptors
     print("")

@@ -7,6 +7,7 @@ from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
+from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.learning.nn_cross_validator import NNCrossValidator
 from BioHCI.helpers.result_logger import Logging
@@ -59,6 +60,7 @@ def main():
 
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
     data_splitter = WithinSubjectSplitter(subject_dict)
+    category_balancer = WithinSubjectOversampler()
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
                                              extra_name="_pipeline_test")
 
@@ -82,8 +84,8 @@ def main():
 
     # cross-validation
     assert parameters.neural_net is True
-    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, model, parameters, learning_def,
-                          datast_categories)
+    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, model, parameters,
+                          learning_def, datast_categories)
 
     cv.perform_cross_validation()
 

@@ -9,6 +9,7 @@ from typing import Tuple, List
 from os.path import join
 
 from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.learning_def import LearningDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
@@ -16,11 +17,13 @@ from BioHCI.definitions.study_parameters import StudyParameters
 
 class CrossValidator(ABC):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
-    FeatureConstructor, model, parameters: StudyParameters, learning_def: LearningDefinition,
+    FeatureConstructor, category_balancer: CategoryBalancer, model, parameters: StudyParameters, learning_def:
+    LearningDefinition,
                  all_categories: List[str]):
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
+        self.__category_balancer = category_balancer
         self.__model = model
         self.__learning_def = learning_def
         self.__parameters = parameters
@@ -60,6 +63,10 @@ class CrossValidator(ABC):
     @property
     def feature_constructor(self) -> FeatureConstructor:
         return self.__feature_constructor
+
+    @property
+    def category_balancer(self) -> CategoryBalancer:
+        return self.__category_balancer
 
     @property
     def model(self):
@@ -141,15 +148,17 @@ class CrossValidator(ABC):
             train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
                 feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
             # balance each dataset individually
+            balanced_train = self.category_balancer.balance(train_dataset)
+            balanced_val = self.category_balancer.balance(val_dataset)
 
             # starting training with the above-defined parameters
             train_start = time.time()
-            self.train(train_dataset, self.writer)
+            self.train(balanced_train, self.writer)
             self.train_time = utils.time_since(train_start)
 
             # start validating the learning
             val_start = time.time()
-            self.val(val_dataset, self.writer)
+            self.val(balanced_val, self.writer)
             self.val_time = utils.time_since(val_start)
 
         self.cv_time = utils.time_since(cv_start)

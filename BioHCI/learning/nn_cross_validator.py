@@ -1,4 +1,5 @@
 from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
@@ -20,13 +21,15 @@ import os
 class NNCrossValidator(CrossValidator):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
-    FeatureConstructor, model, parameter: StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[
+    FeatureConstructor, category_balancer: CategoryBalancer, model, parameter: StudyParameters, learning_def: \
+            NeuralNetworkDefinition, all_categories:
+    List[
         str]):
         # this list contains lists of accur   acies for each epoch. There will be self._num_folds lists of _num_epochs
         # elements in this list after all training is done
         self.__all_epoch_train_accuracies = []
 
-        super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
+        super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor, category_balancer,
                                                model, parameter, learning_def, all_categories)
         # the stochastic gradient descent function to update weights a        self.perform_cross_validation()nd biases
         self.__optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_def.learning_rate)
@@ -51,7 +54,6 @@ class NNCrossValidator(CrossValidator):
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
     def _get_data_and_labels(self, subj_dataset):
-
         data, cat = self.mix_subj_chunks(subj_dataset)
 
         # convert numpy ndarray to PyTorch tensor
@@ -108,4 +110,3 @@ class NNCrossValidator(CrossValidator):
 
         fold_accuracy = evaluator.get_accuracy()
         self.all_val_accuracies.append(fold_accuracy)
-

@@ -2,24 +2,36 @@ from BioHCI.data_processing.category_balancer import CategoryBalancer
 import numpy as np
 from copy import copy
 import BioHCI.helpers.type_aliases as types
+import BioHCI.helpers.utilities as utils
+from typing import List
+
 
 class WithinSubjectOversampler(CategoryBalancer):
 
-    def balance(self, compacted_subj_dict):
-        cat_balanced = self.balance_categories(compacted_subj_dict)
+    def balance(self, subj_dict):
+        balanced = self.new_balance_categories(subj_dict)
+
+        # cat_balanced = self.balance_categories(compacted_subj_dict)
         # cat_subj_balanced = self.balance_subj_representation(cat_balanced)
-        return cat_balanced
+        return balanced
 
     def new_balance_categories(self, subject_feature_dataset: types.subj_dataset):
         for subj_name, subject in subject_feature_dataset.items():
-            cat_data = subject.data
-            cat_names = subject.categories
 
-            if len(cat_names) == len(set(cat_names)):
-                print ("Subject categories are already balanced.")
-                balanced_dataset = subject_feature_dataset
-            else:
-                print(f"Balancing categories for subject {subj_name}")
+            category_to_idx_ls = utils.find_indices_of_duplicates(subject.categories)
+
+            # find the category with highest representation
+            max_cat, max_idx_ls = next(iter(category_to_idx_ls.items()))
+            for cat_name, idx_ls in category_to_idx_ls.items():
+                if len(idx_ls) > len(max_idx_ls):
+                    max_cat, max_idx_ls = cat_name, idx_ls
+
+            # determine the number of samples to add per category
+            for cat_name, idx_ls in category_to_idx_ls.items():
+                num_to_add = len(max_cat) - len(cat_name)
+                for i in range(num_to_add):
+                    oversampled_cat = self.__oversample
+
 
 
     def balance_categories(self, compacted_subj_dict):
