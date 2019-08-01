@@ -1,7 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from os.path import join
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 import torch
@@ -19,18 +19,17 @@ from BioHCI.definitions.study_parameters import StudyParameters
 class CrossValidator(ABC):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, model, parameters: StudyParameters, learning_def:
-    LearningDefinition,
-                 all_categories: List[str]):
+    LearningDefinition, all_categories: List[str]):
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
         self.__category_balancer = category_balancer
+        self.__all_categories = all_categories
+        self.__all_int_categories = None
         self.__model = model
         self.__learning_def = learning_def
         self.__parameters = parameters
         self.__num_folds = parameters.num_folds
-
-        self.__all_int_categories = utils.convert_categories(all_categories, all_categories)
 
         self.__all_val_accuracies = []
         self.__all_train_accuracies = []
@@ -70,6 +69,18 @@ class CrossValidator(ABC):
         return self.__category_balancer
 
     @property
+    def all_categories(self) -> List[str]:
+        return self.__all_categories
+
+    @property
+    def all_int_categories(self) -> List[int]:
+        return self.__all_int_categories
+
+    @all_int_categories.setter
+    def all_int_categories(self, categories: Optional[List[int]]):
+        self.__all_int_categories = categories
+
+    @property
     def model(self):
         return self.__model
 
@@ -84,10 +95,6 @@ class CrossValidator(ABC):
     @property
     def num_folds(self) -> int:
         return self.__num_folds
-
-    @property
-    def all_int_categories(self) -> np.ndarray:
-        return self.__all_int_categories
 
     @property
     def all_val_accuracies(self) -> List[float]:
