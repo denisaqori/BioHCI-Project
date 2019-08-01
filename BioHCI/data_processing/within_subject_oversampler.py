@@ -8,14 +8,28 @@ from typing import List
 
 class WithinSubjectOversampler(CategoryBalancer):
 
-    def balance(self, subj_dict):
-        balanced = self.new_balance_categories(subj_dict)
+    def balance(self, subj_dict: types.subj_dataset) -> types.subj_dataset:
+        balanced = self.balance_flat_categories(subj_dict)
 
         # cat_balanced = self.balance_categories(compacted_subj_dict)
-        # cat_subj_balanced = self.balance_subj_representation(cat_balanced)
         return balanced
 
-    def new_balance_categories(self, subject_feature_dataset: types.subj_dataset):
+    def balance_flat_categories(self, subject_feature_dataset: types.subj_dataset) -> types.subj_dataset:
+        """
+        Balances each category from within the subject itself by oversampling, for every subject in the
+        compacted_subj_dict. Each sample is its own numpy array; samples from the same category are not grouped
+        under the same numpy array.
+
+        Args:
+            compacted_subj_dict (dict): a dictionary where the key is a string with the subject's name, and the value
+            is its corresponding Subject object whose categories have been compacted.
+
+        Returns:
+            category_balanced_dict (dict): the balanced dictionary
+
+        """
+
+        category_balanced_dict = {}
         for subj_name, subject in subject_feature_dataset.items():
 
             category_to_idx_ls = utils.find_indices_of_duplicates(subject.categories)
@@ -27,18 +41,32 @@ class WithinSubjectOversampler(CategoryBalancer):
                     max_cat, max_idx_ls = cat_name, idx_ls
 
             # determine the number of samples to add per category
+            balanced_subj_data = []
+            balanced_subj_cat = []
             for cat_name, idx_ls in category_to_idx_ls.items():
-                num_to_add = len(max_cat) - len(cat_name)
-                print("")
-                # for i in range(num_to_add):
-                    # oversampled_cat = self.__oversample
+                num_to_add = len(max_idx_ls) - len(idx_ls)
 
+                # convert list to numpy array to be compatible with _oversample_category() function
+                cat_data = [subject.data[x] for x in idx_ls]
+                cat_data_3D = np.stack(cat_data, axis=0)
+                oversampled_cat = self._oversample_category(cat_data_3D, cat_name, num_to_add)
+                for i in range(oversampled_cat.shape[0]):
+                    sample = oversampled_cat[i, :, : ]
+                    balanced_subj_data.append(sample)
+                    balanced_subj_cat.append(cat_name)
+
+            new_subj = copy(subject)  # copy the current subject
+            new_subj.data = balanced_subj_data  # assign the above-calculated oversampled categories to it
+            new_subj.categories = balanced_subj_cat  # assign the above-calculated oversampled categories to it
+            category_balanced_dict[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
+
+        return category_balanced_dict
 
 
     def balance_categories(self, compacted_subj_dict):
         """
         Balances each category from within the subject itself by oversampling, for every subject in the
-        compacted_subj_dict
+        compacted_subj_dict. All the samples from one category are contained in one numpy array in this construct.
 
         Args:
             compacted_subj_dict (dict): a dictionary where the key is a string with the subject's name, and the value
@@ -82,7 +110,7 @@ class WithinSubjectOversampler(CategoryBalancer):
         Oversamples one single category of one single subject.
 
         Args:
-            current_cat_data (ndarray): a ndarray of shape (number of chunks, samples_per_chunk, num
+            current_cat_data (ndarray): a ndarray of shape (number of chunks, samples_per_chunk, num_to_add)
             cat_name (string): name of category to be oversampled
             num_to_add (int): the number of chunks (2D ndarrays) to add to current_cat_data from within itself
 
@@ -115,6 +143,3 @@ class WithinSubjectOversampler(CategoryBalancer):
 
         return current_cat_data
 
-    # TODO: maybe implement at some point
-    def balance_subj_representation(self, compacted_subj_dict):
-        return compacted_subj_dict
