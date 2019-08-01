@@ -210,19 +210,19 @@ class DescriptorComputer:
 
                     keypress_normalized = np.concatenate(normalized_splits, axis=1)
 
-                elif self.desc_type == DescType.MSBSD:
-                    keypress_split = np.split(keypress, [8, 16], axis=1)
-                    normalized_splits = []
+                # elif self.desc_type == DescType.MSBSD:
+                #     keypress_split = np.split(keypress, [8, 16], axis=1)
+                #     normalized_splits = []
+                #
+                #     for j, split in enumerate(keypress_split):
+                #         normalized_split = None
+                #         if j == 0 or j == 1:
+                #             normalized_split = preprocessing.normalize(split, norm='l2')
+                #         elif j == 2:
+                #             normalized_split = split
+                #         normalized_splits.append(normalized_split)
 
-                    for j, split in enumerate(keypress_split):
-                        normalized_split = None
-                        if j == 0 or j == 1:
-                            normalized_split = preprocessing.normalize(split, norm='l2')
-                        elif j == 2:
-                            normalized_split = split
-                        normalized_splits.append(normalized_split)
-
-                    keypress_normalized = np.concatenate(normalized_splits, axis=1)
+                    # keypress_normalized = np.concatenate(normalized_splits, axis=1)
                 else:
                     print("There is no such descriptor: ", self.desc_type)
                     sys.exit()

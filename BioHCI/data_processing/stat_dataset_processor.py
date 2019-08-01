@@ -49,17 +49,16 @@ class StatDatasetProcessor:
         chunked_subj_dict = {}  # dictionary to return
         # iterate over the subject dictionary and get the corresponding data and category lists
         for subj_name, subject in subject_dict.items():
-            subj_data = subject.data
-            subj_cat_names = subject.categories
 
             # create a new list to add chunked category data for the subject
             subj_chunked_data = []
-            for i, category in enumerate(subj_data):
+            for i, category in enumerate(subject.data):
+                print(f"\nSubject {subj_name}")
                 chunked_category = self._chunk_category(category, samples_per_interval, split_axis, interval_overlap)
                 subj_chunked_data.append(chunked_category)
 
             new_subject = copy(subject)  # create a new Subject object with the same values as the original
-            new_subject.categories = subj_cat_names  # append the categories
+            new_subject.categories = subject.categories  # append the categories
             new_subject.data = subj_chunked_data  # append the new data
             chunked_subj_dict[subj_name] = new_subject  # make this subject the value to the key (name) in dictionary
 
@@ -67,7 +66,7 @@ class StatDatasetProcessor:
         return chunked_subj_dict
 
     def _chunk_category(self, category: np.ndarray, samples_per_interval: int, split_axis: int, interval_overlap:
-                        bool) -> np.ndarray:
+    bool) -> np.ndarray:
 
         """
         Helper function of chunk_data. Chunks the data for one subject's category.
@@ -89,25 +88,20 @@ class StatDatasetProcessor:
         # create list according to which the first dimension of the category numpy array will be split
         assert (0 <= split_axis <= len(category.shape) - 1), "Axis to be split along needs to exist in the " \
                                                              "category argument."
-        assert (samples_per_interval <= category.shape[
-            split_axis]), "There are not enough instances to make up a chunk in " \
-                          "the or if this happens during train-validation split, decrease the number of folds."
+        print(f"Samples_per_interval: {samples_per_interval}; total samples in seq: {category.shape[split_axis]}")
 
         split_list = np.arange(samples_per_interval, category.shape[split_axis], step=samples_per_interval).tolist()
 
         # split the intervals according to samples_per_chunk with no instances belonging to more than one chunk
-        category_chunks = np.split(category, split_list, axis=split_axis)
+        category_chunks = np.array_split(category, split_list, axis=split_axis)
 
         # pad the last chunk with zeros if there are not enough instances as for any other chunk (samples_per_step)
         nrows = category_chunks[-1].shape[split_axis]
-        print("shape of last category chunk: ", category_chunks[-1].shape)
-        print("nrows: ", nrows)
-        print("samples per interval: ", samples_per_interval)
-        if nrows < 0.5 * samples_per_interval:
-            print("Removing last chunk since there are fewer than half of number of instances per interval.")
+        if nrows < 0.25 * samples_per_interval:
+            print("Removing last chunk since there are fewer than a quarter of number of instances per interval.")
             category_chunks.pop(-1)
-        elif (nrows > 0.5 * samples_per_interval) and (nrows < samples_per_interval):
-            print("Padding last chunk since there are more than half of number of instances per interval.")
+        elif (nrows > 0.25 * samples_per_interval) and (nrows < samples_per_interval):
+            print("Padding last chunk since there are more than a quarter of number of instances per interval.")
             rows_to_add = samples_per_interval - nrows
             category_chunks[-1] = np.pad(category_chunks[-1], [(0, rows_to_add), (0, 0)], mode='constant',
                                          constant_values=0)
@@ -122,7 +116,7 @@ class StatDatasetProcessor:
         #  to split))
         # if interval_overlap is true, category_chunks will contain overlap chunks in addition to the original chunk,
         # otherwise the original ones only
-        chunked_category = np.stack(category_chunks, axis=split_axis)
+        chunked_category = np.stack((category_chunks), axis=split_axis)
         print("Shape of chunked_category: ", chunked_category.shape)
 
         return chunked_category

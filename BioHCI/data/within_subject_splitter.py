@@ -160,7 +160,6 @@ class WithinSubjectSplitter(DataSplitter):
 
             category_to_idx_ls = utils.find_indices_of_duplicates(subject.categories)
 
-            idx_ls: List[int]
             for category, idx_ls in category_to_idx_ls.items():
                 assert (num_folds <= len(idx_ls) ), "Number of folds to split the data into should be smaller " \
                                                "than or equal to the number of instances of each category."

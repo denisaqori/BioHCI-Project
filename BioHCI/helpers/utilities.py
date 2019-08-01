@@ -149,7 +149,7 @@ def convert_categories(all_categories: List[str], categories_subset: List[str]) 
     converted_categories = np.array(converted_categories)
     return converted_categories
 
-def find_indices_of_duplicates(ls):
+def find_indices_of_duplicates(ls: List[str]) -> Dict[str, List[int]]:
     """
     Calculates the indices of every unique value of the list.
 

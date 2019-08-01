@@ -6,7 +6,10 @@ from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
+from BioHCI.data_processing.keypoint_description.sequence_length import SequenceLength
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
+from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
+from BioHCI.data_processing.stat_feature_constructor import StatFeatureConstructor
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.learning.nn_cross_validator import NNCrossValidator
@@ -39,8 +42,8 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
-    # parameters = config.populate_study_parameters("EEG_Workload.toml")
+    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("EEG_Workload.toml")
     print(parameters)
 
     # generating the data from files
@@ -61,10 +64,15 @@ def main():
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
     data_splitter = WithinSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
-    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
-                                             extra_name="_pipeline_test")
 
-    feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
+    # descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
+    #                                          seq_len=SequenceLength.ZeroPad, extra_name="_pipeline_test")
+
+    # feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
+
+    dataset_processor = StatDatasetProcessor(parameters)
+    feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
+
     # estimating number of resulting features based on the shape of the dataset, to be passed later to the feature
     # constructor
     any_subj_name, any_subj = next(iter(subject_dict.items()))

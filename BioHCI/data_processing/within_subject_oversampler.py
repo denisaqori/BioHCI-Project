@@ -29,8 +29,9 @@ class WithinSubjectOversampler(CategoryBalancer):
             # determine the number of samples to add per category
             for cat_name, idx_ls in category_to_idx_ls.items():
                 num_to_add = len(max_cat) - len(cat_name)
-                for i in range(num_to_add):
-                    oversampled_cat = self.__oversample
+                print("")
+                # for i in range(num_to_add):
+                    # oversampled_cat = self.__oversample
 
 
 

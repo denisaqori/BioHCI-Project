@@ -154,7 +154,7 @@ if __name__ == "__main__":
     subject_dict = data.get_subject_dataset()
 
     category_balancer = WithinSubjectOversampler()
-    dataset_processor = StatDatasetProcessor(parameters, balancer=category_balancer)
+    dataset_processor = StatDatasetProcessor(parameters)
 
     feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 

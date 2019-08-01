@@ -139,17 +139,23 @@ class CrossValidator(ABC):
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
-        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        # feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
 
         for i in range(0, self.num_folds):
             print("\n\n"
                   "***************************************************************************************************")
             print("Run: ", i)
-            train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
-                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
+            # train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
+            #     feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
+            train_dataset, val_dataset = self.data_splitter.split_into_folds_raw(
+                subject_dictionary=self.subject_dict, num_folds=self.num_folds, val_index=i)
+
+            train_feature = self.feature_constructor.produce_feature_dataset(train_dataset)
+            val_feature = self.feature_constructor.produce_feature_dataset(val_dataset)
+
             # balance each dataset individually
-            balanced_train = self.category_balancer.balance(train_dataset)
-            balanced_val = self.category_balancer.balance(val_dataset)
+            balanced_train = self.category_balancer.balance(train_feature)
+            balanced_val = self.category_balancer.balance(val_feature)
 
             # starting training with the above-defined parameters
             train_start = time.time()
