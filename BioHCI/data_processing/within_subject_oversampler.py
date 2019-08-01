@@ -1,9 +1,10 @@
-from BioHCI.data_processing.category_balancer import CategoryBalancer
-import numpy as np
 from copy import copy
+
+import numpy as np
+
 import BioHCI.helpers.type_aliases as types
 import BioHCI.helpers.utilities as utils
-from typing import List
+from BioHCI.data_processing.category_balancer import CategoryBalancer
 
 
 class WithinSubjectOversampler(CategoryBalancer):
@@ -21,8 +22,8 @@ class WithinSubjectOversampler(CategoryBalancer):
         under the same numpy array.
 
         Args:
-            compacted_subj_dict (dict): a dictionary where the key is a string with the subject's name, and the value
-            is its corresponding Subject object whose categories have been compacted.
+            subject_feature_dataset (dict): a dictionary where the key is a string with the subject's name, and the value
+            is its corresponding Subject object with features constructed on data.
 
         Returns:
             category_balanced_dict (dict): the balanced dictionary
@@ -51,7 +52,7 @@ class WithinSubjectOversampler(CategoryBalancer):
                 cat_data_3D = np.stack(cat_data, axis=0)
                 oversampled_cat = self._oversample_category(cat_data_3D, cat_name, num_to_add)
                 for i in range(oversampled_cat.shape[0]):
-                    sample = oversampled_cat[i, :, : ]
+                    sample = oversampled_cat[i, :, :]
                     balanced_subj_data.append(sample)
                     balanced_subj_cat.append(cat_name)
 
@@ -61,7 +62,6 @@ class WithinSubjectOversampler(CategoryBalancer):
             category_balanced_dict[subj_name] = new_subj  # assign the Subject object to its name (unaltered)
 
         return category_balanced_dict
-
 
     def balance_categories(self, compacted_subj_dict):
         """
@@ -142,4 +142,3 @@ class WithinSubjectOversampler(CategoryBalancer):
                                               axis=0)  # concatenate with the existing category across the 1st dim.
 
         return current_cat_data
-

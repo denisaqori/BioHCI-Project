@@ -1,13 +1,14 @@
-import torch
-from abc import ABC, abstractmethod
-import numpy as np
 import time
-import BioHCI.helpers.utilities as utils
-from tensorboardX import SummaryWriter
-import BioHCI.helpers.type_aliases as types
-from typing import Tuple, List
+from abc import ABC, abstractmethod
 from os.path import join
+from typing import List, Tuple
 
+import numpy as np
+import torch
+from tensorboardX import SummaryWriter
+
+import BioHCI.helpers.type_aliases as types
+import BioHCI.helpers.utilities as utils
 from BioHCI.data.data_splitter import DataSplitter
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
@@ -261,7 +262,6 @@ class CrossValidator(ABC):
 
         for subj_name, subj in subj_dict.items():
             for i, data in enumerate(subj.data):
-
                 all_data.append(data)
                 all_cat.append(subj.categories[i])
 
