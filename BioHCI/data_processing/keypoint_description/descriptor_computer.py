@@ -140,7 +140,7 @@ class DescriptorComputer:
             dataset_desc_path, dataset_desc_name (str, str): the path and the name of the dataset descriptor object.
 
         """
-        dataset_desc_name = self.parameters.study_name + "_" + str(self.desc_type)
+        dataset_desc_name = self.parameters.study_name + "_" + str(self.desc_type) + "_" + str(self.seq_len)
 
         # check if normalization is to happen
         if self.normalize:

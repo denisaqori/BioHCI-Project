@@ -42,8 +42,8 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
-    parameters = config.populate_study_parameters("EEG_Workload.toml")
+    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    # parameters = config.populate_study_parameters("EEG_Workload.toml")
     print(parameters)
 
     # generating the data from files
@@ -65,13 +65,13 @@ def main():
     data_splitter = WithinSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
-    # descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
-    #                                          seq_len=SequenceLength.ZeroPad, extra_name="_pipeline_test")
+    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
+                                             seq_len=SequenceLength.ZeroPad, extra_name="_pipeline_test")
+    #
+    feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
-    # feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
-
-    dataset_processor = StatDatasetProcessor(parameters)
-    feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
+    # dataset_processor = StatDatasetProcessor(parameters)
+    # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 
     # estimating number of resulting features based on the shape of the dataset, to be passed later to the feature
     # constructor

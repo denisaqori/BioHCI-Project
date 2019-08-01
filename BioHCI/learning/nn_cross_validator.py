@@ -54,7 +54,7 @@ class NNCrossValidator(CrossValidator):
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
     def _get_data_and_labels(self, subj_dataset):
-        data, cat = self.mix_subj_chunks(subj_dataset)
+        data, cat = self.mix_subj_data(subj_dataset)
 
         # convert numpy ndarray to PyTorch tensor
         data = torch.from_numpy(data)

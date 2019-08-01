@@ -1,5 +1,6 @@
 import torch
 from torch.autograd import Variable
+from torch.utils.data import DataLoader
 
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
@@ -7,6 +8,7 @@ from BioHCI.helpers import utilities as util
 from tensorboardX import SummaryWriter
 import os
 import numpy as np
+from torch.optim.optimizer import Optimizer
 from typing import List
 
 
@@ -15,9 +17,9 @@ from typing import List
 
 
 class Trainer:
-    def __init__(self, train_data_loader, model, optimizer, criterion, all_int_categories: np.ndarray,
-                 neural_network_def: NeuralNetworkDefinition,
-                 parameters: StudyParameters, summary_writer: SummaryWriter):
+    def __init__(self, train_data_loader: DataLoader, model, optimizer: Optimizer, criterion,
+                 all_int_categories: np.ndarray, neural_network_def: NeuralNetworkDefinition, parameters:
+                 StudyParameters, summary_writer: SummaryWriter) -> None:
         print("\nInitializing Training...")
 
         self.__model = model

@@ -140,23 +140,23 @@ class CrossValidator(ABC):
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
-        # feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
 
         for i in range(0, self.num_folds):
             print("\n\n"
                   "***************************************************************************************************")
             print("Run: ", i)
-            # train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
-            #     feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
-            train_dataset, val_dataset = self.data_splitter.split_into_folds_raw(
-                subject_dictionary=self.subject_dict, num_folds=self.num_folds, val_index=i)
+            train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
+                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
+            # train_dataset, val_dataset = self.data_splitter.split_into_folds_raw(
+            #     subject_dictionary=self.subject_dict, num_folds=self.num_folds, val_index=i)
 
-            train_feature = self.feature_constructor.produce_feature_dataset(train_dataset)
-            val_feature = self.feature_constructor.produce_feature_dataset(val_dataset)
+            # train_feature = self.feature_constructor.produce_feature_dataset(train_dataset)
+            # val_feature = self.feature_constructor.produce_feature_dataset(val_dataset)
 
             # balance each dataset individually
-            balanced_train = self.category_balancer.balance(train_feature)
-            balanced_val = self.category_balancer.balance(val_feature)
+            balanced_train = self.category_balancer.balance(train_dataset)
+            balanced_val = self.category_balancer.balance(val_dataset)
 
             # starting training with the above-defined parameters
             train_start = time.time()
@@ -207,38 +207,6 @@ class CrossValidator(ABC):
             avg_losses.append(epoch_loss / self.num_folds)
         return avg_losses
 
-    def mix_subj_chunks(self, subj_dict: types.subj_dataset) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Creates a dataset of chunks of all subjects with the corresponding categories. At this point the subject data
-        is not separated anymore.
-
-        Args:
-            subj_dict (dict): a dictionary mapping a subject name to a Subject object
-
-        Returns:
-            all_data (ndarray): a 3D numpy array containing the train dataset of shape (number of chunks x number of
-                instances per chunk x number of features)
-            all_cat (ndarray): a 1D numpy arrray containing the category labels of all_data, of shape (number of
-                chunks).
-        """
-
-        # data to stack - subjects end up mixed together in the ultimate dataset
-        all_data = []
-        # list of all categories to return
-        all_cat = []
-
-        for subj_name, subj in subj_dict.items():
-            for i, cat_data in enumerate(subj.data):
-                for j in range(0, cat_data.shape[0]):
-                    chunk = cat_data[j, :, :]  # current chunk
-                    cat = subj.categories[i]  # current category - same within all the chunks of the innermost loop
-
-                    all_data.append(chunk)
-                    all_cat.append(cat)
-
-        all_data = np.stack(all_data, axis=0)
-        all_cat = np.array(all_cat)
-        return all_data, all_cat
 
     def mix_subj_data(self, subj_dict: types.subj_dataset) -> Tuple[List[np.ndarray], List[str]]:
         """
@@ -249,8 +217,7 @@ class CrossValidator(ABC):
             subj_dict (dict): a dictionary mapping a subject name to a Subject object
 
         Returns:
-            all_data (ndarray): a 3D numpy array containing the train dataset of shape (number of chunks x number of
-                instances per chunk x number of features)
+            all_data (ndarray): a 2D numpy array containing the train dataset of shape (instances per sample x number of features)
             all_cat (ndarray): a 1D numpy arrray containing the category labels of all_data, of shape (number of
                 chunks).
         """
