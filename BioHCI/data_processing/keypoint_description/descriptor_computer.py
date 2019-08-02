@@ -38,13 +38,15 @@ class DescriptorComputer:
 
         # self.__dataset_desc_root_path = utils.get_root_path("dataset_desc")
         # if there is no root directory for dataset descriptors, create it
-        self.__saved_desc_dir = utils.create_dir(utils.get_root_path("saved_objects") + "/dataset_descriptors")
+        saved_obj_subdir = self.parameters.study_name + "/dataset_descriptors"
+        self.__saved_desc_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), saved_obj_subdir))
+
         # create the full name of the dataset as well, without the path to get there
         self.__dataset_desc_name = self.__produce_dataset_desc_name()
         self.__desc_obj_path = join(self.__saved_desc_dir, self.dataset_desc_name)
 
         # remove any files remaining from previous tests
-        # self.cleanup()
+        # utils.cleanup(self.saved_desc_dir, "_test")
 
         # create the full path to save the current descriptor if it does not exist, or to load from if it does
         if os.path.exists(self.desc_obj_path):
@@ -294,21 +296,6 @@ class DescriptorComputer:
             print("Sequence length type undefined. Returning original dataset.")
 
         return descriptor_dataset
-
-    def cleanup(self) -> None:
-        """
-        Removes any files that contain the string "_test" in the dataset descriptors directory.
-
-        Returns: None
-
-        """
-        print(f"Deleting any existing files related to dataset descriptor evaluation containing the string '_test'.")
-        for filename in os.listdir(self.saved_desc_dir):
-            if "_test" in filename:
-                full_path_to_remove = join(self.saved_desc_dir, filename)
-
-                os.remove(full_path_to_remove)
-                print(f"Deleted file {full_path_to_remove}")
 
 
 if __name__ == "__main__":

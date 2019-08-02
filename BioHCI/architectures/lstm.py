@@ -12,10 +12,11 @@ class LSTM(nn.Module):
 
         self.name = "LSTM"
         self.input_size = nn_learning_def.input_size
-        self.hidden_size = nn_learning_def.hidden_size
+        self.hidden_size = nn_learning_def.num_hidden
         self.output_size = nn_learning_def.output_size
         self.batch_size = nn_learning_def.batch_size
         self.batch_first = nn_learning_def.batch_first
+        self.dropout_rate = nn_learning_def.dropout_rate
         self.num_layers = nn_learning_def.num_layers
         self.use_cuda = nn_learning_def.use_cuda
 

@@ -21,10 +21,8 @@ from BioHCI.learning.trainer import Trainer
 class NNCrossValidator(CrossValidator):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
-    FeatureConstructor, category_balancer: CategoryBalancer, model, parameter: StudyParameters, learning_def: \
-            NeuralNetworkDefinition, all_categories:
-    List[
-        str]):
+            FeatureConstructor, category_balancer: CategoryBalancer, model, parameter: StudyParameters, learning_def: \
+            NeuralNetworkDefinition, all_categories:List[str]):
         # this list contains lists of accur   acies for each epoch. There will be self._num_folds lists of _num_epochs
         # elements in this list after all training is done
         self.__all_epoch_train_accuracies = []
@@ -85,15 +83,15 @@ class NNCrossValidator(CrossValidator):
                           self.learning_def, self.parameters, summary_writer)
 
         # get the loss over all epochs for this cv-fold and append it to the list
-        self.all_train_losses.append(trainer.epoch_losses)
+        self.all_epoch_train_losses.append(trainer.epoch_losses)
         print("Train Epoch Losses: ", trainer.epoch_losses)
 
         # accuracies for each epoch and each fold are added to the list that belongs only to this class
         # "_all_epoch_train_accuracies". The last accuracy of each train epoch is added to the list
         # "_all_train_accuracies, belonging more generally to the parent class
-        self.all_train_accuracies.append(trainer.epoch_accuracies()[-1])
-        self.all_epoch_train_accuracies.append(trainer.epoch_accuracies())
-        print("Train Epoch Accuracies: ", trainer.epoch_accuracies())
+        self.all_train_accuracies.append(trainer.epoch_accuracies[-1])
+        self.all_epoch_train_accuracies.append(trainer.epoch_accuracies)
+        print("Train Epoch Accuracies: ", trainer.epoch_accuracies)
 
     # evaluate the learning created during training on the validation dataset
     def val(self, val_dataset, summary_writer):

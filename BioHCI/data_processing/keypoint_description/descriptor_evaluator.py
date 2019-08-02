@@ -22,6 +22,7 @@ from typing import List, Tuple, Optional
 from os.path import join
 import logging
 from datetime import datetime
+from BioHCI.data_processing.keypoint_description.sequence_length import SequenceLength
 
 
 class DescriptorEvaluator:
@@ -39,16 +40,19 @@ class DescriptorEvaluator:
         self.descriptor_computer = descriptor_computer
 
         # if there is no root directory for dataset descriptors, create it
-        self.__dataset_eval_dir = utils.create_dir(utils.get_root_path("saved_objects") + "/descriptor_evaluation")
+        eval_subdir = parameters.study_name + "/descriptor_evaluation"
+        self.__dataset_eval_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), eval_subdir))
+
         # create the full path of the dataset evaluation object
         self.__eval_obj_path = join(self.dataset_eval_dir, self.dataset_eval_name)
 
         # create a directory under Results to save the resulting heatmap figure and result logs.
-        results_eval = parameters.study_name + "/descriptor_evaluation"
-        self.__results_eval_dir = utils.create_dir(join(utils.get_root_path("Results"), results_eval))
+        self.__results_eval_dir = utils.create_dir(join(utils.get_root_path("Results"), eval_subdir))
 
-        # remove any files remaining from previous tests
-        self.cleanup()
+        # Removes any files that contain the string "_test" in the dataset evaluation directory under saved_objects,
+        # as well as any saved heatmaps or statistic text files with that name under Results directory.
+        utils.cleanup(self.dataset_eval_dir, "_test")
+        utils.cleanup(self.results_eval_dir, "_test")
 
         self.__num_processes = multiprocessing.cpu_count() * 2
         self.compute_heatmap(all_dataset_categories)
@@ -138,10 +142,10 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
 
                 tuple_list = []
-                for i in range(0, len(subj_data)):
-                    for j in range(0, len(subj_data)):
-                        # for i in range(4, 7):
-                        #     for j in range(4, 7):
+                # for i in range(0, len(subj_data)):
+                #     for j in range(0, len(subj_data)):
+                for i in range(4, 7):
+                    for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -407,31 +411,6 @@ class DescriptorEvaluator:
                 heatmap = pickle.load(openfile)
                 self.generate_heatmap_fig_from_obj(heatmap)
 
-    def cleanup(self) -> None:
-        """
-        Removes any files that contain the string "_test" in the dataset evaluation directory under saved_objects,
-        as well as any saved heatmaps or statistic text files with that name under Results directory.
-
-        Returns: None
-
-        """
-        print(f"Deleting any existing files related to dataset descriptor evaluation containing the string '_test'.")
-        for filename in os.listdir(self.dataset_eval_dir):
-            if "_test" in filename:
-                full_path_to_remove = join(self.dataset_eval_dir, filename)
-
-                os.remove(full_path_to_remove)
-                print(f"Deleted file {full_path_to_remove}")
-
-        for filename in os.listdir(self.results_eval_dir):
-            if "_test" in filename:
-                full_path_to_remove = join(self.results_eval_dir, filename)
-
-                os.remove(full_path_to_remove)
-                print(f"Deleted file {full_path_to_remove}")
-
-        print("Cleanup complete!\n")
-
 
 if __name__ == "__main__":
     np.set_printoptions(threshold=10000, linewidth=100000, precision=1)
@@ -482,7 +461,7 @@ if __name__ == "__main__":
 
     # create descriptor computer
     desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
-                                       extra_name="_test")
+                                       seq_len=SequenceLength.Existing, extra_name="_test")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")

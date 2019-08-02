@@ -33,7 +33,7 @@ class CrossValidator(ABC):
 
         self.__all_val_accuracies = []
         self.__all_train_accuracies = []
-        self.__all_train_losses = []
+        self.__all_epoch_train_losses = []
 
         # declare variables that will contain time needed to compute these operations
         self.__cv_time = ""
@@ -105,8 +105,8 @@ class CrossValidator(ABC):
         return self.__all_train_accuracies
 
     @property
-    def all_train_losses(self) -> List[float]:
-        return self.__all_train_losses
+    def all_epoch_train_losses(self) -> List[float]:
+        return self.__all_epoch_train_losses
 
     @property
     def cv_time(self) -> str:
@@ -148,7 +148,6 @@ class CrossValidator(ABC):
         cv_start = time.time()
 
         feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
-
         for i in range(0, self.num_folds):
             print("\n\n"
                   "***************************************************************************************************")
@@ -164,6 +163,8 @@ class CrossValidator(ABC):
             # balance each dataset individually
             balanced_train = self.category_balancer.balance(train_dataset)
             balanced_val = self.category_balancer.balance(val_dataset)
+
+            print(f"\nNetwork Architecture: {self.model}\n")
 
             # starting training with the above-defined parameters
             train_start = time.time()
@@ -209,7 +210,7 @@ class CrossValidator(ABC):
         avg_losses = []
         for i in range(self.learning_def.num_epochs):
             epoch_loss = 0
-            for j, loss_list in enumerate(self.all_train_losses):
+            for j, loss_list in enumerate(self.all_epoch_train_losses):
                 epoch_loss = epoch_loss + loss_list[i]
             avg_losses.append(epoch_loss / self.num_folds)
         return avg_losses

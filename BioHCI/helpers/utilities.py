@@ -178,6 +178,22 @@ def find_indices_of_duplicates(ls: List[str]) -> Dict[str, List[int]]:
 
     return name_to_indices
 
+def cleanup(dirname:str, name_part:str) -> None:
+    """
+    Removes any files that contain the string name_part in the directory dirname.
+
+    Returns: None
+
+    """
+    print(f"Deleting any existing files in {dirname} containing the string '{name_part}'.")
+    for filename in os.listdir(dirname):
+        if name_part in filename:
+            full_path_to_remove = join(dirname, filename)
+
+            os.remove(full_path_to_remove)
+            print(f"Deleted file {full_path_to_remove}")
+
+    print("Cleanup complete!\n")
 
 if __name__ == "__main__":
     res = get_root_path("dataset_desc")

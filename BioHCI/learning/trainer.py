@@ -4,7 +4,8 @@ from torch.utils.data import DataLoader
 
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
-from BioHCI.helpers import utilities as util
+from BioHCI.helpers import utilities as utils
+from os.path import join
 from tensorboardX import SummaryWriter
 import os
 import numpy as np
@@ -34,7 +35,27 @@ class Trainer:
         self.__parameters = parameters
         self.__writer = summary_writer
 
+        model_subdir = self.__parameters.study_name + "/trained_models"
+        self.__saved_model_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir))
+        # create the full name of the dataset as well, without the path to get there
+        self.__model_name = self.__produce_model_name()
+        self.__model_path = join(self.__saved_model_dir, self.model_name)
+
+        utils.cleanup(self.model_dir, "_test")
+
         self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
+
+    @property
+    def model_name(self) -> str:
+        return self.__model_name
+
+    @property
+    def model_path(self) -> str:
+        return self.__model_path
+
+    @property
+    def model_dir(self) -> str:
+        return self.__saved_model_dir
 
     # this method returns the category based on the architectures output - each category will be associated with a likelihood
     # topk is used to get the index of highest value
@@ -143,10 +164,7 @@ class Trainer:
             current_loss = 0
 
         # save trained learning
-        name = self.__parameters.study_name + "-" + self.__model.name + "-batch-" + str(self.__batch_size) + \
-               "-seqSize-" + str(self.__samples_per_chunk) + ".pt"
-        model_dir = util.create_dir("saved_objects")
-        torch.save(self.__model, os.path.join(model_dir, name))
+        torch.save(self.__model, self.model_path)
 
         return all_losses, all_accuracies
 
@@ -157,3 +175,7 @@ class Trainer:
     @property
     def epoch_accuracies(self):
         return self.__epoch_accuracies
+
+    def __produce_model_name(self):
+        name = self.__parameters.study_name + "-" + self.__model.name + "-batch-" + str(self.__batch_size) + "_test.pt"
+        return name

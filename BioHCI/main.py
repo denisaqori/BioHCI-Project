@@ -17,7 +17,7 @@ from BioHCI.helpers.result_logger import Logging
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
-from BioHCI.architectures.cnn_lstm import CNN_LSTM
+from BioHCI.architectures.lstm import LSTM
 
 
 def main():
@@ -84,9 +84,7 @@ def main():
     assert parameters.neural_net is True
     learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
                                            use_cuda=args.cuda)
-    model = CNN_LSTM(nn_learning_def=learning_def)
-    print("\nNetwork Architecture: \n", model)
-
+    model = LSTM(nn_learning_def=learning_def)
     if args.cuda:
         model.cuda()
 

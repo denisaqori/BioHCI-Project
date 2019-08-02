@@ -5,7 +5,7 @@ class NeuralNetworkDefinition(LearningDefinition):
     def __init__(self, input_size: int, output_size: int, use_cuda: bool) -> None:
         # hyper-parameters
         self.__num_hidden = 120  # number of nodes per hidden layer
-        self.__num_epochs = 10  # number of epochs over which to train
+        self.__num_epochs = 3  # number of epochs over which to train
         # self.__samples_per_seq = 25  # the number of measurements to be included in one sequence
         self.__learning_rate = 0.1  # If you set this too high, it might explode. If too low, it might not learn
         self.__batch_size = 1  # The number of instances in one batch
@@ -13,8 +13,6 @@ class NeuralNetworkDefinition(LearningDefinition):
         self.__num_layers = 2  # number of layers of LSTM
         self.__batch_first = True
 
-        # DOUBLE CHECK THE NEED TO ASSIGN THESE ATTRIBUTES. GETTERS?
-        # parameters passed to this object - there should be no setters for these attributes
         self.__use_cuda = use_cuda
         self.__input_size = input_size
         self.__output_size = output_size
