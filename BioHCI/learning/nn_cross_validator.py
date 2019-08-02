@@ -110,3 +110,10 @@ class NNCrossValidator(CrossValidator):
 
         fold_accuracy = evaluator.get_accuracy()
         self.all_val_accuracies.append(fold_accuracy)
+
+    def _log_specific_results(self):
+        self.result_logger.debug(f"All fold train accuracies (all epochs): {str(self.all_epoch_train_accuracies)}\n\n")
+        self.result_logger.info(f"All fold train accuracies: {str(self.all_train_accuracies)}\n")
+        self.result_logger.info(f"Average train accuracy: {str(self.avg_train_accuracy)}\n\n")
+        self.result_logger.info(f"All fold validation accuracies: {str(self.all_val_accuracies)}\n")
+        self.result_logger.info(f"Average validation accuracy: {str(self.avg_val_accuracy)}\n\n")

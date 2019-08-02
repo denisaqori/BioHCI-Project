@@ -7,11 +7,14 @@ import torch
 # http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html 
 
 # !!!!!!!!!!! DOES NOT WORK AT THE MOMENT!!!!!!!!!!!!!!!!!!!
-class RNN(nn.Module):
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
+
+
+class RNN(AbstractNeuralNetwork):
     def __init__(self, input_size, hidden_size, output_size):
         super(RNN, self).__init__()
 
-        self.name = "RNN"
+        self.__name = "RNN"
         self.hidden_size = hidden_size
 
         self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
@@ -37,5 +40,6 @@ class RNN(nn.Module):
         # The hidden and cell dimensions are: (num_layers, batch, hidden_size)
         return Variable(torch.zeros(1, self.hidden_size))
 
-    def name(self):
-        return "RNN"
+    @property
+    def name(self) -> str:
+        return self.__name

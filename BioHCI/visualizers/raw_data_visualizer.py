@@ -1,11 +1,13 @@
-import seaborn as sns
-from BioHCI.data.data_constructor import DataConstructor
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from PIL import Image
-import pandas as pd
-import os
 import math
+import os
+
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from PIL import Image
+
+from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.helpers import utilities as util
 from BioHCI.helpers.study_config import StudyConfig
 
@@ -90,12 +92,12 @@ class RawDataVisualizer:
         return compacted_dataframe
 
     def plot_all_subj_categories(self):
-        '''
+        """
         Creates a figure of feature subplots for each subject for each category. These figures are automatically
         saved in "subject_view", a subdirectory of each study's dataset_plots, found in the Results directory of the
         project. Moreover, for each subject the plots per category are combined and stored in "combined_plots" under
         the same root directory.
-        '''
+        """
         for subj_name, subject_dataframe in self.__dataframe_dict.items():
             # a list to contain the image filenames of all categories for the subject
             subj_category_img_list = []
@@ -217,8 +219,6 @@ class RawDataVisualizer:
                 figure_path = os.path.abspath(os.path.join(self.root_dir, self.__spectrograms, figure_name))
                 fig.savefig(figure_path)
 
-    # TODO: deal with feature names
-    # TODO: deal with fft_feeatures function
     def compute_subj_cat_spectrogram(self, subj_cat_data, category, subj_name, NFFT, Fs):
         """
         Computes the spectrogram of one category from one subject, for every attribute.
@@ -342,7 +342,8 @@ class RawDataVisualizer:
         if type(img_per_fig) is tuple:
             assert isinstance(img_per_fig[0], int) and isinstance(img_per_fig[1], int), "Values within the " \
                                                                                         "img_per_fig tuple need to be " \
-																						"" \
+                                                                                        "" \
+                                                                                        "" \
                                                                                         "integers"
             img_per_col = img_per_fig[0]  # nrows
             img_per_row = img_per_fig[1]  # ncol
@@ -438,7 +439,7 @@ class RawDataVisualizer:
         button. These plots are saved in "combined_plots".
 
         Args:
-            study_name: the study name from where to get the subject_view plots
+            rel_path: the study name from where to get the subject_view plots
 
         Returns:
 

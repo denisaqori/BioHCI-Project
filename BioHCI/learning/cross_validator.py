@@ -1,7 +1,10 @@
+import logging
+import platform
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 from os.path import join
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -9,6 +12,7 @@ from tensorboardX import SummaryWriter
 
 import BioHCI.helpers.type_aliases as types
 import BioHCI.helpers.utilities as utils
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 from BioHCI.data.data_splitter import DataSplitter
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
@@ -18,15 +22,15 @@ from BioHCI.definitions.study_parameters import StudyParameters
 
 class CrossValidator(ABC):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
-    FeatureConstructor, category_balancer: CategoryBalancer, model, parameters: StudyParameters, learning_def:
-    LearningDefinition, all_categories: List[str]):
+    FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
+    StudyParameters, learning_def: LearningDefinition, all_categories: List[str]):
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
         self.__category_balancer = category_balancer
         self.__all_categories = all_categories
         self.__all_int_categories = None
-        self.__model = model
+        self.__neural_net = neural_net
         self.__learning_def = learning_def
         self.__parameters = parameters
         self.__num_folds = parameters.num_folds
@@ -40,17 +44,49 @@ class CrossValidator(ABC):
         self.__train_time = ""
         self.__val_time = 0
 
-        # TODO: logger should probably be initialized here too
         tbx_name = parameters.study_name + "/tensorboardX_runs"
         self.__tbx_path = utils.create_dir(join(utils.get_root_path("Results"), tbx_name))
-
         self.__writer = SummaryWriter(self.tbx_path)
+
+        results_log_subdir = self.parameters.study_name + "/learning_logs"
+        self.__results_log_path = utils.create_dir(join(utils.get_root_path("Results"), results_log_subdir))
+        self.__result_logger = self.define_result_logger()
 
         # create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
         # below
         self.__confusion_matrix = torch.zeros(len(all_categories), len(all_categories))
 
         # self._confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
+
+    def define_result_logger(self) -> logging.Logger:
+        """
+        Creates a custom logger to write the results of the cross validation on the console and file.
+
+        Returns:
+            logger(Logging.logger): the logger used to report statistical results.
+
+        """
+        # Create a custom logger
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.DEBUG)
+
+        # Create handlers
+        c_handler = logging.StreamHandler()
+        c_handler.setLevel(logging.INFO)
+
+        filename = self.parameters.study_name + "-" + self.neural_net.name + "-batch-" + \
+               str(self.neural_net.batch_size) + "_learning_logs.txt"
+        results_log_path = join(self.__results_log_path, self.neural_net.name + filename)
+
+        f_handler = logging.FileHandler(filename=results_log_path)
+        f_handler.setLevel(logging.DEBUG)
+
+        # Add handlers to the logger
+        logger.addHandler(c_handler)
+        logger.addHandler(f_handler)
+
+        print(f"Logging into file: {results_log_path}")
+        return logger
 
     @property
     def subject_dict(self) -> types.subj_dataset:
@@ -81,8 +117,8 @@ class CrossValidator(ABC):
         self.__all_int_categories = categories
 
     @property
-    def model(self):
-        return self.__model
+    def neural_net(self):
+        return self.__neural_net
 
     @property
     def learning_def(self) -> LearningDefinition:
@@ -141,6 +177,10 @@ class CrossValidator(ABC):
         return self.__writer
 
     @property
+    def result_logger(self) -> logging.Logger:
+        return self.__result_logger
+
+    @property
     def confusion_matrix(self):
         return self.__confusion_matrix
 
@@ -164,7 +204,7 @@ class CrossValidator(ABC):
             balanced_train = self.category_balancer.balance(train_dataset)
             balanced_val = self.category_balancer.balance(val_dataset)
 
-            print(f"\nNetwork Architecture: {self.model}\n")
+            print(f"\nNetwork Architecture: {self.neural_net}\n")
 
             # starting training with the above-defined parameters
             train_start = time.time()
@@ -177,6 +217,7 @@ class CrossValidator(ABC):
             self.val_time = utils.time_since(val_start)
 
         self.cv_time = utils.time_since(cv_start)
+        self.log_cv_results()
 
     @abstractmethod
     def _get_data_and_labels(self, python_dataset):
@@ -215,7 +256,6 @@ class CrossValidator(ABC):
             avg_losses.append(epoch_loss / self.num_folds)
         return avg_losses
 
-
     def mix_subj_data(self, subj_dict: types.subj_dataset) -> Tuple[List[np.ndarray], List[str]]:
         """
         Creates a dataset of chunks of all subjects with the corresponding categories. At this point the subject data
@@ -225,7 +265,8 @@ class CrossValidator(ABC):
             subj_dict (dict): a dictionary mapping a subject name to a Subject object
 
         Returns:
-            all_data (ndarray): a 2D numpy array containing the train dataset of shape (instances per sample x number of features)
+            all_data (ndarray): a 2D numpy array containing the train dataset of shape (instances per sample x number
+            of features)
             all_cat (ndarray): a 1D numpy arrray containing the category labels of all_data, of shape (number of
                 chunks).
         """
@@ -241,3 +282,54 @@ class CrossValidator(ABC):
                 all_cat.append(subj.categories[i])
 
         return all_data, all_cat
+
+    def log_cv_results(self):
+        now = datetime.now()
+        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}")
+
+        self.result_logger.debug(f"System information: {str(platform.uname())}\n")
+
+        self.result_logger.info(f"Dataset Name: {self.parameters.study_name}\n")
+        self.result_logger.info(f"Neural Network: {self.neural_net.name}\n")
+
+        self.result_logger.info(str(self.neural_net) + "\n\n")
+
+        self.result_logger.debug(f"Number of original unprocessed attributes: {str(self.parameters.num_attr)}\n")
+        self.result_logger.debug(f"Columns used: {str(self.parameters.relevant_columns)}\n\n")
+
+        if self.parameters.neural_net:
+            self.result_logger.info(f"Was cuda used? - " + str(self.learning_def.use_cuda) + "\n")
+            self.result_logger.info(
+                f"Number of Epochs per cross-validation pass: {str(self.learning_def.num_epochs)}\n")
+            self.result_logger.info(f"Sequence Length: {str(self.parameters.samples_per_chunk)}\n")
+            self.result_logger.info(f"Learning rate: {str(self.learning_def.learning_rate)}\n\n")
+            self.result_logger.info(f"Batch size: {str(self.learning_def.batch_size)}\n\n")
+            self.result_logger.info(f"Dropout Rate: {str(self.learning_def.dropout_rate)}\n\n")
+
+        # some evaluation metrics
+        self.result_logger.info(
+            f"Training loss of last epoch (avg over cross-validation folds): {str(self.avg_train_losses[-1])}\n")
+
+        # metrics more specific to the cv type
+        self._log_specific_results()
+
+        # adding performance information
+        self.result_logger.info(f"Performance Metrics:\n")
+        self.result_logger.info(f"Number of threads: {str(self.parameters.num_threads)}\n")
+        self.result_logger.info(
+            f"Total cross-validation time ({str(self.parameters.num_folds)} - Fold): {str(self.cv_time)}\n")
+        self.result_logger.info(f"Train time (over last cross-validation pass): {str(self.train_time)}\n")
+        self.result_logger.info(f"Test time (over last cross-validation pass): {str(self.val_time)}\n")
+        self.result_logger.debug("\n*******************************************************************\n\n\n")
+
+        # close and detach all handlers
+        handlers = self.result_logger.handlers[:]
+        for handler in handlers:
+            handler.close()
+            self.result_logger.removeHandler(handler)
+
+        logging.shutdown()
+
+    @abstractmethod
+    def _log_specific_results(self):
+        pass

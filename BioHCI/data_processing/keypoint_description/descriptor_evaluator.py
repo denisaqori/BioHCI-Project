@@ -332,7 +332,7 @@ class DescriptorEvaluator:
 
     def log_statistics(self) -> None:
         """
-        Calls get_category_distance_stats() to obtain distance statistics among tensors, and logs the results in in a
+        Calls get_category_distance_stats() to obtain distance statistics among tensors, and logs the results in a
         text file named after the descriptor evaluator, together with the fully computed heatmap.
 
         Returns: None
@@ -381,6 +381,8 @@ class DescriptorEvaluator:
         for handler in handlers:
             handler.close()
             self.result_logger.removeHandler(handler)
+
+        logging.shutdown()
 
     def generate_heatmap_fig_from_obj(self, heatmap: np.ndarray) -> None:
         """

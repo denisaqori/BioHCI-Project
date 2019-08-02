@@ -84,13 +84,13 @@ def main():
     assert parameters.neural_net is True
     learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
                                            use_cuda=args.cuda)
-    model = LSTM(nn_learning_def=learning_def)
+    neural_net = LSTM(nn_learning_def=learning_def)
     if args.cuda:
-        model.cuda()
+        neural_net.cuda()
 
     # cross-validation
     assert parameters.neural_net is True
-    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, model, parameters,
+    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, neural_net, parameters,
                           learning_def, datast_categories)
 
     cv.perform_cross_validation()

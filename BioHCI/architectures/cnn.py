@@ -1,12 +1,14 @@
 import torch.nn as nn
 import torch
 
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 
-class CNN(nn.Module):
+
+class CNN(AbstractNeuralNetwork):
     def __init__(self, input_size, hidden_size, output_size):
         super(CNN, self).__init__()
 
-        self.name = "CNN"
+        self.__name = "CNN"
         self.hidden_size = hidden_size
 
         self.conv1 = nn.Sequential(  # data_chunk_tensor has shape: (batch_size x samples_per_step x num_attr)
@@ -61,3 +63,7 @@ class CNN(nn.Module):
         print("Output of the forward step: ", output)
 
         return output
+
+    @property
+    def name(self) -> str:
+        return self.__name

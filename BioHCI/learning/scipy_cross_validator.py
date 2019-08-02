@@ -6,6 +6,9 @@ from sklearn.metrics import confusion_matrix
 
 class ScipyCrossValidator(CrossValidator):
 
+    def _log_specific_results(self):
+        pass
+
     # the number for samples per step needs to not be magic (but should be able to be different from samples_per_step)
     def __init__(self, subject_dict, data_splitter, feature_constructor, model, parameter,
                  learning_def, all_categories):

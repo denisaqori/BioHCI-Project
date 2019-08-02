@@ -2,12 +2,12 @@ import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
 from os.path import join
 from tensorboardX import SummaryWriter
-import os
 import numpy as np
 from torch.optim.optimizer import Optimizer
 from typing import List
@@ -18,12 +18,12 @@ from typing import List
 
 
 class Trainer:
-    def __init__(self, train_data_loader: DataLoader, model, optimizer: Optimizer, criterion,
-                 all_int_categories: np.ndarray, neural_network_def: NeuralNetworkDefinition, parameters:
+    def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
+                 criterion, all_int_categories: np.ndarray, neural_network_def: NeuralNetworkDefinition, parameters:
                  StudyParameters, summary_writer: SummaryWriter) -> None:
         print("\nInitializing Training...")
 
-        self.__model = model
+        self.__neural_net = neural_net
         self.__optimizer = optimizer
         self.__criterion = criterion
         self.__num_epochs = neural_network_def.num_epochs
@@ -87,7 +87,7 @@ class Trainer:
         # or every chunk/sequence of data producing an output layer, and
         # a hidden layer; the hidden layer goes in the architectures its next run
         # together with a new input - workings internal to the architectures at this point
-        output = self.__model(input)
+        output = self.__neural_net(input)
 
         # compute loss
         loss = self.__criterion(output, label)
@@ -146,7 +146,7 @@ class Trainer:
                         # print ("Correct Guess")
                         correct += 1
 
-            for name, param in self.__model.named_parameters():
+            for name, param in self.__neural_net.named_parameters():
                 self.__writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
             accuracy = correct / total
@@ -164,7 +164,7 @@ class Trainer:
             current_loss = 0
 
         # save trained learning
-        torch.save(self.__model, self.model_path)
+        torch.save(self.__neural_net, self.model_path)
 
         return all_losses, all_accuracies
 
@@ -177,5 +177,5 @@ class Trainer:
         return self.__epoch_accuracies
 
     def __produce_model_name(self):
-        name = self.__parameters.study_name + "-" + self.__model.name + "-batch-" + str(self.__batch_size) + "_test.pt"
+        name = self.__parameters.study_name + "-" + self.__neural_net.name + "-batch-" + str(self.__batch_size) + "_test.pt"
         return name

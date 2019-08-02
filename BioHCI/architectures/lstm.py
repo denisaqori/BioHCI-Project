@@ -2,15 +2,17 @@ import torch.nn as nn
 from torch.autograd import Variable
 import torch
 
-
 # Some bases from http://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
 # Also thanks to: https://github.com/yunjey/pytorch-tutorial and https://github.com/MorvanZhou/PyTorch-Tutorial
-class LSTM(nn.Module):
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
+
+
+class LSTM(AbstractNeuralNetwork):
 
     def __init__(self, nn_learning_def):
         super(LSTM, self).__init__()
 
-        self.name = "LSTM"
+        self.__name = "LSTM"
         self.input_size = nn_learning_def.input_size
         self.hidden_size = nn_learning_def.num_hidden
         self.output_size = nn_learning_def.output_size
@@ -63,3 +65,7 @@ class LSTM(nn.Module):
 
         output = self.softmax(output)
         return output
+
+    @property
+    def name(self) -> str:
+        return self.__name

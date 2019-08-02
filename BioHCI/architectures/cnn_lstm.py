@@ -2,12 +2,14 @@ import torch.nn as nn
 from torch.autograd import Variable
 import torch
 
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 
-class CNN_LSTM(nn.Module):
+class CNN_LSTM(AbstractNeuralNetwork):
+
     def __init__(self, nn_learning_def):
         super(CNN_LSTM, self).__init__()
 
-        self.name = "CNN_LSTM"
+        self.__name = "CNN_LSTM"
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size
@@ -76,3 +78,7 @@ class CNN_LSTM(nn.Module):
 
         output = self.softmax(output)
         return output
+
+    @property
+    def name(self):
+        return self.__name
