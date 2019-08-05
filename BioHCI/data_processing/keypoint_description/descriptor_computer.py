@@ -7,7 +7,7 @@ import torch
 import os
 from BioHCI.data_processing.keypoint_description.interval_descriptor import IntervalDescription
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
-from BioHCI.data_processing.keypoint_description.sequence_length import SequenceLength
+from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.helpers import utilities as utils
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.helpers.study_config import StudyConfig
@@ -25,7 +25,7 @@ import time
 
 class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
-                 normalize: bool, seq_len: SequenceLength, extra_name: str = "") -> None:
+                 normalize: bool, seq_len: SeqLen, extra_name: str = "") -> None:
 
         print("\nProducing dataset descriptors...\n")
         self.desc_type = desc_type
@@ -247,11 +247,11 @@ class DescriptorComputer:
         Returns:
 
         """
-        if self.seq_len == SequenceLength.Existing:
+        if self.seq_len == SeqLen.Existing:
             print(
                 f"Only the descriptors discovered are going to be included in the dataset, without any oversampling "
                 f"or undersampling. The length of the descriptor sequence that represents each sample may vary.")
-        elif self.seq_len == SequenceLength.ZeroPad:
+        elif self.seq_len == SeqLen.ZeroPad:
             print(
                 f"Padding samples with zeros so that each sequence has the same desriptor length. ")
 
@@ -266,7 +266,7 @@ class DescriptorComputer:
                     num_rows_to_add = max_len - sample.shape[0]
                     subject.data[i] = np.pad(subject.data[i], [(0, num_rows_to_add), (0, 0)], mode='constant',
                                              constant_values=0)
-        elif self.seq_len == SequenceLength.ExtendEdge:
+        elif self.seq_len == SeqLen.ExtendEdge:
             print(
                 f"Padding samples with the last descriptor so that each sequence has the same desriptor length. ")
 
@@ -280,7 +280,7 @@ class DescriptorComputer:
                 for i, sample in enumerate(subject.data):
                     num_rows_to_add = max_len - sample.shape[0]
                     subject.data[i] = np.pad(subject.data[i], [(0, num_rows_to_add), (0, 0)], mode='edge')
-        elif self.seq_len == SequenceLength.Undersample:
+        elif self.seq_len == SeqLen.Undersample:
             print(f"Padding samples so that each sequence has the same descriptor length. ")
 
             min_len = 200
@@ -315,6 +315,6 @@ if __name__ == "__main__":
     subject_dataset = data.get_subject_dataset()
 
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
-                                             seq_len=SequenceLength.ExtendEdge, extra_name="_test")
+                                             seq_len=SeqLen.ExtendEdge, extra_name="_test")
     descriptors = descriptor_computer.dataset_descriptors
     print("")

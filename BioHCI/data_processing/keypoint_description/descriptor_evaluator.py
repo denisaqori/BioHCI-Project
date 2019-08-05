@@ -22,7 +22,7 @@ from typing import List, Tuple, Optional
 from os.path import join
 import logging
 from datetime import datetime
-from BioHCI.data_processing.keypoint_description.sequence_length import SequenceLength
+from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 
 
 class DescriptorEvaluator:
@@ -463,7 +463,7 @@ if __name__ == "__main__":
 
     # create descriptor computer
     desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
-                                       seq_len=SequenceLength.Existing, extra_name="_test")
+                                       seq_len=SeqLen.Existing, extra_name="_test")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")

@@ -7,7 +7,7 @@ from enum import Enum, unique
 
 
 @unique
-class SequenceLength(Enum):
+class SeqLen(Enum):
     Undersample = -1
     Existing = 0
     ZeroPad = 1

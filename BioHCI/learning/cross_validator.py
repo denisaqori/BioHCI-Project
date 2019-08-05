@@ -23,7 +23,7 @@ from BioHCI.definitions.study_parameters import StudyParameters
 class CrossValidator(ABC):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
-    StudyParameters, learning_def: LearningDefinition, all_categories: List[str]):
+    StudyParameters, learning_def: LearningDefinition, all_categories: List[str], extra_model_name: str = ""):
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
@@ -34,6 +34,7 @@ class CrossValidator(ABC):
         self.__learning_def = learning_def
         self.__parameters = parameters
         self.__num_folds = parameters.num_folds
+        self.__extra_model_name = extra_model_name
 
         self.__all_val_accuracies = []
         self.__all_train_accuracies = []
@@ -51,6 +52,11 @@ class CrossValidator(ABC):
         results_log_subdir = self.parameters.study_name + "/learning_logs"
         self.__results_log_path = utils.create_dir(join(utils.get_root_path("Results"), results_log_subdir))
         self.__result_logger = self.define_result_logger()
+
+        model_subdir = parameters.study_name + "/trained_models"
+        self.__saved_model_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir))
+
+        utils.cleanup(self.model_dir, "_test")
 
         # create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
         # below
@@ -74,18 +80,16 @@ class CrossValidator(ABC):
         c_handler = logging.StreamHandler()
         c_handler.setLevel(logging.INFO)
 
-        filename = self.parameters.study_name + "-" + self.neural_net.name + "-batch-" + \
-                   str(self.neural_net.batch_size) + "_learning_logs.txt"
-        results_log_path = join(self.__results_log_path, self.neural_net.name + filename)
+        # results_log_path = join(self.__results_log_path, self.neural_net.name + filename)
 
-        f_handler = logging.FileHandler(filename=results_log_path)
+        f_handler = logging.FileHandler(filename=self.logfile_path)
         f_handler.setLevel(logging.DEBUG)
 
         # Add handlers to the logger
         logger.addHandler(c_handler)
         logger.addHandler(f_handler)
 
-        print(f"Logging into file: {results_log_path}")
+        print(f"Logging into file: {self.logfile_path}")
         return logger
 
     @property
@@ -109,11 +113,11 @@ class CrossValidator(ABC):
         return self.__all_categories
 
     @property
-    def all_int_categories(self) -> List[int]:
+    def all_int_categories(self) -> np.ndarray:
         return self.__all_int_categories
 
     @all_int_categories.setter
-    def all_int_categories(self, categories: Optional[List[int]]):
+    def all_int_categories(self, categories: Optional[np.ndarray]):
         self.__all_int_categories = categories
 
     @property
@@ -131,6 +135,31 @@ class CrossValidator(ABC):
     @property
     def num_folds(self) -> int:
         return self.__num_folds
+
+    @property
+    def general_name(self) -> str:
+        name = self.neural_net.name + "-batch-" + str(self.learning_def.batch_size) + "-" + self.extra_model_name
+        return name
+
+    @property
+    def model_name(self) -> str:
+        return self.__model_name
+
+    @model_name.setter
+    def model_name(self, model_name: str):
+        self.__model_name = model_name
+
+    @property
+    def model_path(self) -> str:
+        return self.__model_path
+
+    @model_path.setter
+    def model_path(self, model_path: str):
+        self.__model_path = model_path
+
+    @property
+    def model_dir(self) -> str:
+        return self.__saved_model_dir
 
     @property
     def all_val_accuracies(self) -> List[float]:
@@ -184,6 +213,10 @@ class CrossValidator(ABC):
     def confusion_matrix(self):
         return self.__confusion_matrix
 
+    @property
+    def extra_model_name(self) -> str:
+        return self.__extra_model_name
+
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
@@ -206,14 +239,17 @@ class CrossValidator(ABC):
 
             print(f"\nNetwork Architecture: {self.neural_net}\n")
 
+            self.__model_name = self.__produce_model_name(i)
+            self.__model_path = join(self.__saved_model_dir, self.model_name)
+
             # starting training with the above-defined parameters
             train_start = time.time()
-            self.train(balanced_train, self.writer)
+            self.train(balanced_train)
             self.train_time = utils.time_since(train_start)
 
             # start validating the learning
             val_start = time.time()
-            self.val(balanced_val, self.writer)
+            self.val(balanced_val)
             self.val_time = utils.time_since(val_start)
 
         self.cv_time = utils.time_since(cv_start)
@@ -224,12 +260,29 @@ class CrossValidator(ABC):
         pass
 
     @abstractmethod
-    def train(self, train_dataset, summary_writer):
+    def train(self, train_dataset):
         pass
 
     @abstractmethod
-    def val(self, val_dataset, summary_writer):
+    def val(self, val_dataset):
         pass
+
+    def __produce_model_name(self, i) -> str:
+        # this is the model produced by training over all folds - 1
+        name = self.general_name + "-fold-" + str(i) + "-" + str(self.num_folds) + ".pt"
+        return name
+
+    @property
+    def logfile_path(self) -> str:
+        name = self.general_name + "_learning_logs.txt"
+        results_log_path = join(self.__results_log_path, name)
+        return results_log_path
+
+    @property
+    def confusion_matrix_path(self) -> str:
+        name = self.general_name + "_confusion_matrix.png"
+        confusion_path = join(self.__results_log_path, name)
+        return confusion_path
 
     @property
     def avg_train_accuracy(self) -> float:
@@ -237,13 +290,13 @@ class CrossValidator(ABC):
 
         # return the average by dividing the sum by the number of folds (= number of accuracies added)
         avg_accuracy = sum(self.all_train_accuracies) / float(len(self.all_train_accuracies))
-        print("\nAverage train accuracy over", self.num_folds, "is", avg_accuracy)
+        print(f"Average train accuracy over {self.num_folds} folds is  {avg_accuracy:.3f}")
         return avg_accuracy
 
     @property
     def avg_val_accuracy(self) -> float:
         avg_accuracy = sum(self.all_val_accuracies) / float(len(self.all_val_accuracies))
-        print("\nAverage val accuracy over", self.num_folds, "is", avg_accuracy)
+        print(f"Average validation accuracy over {self.num_folds} folds is {avg_accuracy:.3f}")
         return avg_accuracy
 
     @property
@@ -287,39 +340,39 @@ class CrossValidator(ABC):
         now = datetime.now()
         self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}")
 
-        self.result_logger.debug(f"System information: {str(platform.uname())}")
+        self.result_logger.debug(f"System information: {platform.uname()}")
 
         self.result_logger.info(f"Dataset Name: {self.parameters.study_name}")
         self.result_logger.info(f"Neural Network: {self.neural_net.name}")
 
         self.result_logger.info(str(self.neural_net) + "\n")
 
-        self.result_logger.debug(f"Number of original unprocessed attributes: {str(self.parameters.num_attr)}")
-        self.result_logger.debug(f"Columns used: {str(self.parameters.relevant_columns)}\n")
+        self.result_logger.debug(f"Number of original unprocessed attributes: {self.parameters.num_attr}")
+        self.result_logger.debug(f"Columns used: {self.parameters.relevant_columns}\n")
 
         if self.parameters.neural_net:
-            self.result_logger.info(f"Was cuda used? - {str(self.learning_def.use_cuda)}")
+            self.result_logger.info(f"Was cuda used? - {self.learning_def.use_cuda}")
             self.result_logger.info(
-                f"Number of Epochs per cross-validation pass: {str(self.learning_def.num_epochs)}")
-            self.result_logger.info(f"Sequence Length: {str(self.parameters.samples_per_chunk)}")
-            self.result_logger.info(f"Learning rate: {str(self.learning_def.learning_rate)}")
-            self.result_logger.info(f"Batch size: {str(self.learning_def.batch_size)}")
-            self.result_logger.info(f"Dropout Rate: {str(self.learning_def.dropout_rate)}\n")
+                f"Number of Epochs per cross-validation pass: {self.learning_def.num_epochs}")
+            self.result_logger.info(f"Sequence Length: {self.parameters.samples_per_chunk}")
+            self.result_logger.info(f"Learning rate: {self.learning_def.learning_rate}")
+            self.result_logger.info(f"Batch size: {self.learning_def.batch_size}")
+            self.result_logger.info(f"Dropout Rate: {self.learning_def.dropout_rate}\n")
 
         # some evaluation metrics
         self.result_logger.info(
-            f"Training loss of last epoch (avg over cross-validation folds): {str(self.avg_train_losses[-1])}")
+            f"Training loss of last epoch (avg over cross-validation folds): {self.avg_train_losses[-1]:.3f}")
 
         # metrics more specific to the cv type
         self._log_specific_results()
 
         # adding performance information
         self.result_logger.info(f"Performance Metrics:")
-        self.result_logger.info(f"Number of threads: {str(self.parameters.num_threads)}")
+        self.result_logger.info(f"Number of threads: {self.parameters.num_threads}")
         self.result_logger.info(
-            f"Total cross-validation time ({str(self.parameters.num_folds)} - Fold): {str(self.cv_time)}")
-        self.result_logger.info(f"Train time (over last cross-validation pass): {str(self.train_time)}")
-        self.result_logger.info(f"Test time (over last cross-validation pass): {str(self.val_time)}")
+            f"Total cross-validation time ({self.parameters.num_folds} - Fold): {self.cv_time}")
+        self.result_logger.info(f"Train time (over last cross-validation pass): {self.train_time}")
+        self.result_logger.info(f"Test time (over last cross-validation pass): {self.val_time}")
         self.result_logger.debug(
             "\n******************************************************************************************************\n")
 

@@ -6,7 +6,7 @@ from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
-from BioHCI.data_processing.keypoint_description.sequence_length import SequenceLength
+from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
 from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
 from BioHCI.data_processing.stat_feature_constructor import StatFeatureConstructor
@@ -65,7 +65,7 @@ def main():
     category_balancer = WithinSubjectOversampler()
 
     descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
-                                             seq_len=SequenceLength.ZeroPad, extra_name="_pipeline_test")
+                                             seq_len=SeqLen.ZeroPad, extra_name="_pipeline_test")
     #
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
@@ -90,7 +90,7 @@ def main():
     # cross-validation
     assert parameters.neural_net is True
     cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, neural_net, parameters,
-                          learning_def, datast_categories)
+                          learning_def, datast_categories, descriptor_computer.dataset_desc_name)
 
     cv.perform_cross_validation()
 

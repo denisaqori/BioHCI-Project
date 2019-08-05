@@ -20,6 +20,11 @@ class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
                  criterion, all_int_categories: np.ndarray, neural_network_def: NeuralNetworkDefinition, parameters:
                  StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
+        """
+
+        Returns:
+            object: 
+        """
         print("\nInitializing Training...")
 
         self.__neural_net = neural_net
