@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 import BioHCI.helpers.type_aliases as types
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 from BioHCI.data.data_splitter import DataSplitter
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
@@ -16,26 +17,36 @@ from BioHCI.helpers import utilities as utils
 from BioHCI.learning.cross_validator import CrossValidator
 from BioHCI.learning.evaluator import Evaluator
 from BioHCI.learning.trainer import Trainer
+from os.path import join
 
 
 class NNCrossValidator(CrossValidator):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
-            FeatureConstructor, category_balancer: CategoryBalancer, model, parameter: StudyParameters, learning_def: \
-            NeuralNetworkDefinition, all_categories:List[str]):
+    FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
+    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str]):
         # this list contains lists of accur   acies for each epoch. There will be self._num_folds lists of _num_epochs
         # elements in this list after all training is done
         self.__all_epoch_train_accuracies = []
 
         super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor, category_balancer,
-                                               model, parameter, learning_def, all_categories)
+                                               neural_net, parameters, learning_def, all_categories)
         # the stochastic gradient descent function to update weights a        self.perform_cross_validation()nd biases
-        self.__optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_def.learning_rate)
+        self.__optimizer = torch.optim.Adam(self.neural_net.parameters(), lr=learning_def.learning_rate)
         # the negative log likelihood loss function - useful to train classification problems with C classes
         self.__criterion = nn.NLLLoss()
 
-        assert (parameter.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
+        assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
                                                "trying to instantiate a NNCrossValidator object!"
+
+        self.__model_name = self.__produce_model_name()
+
+        model_subdir = parameters.study_name + "/trained_models"
+        self.__saved_model_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir))
+        # create the full name of the dataset as well, without the path to get there
+        self.__model_path = join(self.__saved_model_dir, self.model_name)
+
+        utils.cleanup(self.model_dir, "_test")
 
     @property
     def all_epoch_train_accuracies(self) -> List[float]:
@@ -48,6 +59,18 @@ class NNCrossValidator(CrossValidator):
     @property
     def criterion(self):
         return self.__criterion
+
+    @property
+    def model_name(self) -> str:
+        return self.__model_name
+
+    @property
+    def model_path(self) -> str:
+        return self.__model_path
+
+    @property
+    def model_dir(self) -> str:
+        return self.__saved_model_dir
 
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
@@ -79,8 +102,8 @@ class NNCrossValidator(CrossValidator):
     # epoch to the respective list in the CrossValidator objectstandout
     def train(self, train_dataset, summary_writer):
         train_data_loader = self._get_data_and_labels(train_dataset)
-        trainer = Trainer(train_data_loader, self.model, self.optimizer, self.criterion, self.all_int_categories,
-                          self.learning_def, self.parameters, summary_writer)
+        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion, self.all_int_categories,
+                          self.learning_def, self.parameters, summary_writer, self.model_path)
 
         # get the loss over all epochs for this cv-fold and append it to the list
         self.all_epoch_train_losses.append(trainer.epoch_losses)
@@ -96,14 +119,7 @@ class NNCrossValidator(CrossValidator):
     # evaluate the learning created during training on the validation dataset
     def val(self, val_dataset, summary_writer):
         val_data_loader = self._get_data_and_labels(val_dataset)
-
-        # this is the architectures produces by training over the other folds
-        model_name = self.parameters.study_name + "-" + self.model.name + "-batch-" \
-                     + str(self.learning_def.batch_size) + "-seqSize-" \
-                     + str(self.parameters.samples_per_chunk) + ".pt"
-
-        saved_models_root = utils.get_root_path("saved_objects")
-        model_to_eval = torch.load(os.path.join(saved_models_root, model_name))
+        model_to_eval = torch.load(self.model_path)
 
         evaluator = Evaluator(val_data_loader, model_to_eval, self.all_int_categories, self.confusion_matrix,
                               self.learning_def, summary_writer)
@@ -112,8 +128,14 @@ class NNCrossValidator(CrossValidator):
         self.all_val_accuracies.append(fold_accuracy)
 
     def _log_specific_results(self):
-        self.result_logger.debug(f"All fold train accuracies (all epochs): {str(self.all_epoch_train_accuracies)}\n\n")
-        self.result_logger.info(f"All fold train accuracies: {str(self.all_train_accuracies)}\n")
-        self.result_logger.info(f"Average train accuracy: {str(self.avg_train_accuracy)}\n\n")
-        self.result_logger.info(f"All fold validation accuracies: {str(self.all_val_accuracies)}\n")
-        self.result_logger.info(f"Average validation accuracy: {str(self.avg_val_accuracy)}\n\n")
+        self.result_logger.debug(f"All fold train accuracies (all epochs): {str(self.all_epoch_train_accuracies)}")
+        self.result_logger.info(f"All fold train accuracies: {str(self.all_train_accuracies)}")
+        self.result_logger.info(f"Average train accuracy: {str(self.avg_train_accuracy)}")
+        self.result_logger.info(f"All fold validation accuracies: {str(self.all_val_accuracies)}")
+        self.result_logger.info(f"Average validation accuracy: {str(self.avg_val_accuracy)}\n")
+
+    def __produce_model_name(self) -> str:
+        # this is the model produced by training over all folds - 1
+        name = self.parameters.study_name + "-" + self.neural_net.name + "-batch-" + str(
+            self.learning_def.batch_size) + ".pt"
+        return name

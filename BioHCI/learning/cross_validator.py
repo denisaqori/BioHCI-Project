@@ -75,7 +75,7 @@ class CrossValidator(ABC):
         c_handler.setLevel(logging.INFO)
 
         filename = self.parameters.study_name + "-" + self.neural_net.name + "-batch-" + \
-               str(self.neural_net.batch_size) + "_learning_logs.txt"
+                   str(self.neural_net.batch_size) + "_learning_logs.txt"
         results_log_path = join(self.__results_log_path, self.neural_net.name + filename)
 
         f_handler = logging.FileHandler(filename=results_log_path)
@@ -287,40 +287,41 @@ class CrossValidator(ABC):
         now = datetime.now()
         self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}")
 
-        self.result_logger.debug(f"System information: {str(platform.uname())}\n")
+        self.result_logger.debug(f"System information: {str(platform.uname())}")
 
-        self.result_logger.info(f"Dataset Name: {self.parameters.study_name}\n")
-        self.result_logger.info(f"Neural Network: {self.neural_net.name}\n")
+        self.result_logger.info(f"Dataset Name: {self.parameters.study_name}")
+        self.result_logger.info(f"Neural Network: {self.neural_net.name}")
 
-        self.result_logger.info(str(self.neural_net) + "\n\n")
+        self.result_logger.info(str(self.neural_net) + "\n")
 
-        self.result_logger.debug(f"Number of original unprocessed attributes: {str(self.parameters.num_attr)}\n")
-        self.result_logger.debug(f"Columns used: {str(self.parameters.relevant_columns)}\n\n")
+        self.result_logger.debug(f"Number of original unprocessed attributes: {str(self.parameters.num_attr)}")
+        self.result_logger.debug(f"Columns used: {str(self.parameters.relevant_columns)}\n")
 
         if self.parameters.neural_net:
-            self.result_logger.info(f"Was cuda used? - " + str(self.learning_def.use_cuda) + "\n")
+            self.result_logger.info(f"Was cuda used? - {str(self.learning_def.use_cuda)}")
             self.result_logger.info(
-                f"Number of Epochs per cross-validation pass: {str(self.learning_def.num_epochs)}\n")
-            self.result_logger.info(f"Sequence Length: {str(self.parameters.samples_per_chunk)}\n")
-            self.result_logger.info(f"Learning rate: {str(self.learning_def.learning_rate)}\n\n")
-            self.result_logger.info(f"Batch size: {str(self.learning_def.batch_size)}\n\n")
-            self.result_logger.info(f"Dropout Rate: {str(self.learning_def.dropout_rate)}\n\n")
+                f"Number of Epochs per cross-validation pass: {str(self.learning_def.num_epochs)}")
+            self.result_logger.info(f"Sequence Length: {str(self.parameters.samples_per_chunk)}")
+            self.result_logger.info(f"Learning rate: {str(self.learning_def.learning_rate)}")
+            self.result_logger.info(f"Batch size: {str(self.learning_def.batch_size)}")
+            self.result_logger.info(f"Dropout Rate: {str(self.learning_def.dropout_rate)}\n")
 
         # some evaluation metrics
         self.result_logger.info(
-            f"Training loss of last epoch (avg over cross-validation folds): {str(self.avg_train_losses[-1])}\n")
+            f"Training loss of last epoch (avg over cross-validation folds): {str(self.avg_train_losses[-1])}")
 
         # metrics more specific to the cv type
         self._log_specific_results()
 
         # adding performance information
-        self.result_logger.info(f"Performance Metrics:\n")
-        self.result_logger.info(f"Number of threads: {str(self.parameters.num_threads)}\n")
+        self.result_logger.info(f"Performance Metrics:")
+        self.result_logger.info(f"Number of threads: {str(self.parameters.num_threads)}")
         self.result_logger.info(
-            f"Total cross-validation time ({str(self.parameters.num_folds)} - Fold): {str(self.cv_time)}\n")
-        self.result_logger.info(f"Train time (over last cross-validation pass): {str(self.train_time)}\n")
-        self.result_logger.info(f"Test time (over last cross-validation pass): {str(self.val_time)}\n")
-        self.result_logger.debug("\n*******************************************************************\n\n\n")
+            f"Total cross-validation time ({str(self.parameters.num_folds)} - Fold): {str(self.cv_time)}")
+        self.result_logger.info(f"Train time (over last cross-validation pass): {str(self.train_time)}")
+        self.result_logger.info(f"Test time (over last cross-validation pass): {str(self.val_time)}")
+        self.result_logger.debug(
+            "\n******************************************************************************************************\n")
 
         # close and detach all handlers
         handlers = self.result_logger.handlers[:]

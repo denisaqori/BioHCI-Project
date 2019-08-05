@@ -6,7 +6,6 @@ from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
-from os.path import join
 from tensorboardX import SummaryWriter
 import numpy as np
 from torch.optim.optimizer import Optimizer
@@ -20,7 +19,7 @@ from typing import List
 class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
                  criterion, all_int_categories: np.ndarray, neural_network_def: NeuralNetworkDefinition, parameters:
-                 StudyParameters, summary_writer: SummaryWriter) -> None:
+                 StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
         print("\nInitializing Training...")
 
         self.__neural_net = neural_net
@@ -30,32 +29,17 @@ class Trainer:
         self.__samples_per_chunk = parameters.samples_per_chunk
         self.__batch_size = neural_network_def.batch_size
         self.__use_cuda = neural_network_def.use_cuda
+        self.__model_path = model_path
 
         self.__all_int_categories = all_int_categories
         self.__parameters = parameters
         self.__writer = summary_writer
 
-        model_subdir = self.__parameters.study_name + "/trained_models"
-        self.__saved_model_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir))
-        # create the full name of the dataset as well, without the path to get there
-        self.__model_name = self.__produce_model_name()
-        self.__model_path = join(self.__saved_model_dir, self.model_name)
-
-        utils.cleanup(self.model_dir, "_test")
-
         self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
-
-    @property
-    def model_name(self) -> str:
-        return self.__model_name
 
     @property
     def model_path(self) -> str:
         return self.__model_path
-
-    @property
-    def model_dir(self) -> str:
-        return self.__saved_model_dir
 
     # this method returns the category based on the architectures output - each category will be associated with a likelihood
     # topk is used to get the index of highest value
@@ -175,7 +159,3 @@ class Trainer:
     @property
     def epoch_accuracies(self):
         return self.__epoch_accuracies
-
-    def __produce_model_name(self):
-        name = self.__parameters.study_name + "-" + self.__neural_net.name + "-batch-" + str(self.__batch_size) + "_test.pt"
-        return name

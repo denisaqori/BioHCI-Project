@@ -13,7 +13,6 @@ from BioHCI.data_processing.stat_feature_constructor import StatFeatureConstruct
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.learning.nn_cross_validator import NNCrossValidator
-from BioHCI.helpers.result_logger import Logging
 
 from BioHCI.visualizers.raw_data_visualizer import RawDataVisualizer
 from BioHCI.helpers.study_config import StudyConfig
@@ -94,11 +93,6 @@ def main():
                           learning_def, datast_categories)
 
     cv.perform_cross_validation()
-
-    # results of run
-    # log_dir_path = "Results/" + parameters.study_name + "/run summaries"
-    # logging = Logging(log_dir_path, parameters, data, learning_def, cv)
-    # logging.log_to_file()
 
     print("\nEnd of main program.")
 
