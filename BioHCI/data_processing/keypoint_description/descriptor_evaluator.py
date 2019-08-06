@@ -462,8 +462,8 @@ if __name__ == "__main__":
     heatmap_global = shared_array.reshape(heatmap_shape)
 
     # create descriptor computer
-    desc_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
-                                       seq_len=SeqLen.Existing, extra_name="_test")
+    desc_computer = DescriptorComputer(DescType.MSD, subject_dataset, parameters, seq_len=SeqLen.Existing,
+                                       extra_name="_test")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
     # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")

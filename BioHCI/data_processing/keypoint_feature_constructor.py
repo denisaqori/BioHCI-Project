@@ -23,7 +23,7 @@ class KeypointFeatureConstructor(FeatureConstructor):
 
         super().__init__(parameters)
 
-        if self.descriptor_computer.desc_type == DescType.JUSD:
+        if self.descriptor_computer.desc_type == DescType.MSD:
             self.__mult_attr = 8
         elif self.descriptor_computer.desc_type == DescType.MSBSD:
             self.__mult_attr = 16
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     category_balancer = WithinSubjectOversampler()
     dataset_processor = StatDatasetProcessor(parameters, balancer=category_balancer)
 
-    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True, extra_name="")
+    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, normalize=True, extra_name="")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
     feature_dataset = feature_constructor.produce_feature_dataset(subject_dict)

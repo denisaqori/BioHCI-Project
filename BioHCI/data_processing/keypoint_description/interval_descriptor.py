@@ -2,9 +2,11 @@
 Created: 3/28/19
 © Denisa Qori McDonald 2019 All Rights Reserved
 """
+import math
+
 import numpy as np
 import scipy.ndimage
-import math
+from sklearn import preprocessing
 
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 
@@ -189,8 +191,9 @@ class IntervalDescription:
 
         else:
             if len(keypoint_list) > 0:
-                if self.desc_type == DescType.JUSD:
+                if self.desc_type == DescType.MSD:
                     descriptors = self._describe_keypoints_1D(octave, keypoint_list, nb, a)
+                    descriptors = self._nomalize_descriptors(descriptors)
                 elif self.desc_type == DescType.MSBSD:
                     descriptors = self._describe_keypoints_2D(octave, keypoint_list, nb, a)
 
@@ -237,6 +240,26 @@ class IntervalDescription:
 
         all_descriptors_1D = np.stack(keypoint_descriptors, axis=0)
         return all_descriptors_1D
+
+    def _nomalize_descriptors(self, keypress):
+        """
+        If the type of descriptor is MSD, first splits each row in half, normalized each half row, and then puts them
+        back together.
+
+        Args:
+            keypress:
+
+        Returns:
+
+        """
+        keypress_split = np.split(keypress, 2, axis=1)
+        normalized_splits = []
+        for split in keypress_split:
+            normalized_split = preprocessing.normalize(split, norm='l2')
+            normalized_splits.append(normalized_split)
+
+        keypress_normalized = np.concatenate(normalized_splits, axis=1)
+        return keypress_normalized
 
     def _compute_dense_descriptors(self, octave, nb, a):
         """
@@ -399,12 +422,9 @@ class IntervalDescription:
 
         gradient = np.gradient(keypoint_neighbourhood)
         # decided to not filter gradients - better class separability
-        filtered_gradient = scipy.ndimage.gaussian_filter1d(input=gradient, sigma=nb * a / 2)
-        filtered_gradient = gradient
-
         point_idx = int(nb * a / 2)
 
-        blocks = self._create_blocks(filtered_gradient, point_idx, a)
+        blocks = self._create_blocks(gradient, point_idx, a)
         gradient_sums = self._get_block_gradients(blocks)
 
         return gradient_sums

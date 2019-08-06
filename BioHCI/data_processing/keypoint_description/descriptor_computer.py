@@ -2,37 +2,36 @@
 Created: 3/28/19
 © Denisa Qori McDonald 2019 All Rights Reserved
 """
+import multiprocessing
+import os
+import pickle
+import time
+from copy import copy
+from os.path import join
+from typing import List, Optional
+
 import numpy as np
 import torch
-import os
-from BioHCI.data_processing.keypoint_description.interval_descriptor import IntervalDescription
-from BioHCI.data_processing.keypoint_description.desc_type import DescType
-from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
-from BioHCI.helpers import utilities as utils
-from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.helpers.study_config import StudyConfig
-from BioHCI.definitions.study_parameters import StudyParameters
-from copy import copy
-import pickle
-from sklearn import preprocessing
-import sys
+
 import BioHCI.helpers.type_aliases as types
-from typing import Optional, List
-from os.path import join
-import multiprocessing
-import time
+from BioHCI.data.data_constructor import DataConstructor
+from BioHCI.data_processing.keypoint_description.desc_type import DescType
+from BioHCI.data_processing.keypoint_description.interval_descriptor import IntervalDescription
+from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
+from BioHCI.definitions.study_parameters import StudyParameters
+from BioHCI.helpers import utilities as utils
+from BioHCI.helpers.study_config import StudyConfig
 
 
 class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
-                 normalize: bool, seq_len: SeqLen, extra_name: str = "") -> None:
+                 seq_len: SeqLen, extra_name: str = "") -> None:
 
         print("\nProducing dataset descriptors...\n")
         self.desc_type = desc_type
         self.__dataset_descriptors = None
 
         self.parameters = parameters
-        self.normalize = normalize
         self.extra_name = extra_name
         self.seq_len = seq_len
 
@@ -46,7 +45,7 @@ class DescriptorComputer:
         self.__desc_obj_path = join(self.__saved_desc_dir, self.dataset_desc_name)
 
         # remove any files remaining from previous tests
-        # utils.cleanup(self.saved_desc_dir, "_test")
+        utils.cleanup(self.saved_desc_dir, "_test")
 
         # create the full path to save the current descriptor if it does not exist, or to load from if it does
         if os.path.exists(self.desc_obj_path):
@@ -112,9 +111,6 @@ class DescriptorComputer:
             print(f"\nComputed dataset descriptors for {len(subject_dataset)} subject(s), using {num_processes} "
                   f"processes, for a duration of {duration_with_pool}")
 
-        if self.normalize:
-            descriptor_subj_dataset = self.normalize_l2(descriptor_subj_dataset)
-
         descriptor_subj_dataset = self.adjust_sequence_length(descriptor_subj_dataset)
 
         self.save_descriptors(descriptor_subj_dataset)
@@ -143,10 +139,6 @@ class DescriptorComputer:
 
         """
         dataset_desc_name = self.parameters.study_name + "_" + str(self.desc_type) + "_" + str(self.seq_len)
-
-        # check if normalization is to happen
-        if self.normalize:
-            dataset_desc_name = dataset_desc_name + "_l2_scaled"
 
         # check if there is an extra name to add to the existing descriptor name
         if self.extra_name is not None:
@@ -184,58 +176,6 @@ class DescriptorComputer:
         if not os.path.exists(self.desc_obj_path):
             with open(self.desc_obj_path, 'wb') as f:
                 pickle.dump(descriptors, f, pickle.HIGHEST_PROTOCOL)
-
-    def normalize_l2(self, dataset_desc: types.subj_dataset):
-        """
-        If the type of descriptor is JUSD, normalizes each instance of dataset_desc - converts each row into unit norm.
-        If the type of descriptor is MSBSD, first splits each row in half, normalized each half row, and then puts them
-        back together.
-
-        Args:
-            dataset_desc:
-
-        Returns:
-
-        """
-        normalized_subj_dataset = {}
-        for subj_name, subj in dataset_desc.items():
-            subj_data = subj.data
-            subj_normalized_keypresses = []
-            for i, keypress in enumerate(subj_data):
-
-                if self.desc_type == DescType.JUSD or self.desc_type == DescType.RawData:
-                    keypress_split = np.split(keypress, 2, axis=1)
-                    normalized_splits = []
-                    for split in keypress_split:
-                        normalized_split = preprocessing.normalize(split, norm='l2')
-                        normalized_splits.append(normalized_split)
-
-                    keypress_normalized = np.concatenate(normalized_splits, axis=1)
-
-                # elif self.desc_type == DescType.MSBSD:
-                #     keypress_split = np.split(keypress, [8, 16], axis=1)
-                #     normalized_splits = []
-                #
-                #     for j, split in enumerate(keypress_split):
-                #         normalized_split = None
-                #         if j == 0 or j == 1:
-                #             normalized_split = preprocessing.normalize(split, norm='l2')
-                #         elif j == 2:
-                #             normalized_split = split
-                #         normalized_splits.append(normalized_split)
-
-                    # keypress_normalized = np.concatenate(normalized_splits, axis=1)
-                else:
-                    print("There is no such descriptor: ", self.desc_type)
-                    sys.exit()
-
-                subj_normalized_keypresses.append(keypress_normalized)
-
-            new_subj = copy(subj)
-            new_subj.data = subj_normalized_keypresses
-            normalized_subj_dataset[subj_name] = new_subj
-
-        return normalized_subj_dataset
 
     def adjust_sequence_length(self, descriptor_dataset: types.subj_dataset) -> types.subj_dataset:
         """
@@ -314,7 +254,7 @@ if __name__ == "__main__":
     data = DataConstructor(parameters)
     subject_dataset = data.get_subject_dataset()
 
-    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dataset, parameters, normalize=True,
-                                             seq_len=SeqLen.ExtendEdge, extra_name="_test")
+    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dataset, parameters, seq_len=SeqLen.ExtendEdge,
+                                             extra_name="_test2")
     descriptors = descriptor_computer.dataset_descriptors
     print("")

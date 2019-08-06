@@ -64,8 +64,8 @@ def main():
     data_splitter = WithinSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
-    descriptor_computer = DescriptorComputer(DescType.JUSD, subject_dict, parameters, normalize=True,
-                                             seq_len=SeqLen.ZeroPad, extra_name="_pipeline_test")
+    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ZeroPad,
+                                             extra_name="_pipeline_test")
     #
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 

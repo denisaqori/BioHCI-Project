@@ -20,6 +20,6 @@ _StudyParameters__interval_overlap = false
 _StudyParameters__construct_features = true
 _StudyParameters__feature_window = 1000
 _StudyParameters__feature_overlap = false
-_StudyParameters__num_folds = 5
+_StudyParameters__num_folds = 2
 _StudyParameters__num_threads = 12
 _StudyParameters__neural_net = true

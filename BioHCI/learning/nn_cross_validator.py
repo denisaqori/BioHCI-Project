@@ -29,7 +29,7 @@ class NNCrossValidator(CrossValidator):
 
         super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor, category_balancer,
                                                neural_net, parameters, learning_def, all_categories, extra_model_name)
-        # the stochastic gradient descent function to update weights a        self.perform_cross_validation()nd biases
+        # the stochastic gradient descent function to update weights a self.perform_cross_validation()nd biases
         self.__optimizer = torch.optim.Adam(self.neural_net.parameters(), lr=learning_def.learning_rate)
         # the negative log likelihood loss function - useful to train classification problems with C classes
         self.__criterion = nn.NLLLoss()
@@ -105,8 +105,15 @@ class NNCrossValidator(CrossValidator):
         self.all_val_accuracies.append(fold_accuracy)
 
     def _log_specific_results(self):
-        self.result_logger.debug(f"All fold train accuracies (all epochs): {self.all_epoch_train_accuracies}")
-        self.result_logger.info(f"All fold train accuracies: {self.all_train_accuracies}")
-        self.result_logger.info(f"Average train accuracy: {self.avg_train_accuracy:.3f}")
-        self.result_logger.info(f"All fold validation accuracies: {self.all_val_accuracies:}")
-        self.result_logger.info(f"Average validation accuracy: {self.avg_val_accuracy:.3f}\n")
+        self.result_logger.debug(f"All fold train accuracies (all epochs): ")
+        for ls in self.all_epoch_train_accuracies:
+            self.result_logger.debug(self._format_list(ls))
+        self.result_logger.info(f"All fold train accuracies: {self._format_list(self.all_train_accuracies)}")
+        self.result_logger.info(f"Average train accuracy: {self.avg_train_accuracy:.2f}")
+        self.result_logger.info(f"All fold validation accuracies: {self._format_list(self.all_val_accuracies)}")
+        self.result_logger.info(f"Average validation accuracy: {self.avg_val_accuracy:.2f}\n")
+
+    def _format_list(self, float_ls: List[float]) -> List[str]:
+        my_formatted_list = ['%.2f' % elem for elem in float_ls]
+        return my_formatted_list
+

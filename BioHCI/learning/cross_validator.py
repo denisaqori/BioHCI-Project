@@ -269,7 +269,7 @@ class CrossValidator(ABC):
 
     def __produce_model_name(self, i) -> str:
         # this is the model produced by training over all folds - 1
-        name = self.general_name + "-fold-" + str(i) + "-" + str(self.num_folds) + ".pt"
+        name = self.general_name + "-fold-" + str(i + 1) + "-" + str(self.num_folds) + ".pt"
         return name
 
     @property
@@ -361,7 +361,7 @@ class CrossValidator(ABC):
 
         # some evaluation metrics
         self.result_logger.info(
-            f"Training loss of last epoch (avg over cross-validation folds): {self.avg_train_losses[-1]:.3f}")
+            f"Training loss of last epoch (avg over cross-validation folds): {self.avg_train_losses[-1]:.2f}")
 
         # metrics more specific to the cv type
         self._log_specific_results()
@@ -374,7 +374,7 @@ class CrossValidator(ABC):
         self.result_logger.info(f"Train time (over last cross-validation pass): {self.train_time}")
         self.result_logger.info(f"Test time (over last cross-validation pass): {self.val_time}")
         self.result_logger.debug(
-            "\n******************************************************************************************************\n")
+            "\n***************************************************************************************************\n\n")
 
         # close and detach all handlers
         handlers = self.result_logger.handlers[:]
