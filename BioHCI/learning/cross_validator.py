@@ -4,10 +4,11 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import join
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
-import torch
+import seaborn as sns
 from tensorboardX import SummaryWriter
 
 import BioHCI.helpers.type_aliases as types
@@ -28,8 +29,7 @@ class CrossValidator(ABC):
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
         self.__category_balancer = category_balancer
-        self.__all_categories = all_categories
-        self.__all_int_categories = None
+        self.__category_map = utils.map_categories(all_categories)
         self.__neural_net = neural_net
         self.__learning_def = learning_def
         self.__parameters = parameters
@@ -60,9 +60,9 @@ class CrossValidator(ABC):
 
         # create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
         # below
-        self.__confusion_matrix = torch.zeros(len(all_categories), len(all_categories))
+        # self.__confusion_matrix = torch.zeros(len(all_categories), len(all_categories))
 
-        # self._confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
+        self.__confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
 
     def define_result_logger(self) -> logging.Logger:
         """
@@ -79,8 +79,6 @@ class CrossValidator(ABC):
         # Create handlers
         c_handler = logging.StreamHandler()
         c_handler.setLevel(logging.INFO)
-
-        # results_log_path = join(self.__results_log_path, self.neural_net.name + filename)
 
         f_handler = logging.FileHandler(filename=self.logfile_path)
         f_handler.setLevel(logging.DEBUG)
@@ -109,16 +107,8 @@ class CrossValidator(ABC):
         return self.__category_balancer
 
     @property
-    def all_categories(self) -> List[str]:
-        return self.__all_categories
-
-    @property
-    def all_int_categories(self) -> np.ndarray:
-        return self.__all_int_categories
-
-    @all_int_categories.setter
-    def all_int_categories(self, categories: Optional[np.ndarray]):
-        self.__all_int_categories = categories
+    def category_map(self):
+        return self.__category_map
 
     @property
     def neural_net(self):
@@ -254,6 +244,7 @@ class CrossValidator(ABC):
 
         self.cv_time = utils.time_since(cv_start)
         self.log_cv_results()
+        self.draw_confusion_matrix()
 
     @abstractmethod
     def _get_data_and_labels(self, python_dataset):
@@ -309,7 +300,7 @@ class CrossValidator(ABC):
             avg_losses.append(epoch_loss / self.num_folds)
         return avg_losses
 
-    def mix_subj_data(self, subj_dict: types.subj_dataset) -> Tuple[List[np.ndarray], List[str]]:
+    def get_all_subj_data(self, subj_dict: types.subj_dataset) -> Tuple[List[np.ndarray], List[str]]:
         """
         Creates a dataset of chunks of all subjects with the corresponding categories. At this point the subject data
         is not separated anymore.
@@ -387,3 +378,13 @@ class CrossValidator(ABC):
     @abstractmethod
     def _log_specific_results(self):
         pass
+
+    def draw_confusion_matrix(self):
+        plt.figure(figsize=(14, 10))
+        sns.set(font_scale=1.4)
+        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=5, yticklabels=5,
+                                           cmap=sns.color_palette("RdGy", 10))
+        plt.show()
+
+        confusion_matrix_fig.figure.savefig(self.confusion_matrix_path)
+        print(f"Saved confusion matrix to {self.confusion_matrix_path}")

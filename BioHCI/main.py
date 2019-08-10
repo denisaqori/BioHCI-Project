@@ -66,7 +66,6 @@ def main():
 
     descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ZeroPad,
                                              extra_name="_pipeline_test")
-    #
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
     # dataset_processor = StatDatasetProcessor(parameters)

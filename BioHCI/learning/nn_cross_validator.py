@@ -23,6 +23,9 @@ class NNCrossValidator(CrossValidator):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
     StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], extra_model_name: str=""):
+
+        assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
+                                                "trying to instantiate a NNCrossValidator object!"
         # this list contains lists of accuracies for each epoch. There will be self._num_folds lists of _num_epochs
         # elements in this list after all training is done
         self.__all_epoch_train_accuracies = []
@@ -33,9 +36,6 @@ class NNCrossValidator(CrossValidator):
         self.__optimizer = torch.optim.Adam(self.neural_net.parameters(), lr=learning_def.learning_rate)
         # the negative log likelihood loss function - useful to train classification problems with C classes
         self.__criterion = nn.NLLLoss()
-
-        assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
-                                                "trying to instantiate a NNCrossValidator object!"
 
     @property
     def all_epoch_train_accuracies(self) -> List[float]:
@@ -52,14 +52,12 @@ class NNCrossValidator(CrossValidator):
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
     def _get_data_and_labels(self, subj_dataset):
-        data, cat = self.mix_subj_data(subj_dataset)
+        data, cat = self.get_all_subj_data(subj_dataset)
 
         # convert numpy ndarray to PyTorch tensor
         data = torch.from_numpy(np.asarray(data))
         # convert categories from string to integer
-        int_cat = utils.convert_categories(self.all_categories, cat)
-        # set all the categories of the cross validator
-        self.all_int_categories = int_cat
+        int_cat = utils.convert_categories(self.category_map, cat)
         cat = torch.from_numpy(int_cat)
 
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
@@ -76,10 +74,10 @@ class NNCrossValidator(CrossValidator):
 
     # implement the abstract method from the parent class CrossValidator; it is called for each fold in
     # cross-validation and after it trains for that fold, it appends the calculated losses and accuracies for each
-    # epoch to the respective list in the CrossValidator objectstandout
+    # epoch to the respective list in the CrossValidator object standout
     def train(self, train_dataset):
         train_data_loader = self._get_data_and_labels(train_dataset)
-        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion, self.all_int_categories,
+        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion,
                           self.learning_def, self.parameters, self.writer, self.model_path)
 
         # get the loss over all epochs for this cv-fold and append it to the list
@@ -98,10 +96,9 @@ class NNCrossValidator(CrossValidator):
         val_data_loader = self._get_data_and_labels(val_dataset)
         model_to_eval = torch.load(self.model_path)
 
-        evaluator = Evaluator(val_data_loader, model_to_eval, self.all_int_categories, self.confusion_matrix,
-                              self.learning_def, self.writer)
+        evaluator = Evaluator(val_data_loader, model_to_eval, self.confusion_matrix, self.learning_def, self.writer)
 
-        fold_accuracy = evaluator.get_accuracy()
+        fold_accuracy = evaluator.accuracy
         self.all_val_accuracies.append(fold_accuracy)
 
     def _log_specific_results(self):

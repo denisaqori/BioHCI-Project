@@ -105,7 +105,7 @@ def get_files_in_dir(root_dir_path):
         return None
 
 
-def __map_categories(all_categories: List[str]) -> Dict[str, int]:
+def map_categories(all_categories: List[str]) -> Dict[str, int]:
     """
         Maps categories from a string element to an integer.
 
@@ -127,7 +127,7 @@ def __map_categories(all_categories: List[str]) -> Dict[str, int]:
     return cat
 
 
-def convert_categories(all_categories: List[str], categories_subset: List[str]) -> np.ndarray:
+def convert_categories(category_map:Dict[str, int], categories_subset: List[str]) -> np.ndarray:
     """
     Converts a list of categories from strings to integers based on the internal attribute _cat_mapping.
 
@@ -139,12 +139,10 @@ def convert_categories(all_categories: List[str], categories_subset: List[str]) 
         converted_categories (list): List of the corresponding integer id of the string categories
 
     """
-    all_cat_mapping = __map_categories(all_categories)
-
     converted_categories = []
     for idx, elem in enumerate(categories_subset):
-        assert elem in all_cat_mapping.keys()
-        converted_categories.append(all_cat_mapping[elem])
+        assert elem in category_map.keys()
+        converted_categories.append(category_map[elem])
 
     converted_categories = np.array(converted_categories)
     return converted_categories

@@ -139,7 +139,8 @@ class DescriptorEvaluator:
             for subj_name, subj in self.dataset_descriptors.items():
                 subj_data = subj.data
                 subj_cat = subj.categories
-                subj_int_cat = utils.convert_categories(all_dataset_categories, subj_cat)
+                cat_map = utils.map_categories(all_dataset_categories)
+                subj_int_cat = utils.convert_categories(cat_map, subj_cat)
 
                 tuple_list = []
                 # for i in range(0, len(subj_data)):

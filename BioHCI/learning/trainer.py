@@ -18,13 +18,8 @@ from typing import List
 
 class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
-                 criterion, all_int_categories: np.ndarray, neural_network_def: NeuralNetworkDefinition, parameters:
+                 criterion, neural_network_def: NeuralNetworkDefinition, parameters:
                  StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
-        """
-
-        Returns:
-            object: 
-        """
         print("\nInitializing Training...")
 
         self.__neural_net = neural_net
@@ -36,7 +31,6 @@ class Trainer:
         self.__use_cuda = neural_network_def.use_cuda
         self.__model_path = model_path
 
-        self.__all_int_categories = all_int_categories
         self.__parameters = parameters
         self.__writer = summary_writer
 
@@ -51,7 +45,7 @@ class Trainer:
     def __category_from_output(self, output):
         top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
         category_i = int(top_i[0][0])
-        return self.__all_int_categories[category_i], category_i
+        return category_i
 
     # this function represents the training of one step - one chunk of data (samples_per_step) with its corresponding
     # category
@@ -125,13 +119,13 @@ class Trainer:
                 for i in range(0, self.__batch_size):
                     total = total + 1
                     # calculating true category
-                    guess, guess_i = self.__category_from_output(output)
+                    guess_idx = self.__category_from_output(output)
                     category_i = int(category_tensor[i])
 
                     # print("Guess_i: ", guess_i)
                     # print("Category_i (true category): ", category_i)
 
-                    if category_i == guess_i:
+                    if category_i == guess_idx:
                         # print ("Correct Guess")
                         correct += 1
 
