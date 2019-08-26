@@ -2,14 +2,13 @@ import argparse
 
 import torch
 
+from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
-from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
-from BioHCI.data_processing.stat_feature_constructor import StatFeatureConstructor
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.learning.nn_cross_validator import NNCrossValidator
@@ -41,7 +40,8 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
+    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     # parameters = config.populate_study_parameters("EEG_Workload.toml")
     print(parameters)
 
@@ -61,7 +61,8 @@ def main():
         raw_data_vis.compute_spectrogram(subject_dict)
 
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
-    data_splitter = WithinSubjectSplitter(subject_dict)
+    # data_splitter = WithinSubjectSplitter(subject_dict)
+    data_splitter = AcrossSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
     descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ZeroPad,
@@ -91,7 +92,8 @@ def main():
     cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, neural_net, parameters,
                           learning_def, datast_categories, descriptor_computer.dataset_desc_name)
 
-    cv.perform_cross_validation()
+    # cv.perform_cross_validation()
+    cv.perform_simple_train_val()
 
     print("\nEnd of main program.")
 

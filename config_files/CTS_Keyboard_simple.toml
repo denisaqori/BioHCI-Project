@@ -20,6 +20,6 @@ interval_overlap = false
 construct_features = true
 feature_window = 250
 feature_overlap = false
-num_folds = 5
+num_folds = 3
 num_threads = 32
 neural_net = true

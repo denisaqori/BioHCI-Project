@@ -122,28 +122,24 @@ class Trainer:
                     guess_idx = self.__category_from_output(output)
                     category_i = int(category_tensor[i])
 
-                    # print("Guess_i: ", guess_i)
-                    # print("Category_i (true category): ", category_i)
-
                     if category_i == guess_idx:
-                        # print ("Correct Guess")
                         correct += 1
 
-            for name, param in self.__neural_net.named_parameters():
-                self.__writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+            # for name, param in self.__neural_net.named_parameters():
+            #     self.__writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
             accuracy = correct / total
             all_accuracies.append(accuracy)
-            self.__writer.add_scalar('Train/Accuracy', accuracy, epoch)
+            self.__writer.add_scalar('Train Accuracy', accuracy, epoch)
 
             # Print epoch number, loss, accuracy, name and guess
-            print_every = 1
+            print_every = 10
             if epoch % print_every == 0:
                 print("Epoch ", epoch, " - Loss: ", current_loss / epoch, " Accuracy: ", accuracy)
 
             # Add current loss avg to list of losses
             all_losses.append(current_loss / epoch)
-            self.__writer.add_scalar('Train/Avg Loss', current_loss / epoch, epoch)
+            self.__writer.add_scalar('Train Avg Loss', current_loss / epoch, epoch)
             current_loss = 0
 
         # save trained learning

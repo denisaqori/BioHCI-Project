@@ -1,11 +1,13 @@
-from BioHCI.data.data_splitter import DataSplitter
-from copy import copy
 import math
-import numpy as np
-import BioHCI.helpers.utilities as utils
-from typing import List
+from copy import copy
 
-#TODO: rewrite to split even data that is not the same length
+import numpy as np
+
+import BioHCI.helpers.utilities as utils
+from BioHCI.data.data_splitter import DataSplitter
+
+
+# TODO: rewrite to split even data that is not the same length
 
 # This class includes data from each subject in the testing, training, and validation sets.
 class WithinSubjectSplitter(DataSplitter):
@@ -110,7 +112,7 @@ class WithinSubjectSplitter(DataSplitter):
 
         # use the split_percentage figure above to determine num_folds. The first list is usually not the shortest in
         # case of an unequal split, so we assign that to testing.
-        num_folds = round(1/test_percent)
+        num_folds = round(1 / test_percent)
         train_dict, val_dict = self.split_into_folds_features(subject_dict, num_folds, 0)
 
         train_val_dict = {}
@@ -122,7 +124,6 @@ class WithinSubjectSplitter(DataSplitter):
             test_dict[subj_name + '_test'] = subject
 
         return train_val_dict, test_dict
-
 
     def split_into_folds_features(self, feature_dictionary, num_folds, val_index):
         """
@@ -161,8 +162,8 @@ class WithinSubjectSplitter(DataSplitter):
             category_to_idx_ls = utils.find_indices_of_duplicates(subject.categories)
 
             for category, idx_ls in category_to_idx_ls.items():
-                assert (num_folds <= len(idx_ls) ), "Number of folds to split the data into should be smaller " \
-                                               "than or equal to the number of instances of each category."
+                assert (num_folds <= len(idx_ls)), "Number of folds to split the data into should be smaller " \
+                                                   "than or equal to the number of instances of each category."
 
                 # create a list where the training and validation indices for the data are split into the proper
                 # number of folds
@@ -201,7 +202,6 @@ class WithinSubjectSplitter(DataSplitter):
             train_dict[subj_name.replace("_val", "")] = train_subj
 
         return train_dict, val_dict
-
 
     def split_into_folds_raw(self, subject_dictionary, num_folds, val_index):
         """

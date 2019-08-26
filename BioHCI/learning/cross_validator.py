@@ -207,6 +207,36 @@ class CrossValidator(ABC):
     def extra_model_name(self) -> str:
         return self.__extra_model_name
 
+    def perform_simple_train_val(self) -> None:
+        cv_start = time.time()
+
+        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        train_dataset, val_dataset = self.data_splitter.split_dataset_features(feature_dataset, 0.7)
+
+        # balance each dataset individually
+        balanced_train = self.category_balancer.balance(train_dataset)
+        balanced_val = self.category_balancer.balance(val_dataset)
+
+        print(f"\nNetwork Architecture: {self.neural_net}\n")
+
+        self.__model_name = self.__produce_model_name()
+        self.__model_path = join(self.__saved_model_dir, self.model_name)
+
+        # starting training with the above-defined parameters
+        train_start = time.time()
+        self.train(balanced_train)
+        self.train_time = utils.time_since(train_start)
+
+        # start validating the learning
+        val_start = time.time()
+        self.val(balanced_val)
+        self.val_time = utils.time_since(val_start)
+
+        self.cv_time = utils.time_since(cv_start)
+        self.log_cv_results()
+        self.draw_confusion_matrix()
+
+
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
@@ -215,8 +245,10 @@ class CrossValidator(ABC):
             print("\n\n"
                   "***************************************************************************************************")
             print("Run: ", i)
+
             train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
                 feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
+
             # train_dataset, val_dataset = self.data_splitter.split_into_folds_raw(
             #     subject_dictionary=self.subject_dict, num_folds=self.num_folds, val_index=i)
 
@@ -258,8 +290,18 @@ class CrossValidator(ABC):
     def val(self, val_dataset):
         pass
 
-    def __produce_model_name(self, i) -> str:
-        # this is the model produced by training over all folds - 1
+    def __produce_model_name(self, i:int=-1) -> str:
+        """
+        Produces the model name. If cross validation is performed the fold number out of the total ones is
+        incorporated into it as well.
+
+        Args:
+            i (int): number of cross validation fold (if it exists). If fold number is not included (in case there is no cv), default is -1 (which
+                will appear as 0 in the name).
+
+        Returns:
+
+        """
         name = self.general_name + "-fold-" + str(i + 1) + "-" + str(self.num_folds) + ".pt"
         return name
 
