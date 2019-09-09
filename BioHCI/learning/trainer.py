@@ -1,15 +1,12 @@
 import torch
+from tensorboardX import SummaryWriter
 from torch.autograd import Variable
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
-from BioHCI.helpers import utilities as utils
-from tensorboardX import SummaryWriter
-import numpy as np
-from torch.optim.optimizer import Optimizer
-from typing import List
 
 
 # This class is based on PyTorch sample code from Sean Robertson (Classifying Names with a Character-Level RNN)
@@ -19,7 +16,7 @@ from typing import List
 class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
                  criterion, neural_network_def: NeuralNetworkDefinition, parameters:
-                 StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
+            StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
         print("\nInitializing Training...")
 
         self.__neural_net = neural_net
@@ -40,7 +37,8 @@ class Trainer:
     def model_path(self) -> str:
         return self.__model_path
 
-    # this method returns the category based on the architectures output - each category will be associated with a likelihood
+    # this method returns the category based on the architectures output - each category will be associated with a
+    # likelihood
     # topk is used to get the index of highest value
     def __category_from_output(self, output):
         top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
@@ -50,7 +48,8 @@ class Trainer:
     # this function represents the training of one step - one chunk of data (samples_per_step) with its corresponding
     # category
     # it returns the loss data and output layer, which is then interpreted to get the predicted category using the
-    # category_from_output function above. The loss data is used to go back to the weights of the architectures and adjust
+    # category_from_output function above. The loss data is used to go back to the weights of the architectures and
+    # adjust
     # them
     def __train_chunks_in_batch(self, category_tensor, data_chunk_tensor):
 

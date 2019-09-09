@@ -22,8 +22,7 @@ class NNCrossValidator(CrossValidator):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
-    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], extra_model_name: str=""):
-
+    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], extra_model_name: str = ""):
         assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
                                                 "trying to instantiate a NNCrossValidator object!"
         # this list contains lists of accuracies for each epoch. There will be self._num_folds lists of _num_epochs
@@ -113,4 +112,3 @@ class NNCrossValidator(CrossValidator):
     def _format_list(self, float_ls: List[float]) -> List[str]:
         my_formatted_list = ['%.2f' % elem for elem in float_ls]
         return my_formatted_list
-

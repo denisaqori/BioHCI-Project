@@ -40,7 +40,8 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
+    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
+    # parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
     # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     # parameters = config.populate_study_parameters("EEG_Workload.toml")
     print(parameters)
