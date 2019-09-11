@@ -1,6 +1,6 @@
+import torch
 import torch.nn as nn
 from torch.autograd import Variable
-import torch
 
 # Some bases from http://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
 # Also thanks to: https://github.com/yunjey/pytorch-tutorial and https://github.com/MorvanZhou/PyTorch-Tutorial
@@ -32,14 +32,16 @@ class LSTM(AbstractNeuralNetwork):
         self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
         # define the softmax function, declaring the dimension along which it will be computed (so every slice along it
         # will sum to 1). The output  (on which the function will be called) will have the shape batch_size x
-		# output_size
+        # output_size
         self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
 
     # The hidden and cell state dimensions are: (num_layers * num-direction, batch, hidden_size) for each
     def init_hidden(self):
         if self.use_cuda:
-            return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True),
-                    Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True))
+            # return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True),
+            #         Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True))
+            return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(),
+                    Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda())
         else:
             return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float(),
                     Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float())

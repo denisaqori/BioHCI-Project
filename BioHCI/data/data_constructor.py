@@ -23,9 +23,9 @@ class DataConstructor:
         # number of files to be included in the dataset where each file contains fNIRS data for one subject
         self.__num_subj = parameters.num_subj
 
-        # parameter's dir_path property determines the location of the data files, to be found within separate
+        # parameter's resource_path property determines the location of the data files, to be found within separate
         # directories for each subject. These are sub-directories of this path.
-        self.__dir_path = parameters.dir_path
+        self.__dir_path = parameters.resource_path
 
         self.subj_dir_list = self.get_subj_dir_list()
         assert self.__num_subj == len(self.subj_dir_list), "Not as many subject directories found as declared in " \

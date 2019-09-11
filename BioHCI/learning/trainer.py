@@ -58,8 +58,10 @@ class Trainer:
 
         # if cuda is available, initialize the tensors there
         if self.__use_cuda:
-            data_chunk_tensor = data_chunk_tensor.cuda(async=True)
-            category_tensor = category_tensor.cuda(async=True)
+            # data_chunk_tensor = data_chunk_tensor.cuda(async=True)
+            # category_tensor = category_tensor.cuda(async=True)
+            data_chunk_tensor = data_chunk_tensor.cuda()
+            category_tensor = category_tensor.cuda()
 
         # turn tensors into Variables (which can store gradients) - the necessary input to our learning
         input = Variable(data_chunk_tensor)

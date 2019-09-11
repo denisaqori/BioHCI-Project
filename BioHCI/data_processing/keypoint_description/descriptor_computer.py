@@ -162,7 +162,7 @@ class DescriptorComputer:
 
         """
         with open(desc_obj_path, "rb") as input_file:
-            dataset_desc = pickle.load(input_file)
+            dataset_desc = pickle.load(input_file, encoding="bytes")
         return dataset_desc
 
     def save_descriptors(self, descriptors: types.subj_dataset) -> None:

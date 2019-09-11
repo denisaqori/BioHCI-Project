@@ -8,7 +8,7 @@ class NeuralNetworkDefinition(LearningDefinition):
         self.__num_epochs = 250 # number of epochs over which to train
         # self.__samples_per_seq = 25  # the number of measurements to be included in one sequence
         self.__learning_rate = 0.1  # If you set this too high, it might explode. If too low, it might not learn
-        self.__batch_size = 1  # The number of instances in one batch
+        self.__batch_size = 16  # The number of instances in one batch
         self.__dropout_rate = 0.05  # dropout rate: if 0, no dropout - to be passed to the architectures learning
         self.__num_layers = 2  # number of layers of LSTM
         self.__batch_first = True

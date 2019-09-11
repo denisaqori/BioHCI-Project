@@ -1,5 +1,6 @@
 #_StudyParameters__dir_path = "/home/takodev/bhceye/biohci-project/Resources/CTS_5taps_per_button"
-dir_path = "/home/denisa/GitHub/BioHCI Project/Resources/CTS_Keyboard"
+#resource_path = "/home/denisa/GitHub/BioHCI Project/Resources/CTS_Keyboard"
+resource_path = "CTS_Keyboard"
 study_name = "CTS_Keyboard"
 sensor_name = "Capacitor"
 file_format = ".csv"

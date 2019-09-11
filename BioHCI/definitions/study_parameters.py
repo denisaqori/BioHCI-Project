@@ -13,7 +13,7 @@ class StudyParameters(object):
     def __init__(self, attr_dict=None):
         # directory where the text data to be processed is found (all files in there are used)
         # 'Resources/fNIRS_boredom_data' correspond to boredom data
-        self.__dir_path = None
+        self.__resource_path = None
 
         # the name of the study
         self.__study_name = None
@@ -75,7 +75,7 @@ class StudyParameters(object):
     def __str__(self) -> str:
         s = "\nStudyParameters: \n"
         s = s + "\n**********************************************************"
-        s = s + "\nData source directory: " + str(self.dir_path)
+        s = s + "\nData source directory: " + str(self.resource_path)
         s = s + "\nStudy name: " + str(self.study_name)
         s = s + "\nSensor type: " + str(self.sensor_name)
         s = s + "\nFile format to process: " + str(self.file_format)
@@ -104,17 +104,17 @@ class StudyParameters(object):
         return s
 
     @property
-    def dir_path(self) -> Optional[str]:
-        return self.__dir_path
+    def resource_path(self) -> Optional[str]:
+        return self.__resource_path
 
-    @dir_path.setter
-    def dir_path(self, dir_path: str) -> None:
+    @resource_path.setter
+    def resource_path(self, dir_path: str) -> None:
         project_root_path = util.get_root_path("Resources")
         path = os.path.abspath(os.path.join(project_root_path, dir_path))
 
         assert (os.path.exists(path)), "The directory \'" + path + "\' does not exist. Ensure the dataset is " \
                                                                    "properly placed."
-        self.__dir_path = path
+        self.__resource_path = path
 
     @property
     def study_name(self) -> Optional[str]:

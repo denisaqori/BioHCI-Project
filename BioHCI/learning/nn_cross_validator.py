@@ -54,7 +54,8 @@ class NNCrossValidator(CrossValidator):
         data, cat = self.get_all_subj_data(subj_dataset)
 
         # convert numpy ndarray to PyTorch tensor
-        data = torch.from_numpy(np.asarray(data))
+        np_data = np.asarray(data, dtype=np.float16)
+        data = torch.from_numpy(np_data)
         # convert categories from string to integer
         int_cat = utils.convert_categories(self.category_map, cat)
         cat = torch.from_numpy(int_cat)
