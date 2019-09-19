@@ -2,6 +2,7 @@ import argparse
 
 import torch
 
+from BioHCI.architectures.cnn_lstm import CNN_LSTM
 from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
@@ -39,11 +40,12 @@ def main():
     config.create_config_file_template()
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
+    # parameters = config.populate_study_parameters("EEG_Workload.toml")
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
     # parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
     # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
-    # parameters = config.populate_study_parameters("EEG_Workload.toml")
+    # parameters = config.populate_study_parameters("CTS_EICS2020.toml")
+    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
     print(parameters)
 
     # generating the data from files
@@ -66,8 +68,8 @@ def main():
     data_splitter = AcrossSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
-    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ZeroPad,
-                                             extra_name="_pipeline_test15")
+    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
+                                             extra_name="_pipeline_test")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
     # dataset_processor = StatDatasetProcessor(parameters)
@@ -79,22 +81,22 @@ def main():
     num_attr = any_subj.data[0].shape[-1]
     input_size = feature_constructor.mult_attr * num_attr
 
-    datast_categories = data.get_all_dataset_categories()
+    dataset_categories = data.get_all_dataset_categories()
 
     assert parameters.neural_net is True
-    learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(datast_categories),
+    learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(dataset_categories),
                                            use_cuda=args.cuda)
-    neural_net = LSTM(nn_learning_def=learning_def)
+    neural_net = CNN_LSTM(nn_learning_def=learning_def)
     if args.cuda:
         neural_net.cuda()
 
     # cross-validation
     assert parameters.neural_net is True
     cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, neural_net, parameters,
-                          learning_def, datast_categories, descriptor_computer.dataset_desc_name)
+                          learning_def, dataset_categories, descriptor_computer.dataset_desc_name)
 
-    # cv.perform_cross_validation()
-    cv.perform_simple_train_val()
+    cv.perform_cross_validation()
+    # cv.perform_simple_train_val()
 
     print("\nEnd of main program.")
 

@@ -1,20 +1,30 @@
-import math
-import time
 import datetime
+import errno
+import math
+import os
+import time
+from os.path import abspath, dirname, join
+from typing import Dict, List
 
 import numpy as np
-import os
-import errno
-from os.path import dirname, abspath, join
-from typing import List, Dict
 
 
 # this function calculates timing difference to measure how long running certain parts takes
+# it returns the string value of time
 def time_since(since):
     now = time.time()
-    s = now - since
-    m = math.floor(s / 60)
-    s -= m * 60
+    d = now - since
+    m = math.floor(d / 60)
+    s = d - m * 60
+    return '%dm %ds' % (m, s)
+
+def time_diff(timestamp):
+    now = time.time()
+    return timestamp - now
+
+def time_s_to_str(sec):
+    m = math.floor(sec / 60)
+    s = sec - m * 60
     return '%dm %ds' % (m, s)
 
 
@@ -127,7 +137,7 @@ def map_categories(all_categories: List[str]) -> Dict[str, int]:
     return cat
 
 
-def convert_categories(category_map:Dict[str, int], categories_subset: List[str]) -> np.ndarray:
+def convert_categories(category_map: Dict[str, int], categories_subset: List[str]) -> np.ndarray:
     """
     Converts a list of categories from strings to integers based on the internal attribute _cat_mapping.
 
@@ -146,6 +156,7 @@ def convert_categories(category_map:Dict[str, int], categories_subset: List[str]
 
     converted_categories = np.array(converted_categories)
     return converted_categories
+
 
 def find_indices_of_duplicates(ls: List[str]) -> Dict[str, List[int]]:
     """
@@ -167,7 +178,7 @@ def find_indices_of_duplicates(ls: List[str]) -> Dict[str, List[int]]:
     # for each unique list element
     for set_elem in elem_set:
         same_elem = []
-    # find the index/indices that belong to it in the original list
+        # find the index/indices that belong to it in the original list
         for i, list_elem in enumerate(ls):
             if set_elem == list_elem:
                 same_elem.append(i)
@@ -176,7 +187,8 @@ def find_indices_of_duplicates(ls: List[str]) -> Dict[str, List[int]]:
 
     return name_to_indices
 
-def cleanup(dirname:str, name_part:str) -> None:
+
+def cleanup(dirname: str, name_part: str) -> None:
     """
     Removes any files that contain the string name_part in the directory dirname.
 
@@ -192,6 +204,7 @@ def cleanup(dirname:str, name_part:str) -> None:
             print(f"Deleted file {full_path_to_remove}")
 
     print("Cleanup complete!\n")
+
 
 if __name__ == "__main__":
     res = get_root_path("dataset_desc")

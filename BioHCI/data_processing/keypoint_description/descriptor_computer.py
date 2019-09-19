@@ -4,7 +4,6 @@ Created: 3/28/19
 """
 import multiprocessing
 import os
-import pickle
 import time
 from copy import copy
 from os.path import join
@@ -12,6 +11,7 @@ from typing import List, Optional
 
 import numpy as np
 import torch
+import pickle
 
 import BioHCI.helpers.type_aliases as types
 from BioHCI.data.data_constructor import DataConstructor
@@ -21,7 +21,6 @@ from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
 from BioHCI.helpers.study_config import StudyConfig
-
 
 class DescriptorComputer:
     def __init__(self, desc_type: DescType, subject_dataset: types.subj_dataset, parameters: StudyParameters,
@@ -162,6 +161,17 @@ class DescriptorComputer:
 
         """
         with open(desc_obj_path, "rb") as input_file:
+            # json_dict = json.load(input_file)
+            # unwrap json object to get numpy arrays back
+            # dataset_desc = {}
+            # for subj_name, subj in json_dict.items():
+            #     new_subj = copy(subj)
+            #     new_data = []
+            #     for data_inst in subj.data:
+            #         new_data.append(np.asarray(data_inst))
+            #     new_subj.data = new_data
+            #     dataset_desc[subj_name] = new_subj
+
             dataset_desc = pickle.load(input_file, encoding="bytes")
         return dataset_desc
 
@@ -174,8 +184,20 @@ class DescriptorComputer:
         """
         print(f"\nSaving dataset descriptors to {self.desc_obj_path}")
         if not os.path.exists(self.desc_obj_path):
-            with open(self.desc_obj_path, 'wb') as f:
+            # create json-writable object: basically convert numpy arrays to lists while preserving hierarchy
+            json_dict = {}
+            for subj_name, subj in descriptors.items():
+                new_subj = copy(subj)
+                new_data = []
+                for data_inst in subj.data:
+                    new_data.append(data_inst.tolist())
+                new_subj.data = new_data
+                json_dict[subj_name] = new_subj
+
+            with open(self.desc_obj_path + '.pkl', 'wb') as f:
                 pickle.dump(descriptors, f, pickle.HIGHEST_PROTOCOL)
+                # converting every object to its dict (recursively) based on: https://stackoverflow.com/a/49003922
+                # json.dump(json_dict, f, default=lambda o: getattr(o, '__dict__', str(o)))
 
     def adjust_sequence_length(self, descriptor_dataset: types.subj_dataset) -> types.subj_dataset:
         """

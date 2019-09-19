@@ -28,8 +28,8 @@ class DataConstructor:
         self.__dir_path = parameters.resource_path
 
         self.subj_dir_list = self.get_subj_dir_list()
-        assert self.__num_subj == len(self.subj_dir_list), "Not as many subject directories found as declared in " \
-                                                           "StudyParameters"
+        # assert self.__num_subj == len(self.subj_dir_list), "Not as many subject directories found as declared in " \
+        #                                                    "StudyParameters"
         print("List of sub-directory names from where data will be obtained for each subject: ", self.subj_dir_list)
 
         self._subject_identity_list = self.create_subject_identity_list(self.subj_dir_list)

@@ -422,7 +422,8 @@ if __name__ == "__main__":
 
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
-    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("CTS_EICS2020.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)

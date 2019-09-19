@@ -1,6 +1,7 @@
 import logging
 import platform
 import time
+import torch
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import join
@@ -38,7 +39,8 @@ class CrossValidator(ABC):
 
         self.__all_val_accuracies = []
         self.__all_train_accuracies = []
-        self.__all_epoch_train_losses = []
+        self.__all_train_losses = []
+        self.__all_val_losses = []
 
         # declare variables that will contain time needed to compute these operations
         self.__cv_time = ""
@@ -160,8 +162,12 @@ class CrossValidator(ABC):
         return self.__all_train_accuracies
 
     @property
-    def all_epoch_train_losses(self) -> List[float]:
-        return self.__all_epoch_train_losses
+    def all_train_losses(self) -> List[float]:
+        return self.__all_train_losses
+
+    @property
+    def all_val_losses(self) -> List[float]:
+        return self.__all_val_losses
 
     @property
     def cv_time(self) -> str:
@@ -216,6 +222,8 @@ class CrossValidator(ABC):
         # balance each dataset individually
         balanced_train = self.category_balancer.balance(train_dataset)
         balanced_val = self.category_balancer.balance(val_dataset)
+        # del train_dataset
+        # del balanced_val
 
         print(f"\nNetwork Architecture: {self.neural_net}\n")
 
@@ -236,11 +244,11 @@ class CrossValidator(ABC):
         self.log_cv_results()
         self.draw_confusion_matrix()
 
-
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
         feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+
         for i in range(0, self.num_folds):
             print("\n\n"
                   "***************************************************************************************************")
@@ -264,19 +272,20 @@ class CrossValidator(ABC):
             self.__model_name = self.__produce_model_name(i)
             self.__model_path = join(self.__saved_model_dir, self.model_name)
 
-            # starting training with the above-defined parameters
-            train_start = time.time()
-            self.train(balanced_train)
-            self.train_time = utils.time_since(train_start)
-
-            # start validating the learning
-            val_start = time.time()
-            self.val(balanced_val)
-            self.val_time = utils.time_since(val_start)
+            # starting training and evaluation with the above-defined parameters
+            self._specific_train_val(balanced_train, balanced_val)
 
         self.cv_time = utils.time_since(cv_start)
+
+        self._store_specific_results()
         self.log_cv_results()
         self.draw_confusion_matrix()
+
+    def _specific_train_val(self, balanced_train, balanced_val):
+        return
+
+    def _store_specific_results(self):
+        return
 
     @abstractmethod
     def _get_data_and_labels(self, python_dataset):
@@ -290,13 +299,14 @@ class CrossValidator(ABC):
     def val(self, val_dataset):
         pass
 
-    def __produce_model_name(self, i:int=-1) -> str:
+    def __produce_model_name(self, i: int = -1) -> str:
         """
         Produces the model name. If cross validation is performed the fold number out of the total ones is
         incorporated into it as well.
 
         Args:
-            i (int): number of cross validation fold (if it exists). If fold number is not included (in case there is no cv), default is -1 (which
+            i (int): number of cross validation fold (if it exists). If fold number is not included (in case there is
+            no cv), default is -1 (which
                 will appear as 0 in the name).
 
         Returns:
@@ -313,7 +323,7 @@ class CrossValidator(ABC):
 
     @property
     def confusion_matrix_path(self) -> str:
-        name = self.general_name + "_confusion_matrix.png"
+        name = self.general_name + "_confusion_matrix.pnghigh"
         confusion_path = join(self.__results_log_path, name)
         return confusion_path
 
@@ -364,7 +374,7 @@ class CrossValidator(ABC):
 
         for subj_name, subj in subj_dict.items():
             for i, data in enumerate(subj.data):
-                all_data.append(data)
+                all_data.append(data.astype(np.float32))
                 all_cat.append(subj.categories[i])
 
         return all_data, all_cat

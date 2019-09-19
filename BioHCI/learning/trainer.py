@@ -17,7 +17,7 @@ class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
                  criterion, neural_network_def: NeuralNetworkDefinition, parameters:
             StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
-        print("\nInitializing Training...")
+        # print("\nInitializing Training...")
 
         self.__neural_net = neural_net
         self.__optimizer = optimizer
@@ -31,7 +31,10 @@ class Trainer:
         self.__parameters = parameters
         self.__writer = summary_writer
 
-        self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
+        # self.__all_losses = []
+        # self.__all_accuracies = []
+        # self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
+        self.__loss, self.__accuracy = self.__train(train_data_loader)
 
     @property
     def model_path(self) -> str:
@@ -88,10 +91,50 @@ class Trainer:
         # we return the output of the architectures, together with the loss information
         return output, float(loss.item())
 
+    def __train(self, train_data_loader):
+        # Keep track of losses for plotting
+        # number of correct guesses
+        correct = 0
+        total = 0
+        loss = 0
+
+        # goes through the whole training dataset in tensor chunks and batches computing output and loss
+        for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader):  # gives batch data
+            # if step == 0:
+            # 	input = Variable(data_chunk_tensor)
+            # 	self.__writer.add_graph(self.__model, input.cuda(async =True), True)
+
+            # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
+            # category_tensor has shape (batch_size)
+            # batch_size is passed as an argument to train_data_loader
+            category_tensor = category_tensor.long()
+            data_chunk_tensor = data_chunk_tensor.float()
+
+            output, loss = self.__train_chunks_in_batch(category_tensor, data_chunk_tensor)
+            loss += loss
+
+            # for every element of the batch
+            for i in range(0, len(category_tensor)):
+                total = total + 1
+                # calculating true category
+                guess_idx = self.__category_from_output(output)
+                category_i = int(category_tensor[i])
+
+                if category_i == guess_idx:
+                    correct += 1
+
+        # for name, param in self.__neural_net.named_parameters():
+        #     self.__writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
+
+        accuracy = correct / total
+        # self.__all_accuracies.append(accuracy)
+
+        return loss, accuracy
+
     # this is the function that handles training in general, and prints statistics regarding loss, accuracies over
     # guesses
     # for each epoch; this function returns accuracies and losses over all epochs
-    def __train(self, train_data_loader):
+    def __train_old(self, train_data_loader):
         # Keep track of losses for plotting
         current_loss = 0
         all_losses = []
@@ -117,7 +160,8 @@ class Trainer:
                 current_loss += loss
 
                 # for every element of the batch
-                for i in range(0, self.__batch_size):
+                # for i in range(0, self.__batch_size):
+                for i in range(0, len(category_tensor)):
                     total = total + 1
                     # calculating true category
                     guess_idx = self.__category_from_output(output)
@@ -145,13 +189,20 @@ class Trainer:
 
         # save trained learning
         torch.save(self.__neural_net, self.model_path)
-
         return all_losses, all_accuracies
 
+    # @property
+    # def epoch_losses(self):
+    #     return self.__epoch_losses
+    #
+    # @property
+    # def epoch_accuracies(self):
+    #     return self.__epoch_accuracies
+    #
     @property
-    def epoch_losses(self):
-        return self.__epoch_losses
+    def loss(self):
+        return self.__loss
 
     @property
-    def epoch_accuracies(self):
-        return self.__epoch_accuracies
+    def accuracy(self):
+        return self.__accuracy

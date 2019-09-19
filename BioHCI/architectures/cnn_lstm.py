@@ -43,8 +43,8 @@ class CNN_LSTM(AbstractNeuralNetwork):
     def init_hidden(self):
         if self.use_cuda:
             # noinspection PyUnresolvedReferences
-            return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True),
-                    Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True))
+            return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(),
+                    Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda())
         else:
             # noinspection PyUnresolvedReferences
             return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float(),

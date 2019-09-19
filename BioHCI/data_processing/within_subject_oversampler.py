@@ -118,8 +118,8 @@ class WithinSubjectOversampler(CategoryBalancer):
             current_cat_data (ndarray): the oversampled current_cat_data with its own data by num_to_add 2D arrays
 
         """
-        print("\nFor category", cat_name, "number of chunks to add is: ", num_to_add)
-        print("Current category shape: ", current_cat_data.shape)
+        # print("\nFor category", cat_name, "number of chunks to add is: ", num_to_add)
+        # print("Current category shape: ", current_cat_data.shape)
 
         chunks_to_add = []  # a list of ndarrays of duplicate chunks to append to the category at the end
         if current_cat_data.shape[0] >= num_to_add:  # if we need to add fewer chunks than there are instances of them
