@@ -440,3 +440,10 @@ class CrossValidator(ABC):
 
         confusion_matrix_fig.figure.savefig(self.confusion_matrix_path)
         print(f"Saved confusion matrix to {self.confusion_matrix_path}")
+
+    def standardize(self, dataset):
+        dataset = dataset
+        means = dataset.mean(dim=1, keepdim=True)
+        stds = dataset.std(dim=1, keepdim=True)
+        standardized_data = (dataset - means) / stds
+        return standardized_data

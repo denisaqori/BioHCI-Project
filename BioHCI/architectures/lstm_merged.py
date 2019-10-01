@@ -1,3 +1,7 @@
+"""
+Created: 9/19/19
+© Denisa Qori McDonald 2019 All Rights Reserved
+"""
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -7,12 +11,12 @@ from torch.autograd import Variable
 from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 
 
-class LSTM(AbstractNeuralNetwork):
+class LSTM_Merged(AbstractNeuralNetwork):
 
     def __init__(self, nn_learning_def):
-        super(LSTM, self).__init__()
+        super(LSTM_Merged, self).__init__()
 
-        self.__name = "LSTM"
+        self.__name = "LSTM_Merged"
         self.input_size = nn_learning_def.input_size
         self.hidden_size = nn_learning_def.num_hidden
         self.output_size = nn_learning_def.output_size
@@ -27,24 +31,19 @@ class LSTM(AbstractNeuralNetwork):
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers,
                             dropout=self.dropout_rate, batch_first=self.batch_first)
 
-        # self.l1 = nn.Linear(self.hidden_size, self.hidden_size)
-        # self.l2 = nn.Linear(self.hidden_size, self.hidden_size)
-        # self.l3 = nn.Linear(self.hidden_size, self.hidden_size)
-        # self.l4 = nn.Linear(self.hidden_size, self.hidden_size)
-        # self.l5 = nn.Linear(self.hidden_size, self.hidden_size)
-
         # a linear layer mapping the hidden state to output, then squashing
         # the output (probability for each class) through a softmax function
-        self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
+        self.hidden2out = nn.Linear(self.hidden_size + self.input_size, self.output_size)
         # define the softmax function, declaring the dimension along which it will be computed (so every slice along it
         # will sum to 1). The output  (on which the function will be called) will have the shape batch_size x
         # output_size
-        self.softmax = nn.LogSoftmax(dim=1)  # already ensured 1 is the right dimension and calculation is correct
-        # self.relu = nn.ReLU(dim=1)
+        self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
 
     # The hidden and cell state dimensions are: (num_layers * num-direction, batch, hidden_size) for each
     def init_hidden(self):
         if self.use_cuda:
+            # return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True),
+            #         Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(async=True))
             return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(),
                     Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda())
         else:
@@ -59,7 +58,10 @@ class LSTM(AbstractNeuralNetwork):
         # cell state of the last time step
 
         self.lstm.flatten_parameters()
-        output, (hidden, cell) = self.lstm(input, None)
+        # output, (hidden, cell) = self.lstm(input, self.init_hidden())
+        lstm_output, (hidden, cell) = self.lstm(input, None)
+
+        output = torch.cat((input, lstm_output), dim=2)
 
         # the output is returned as (batch_number x sequence_length x hidden_size) since batch_first is set to true
         # otherwise, if the default settings are used, batch number comes second in dimensions

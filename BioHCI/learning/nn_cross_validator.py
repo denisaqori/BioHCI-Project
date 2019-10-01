@@ -80,7 +80,9 @@ class NNCrossValidator(CrossValidator):
         del int_cat
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
         # and one with labels (train or val respectively)
-        tensor_dataset = TensorDataset(data, cat)
+
+        standardized_data = self.standardize(data)
+        tensor_dataset = TensorDataset(standardized_data, cat)
 
         # print(f"\n\nUsing the PyTorch DataLoader to load the training data (shuffled) with: \nbatch size = "
         #       f"{self.learning_def.batch_size} & number of threads = {self.parameters.num_threads}")

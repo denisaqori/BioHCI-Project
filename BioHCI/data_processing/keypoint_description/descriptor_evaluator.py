@@ -143,10 +143,10 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(cat_map, subj_cat)
 
                 tuple_list = []
-                # for i in range(0, len(subj_data)):
-                #     for j in range(0, len(subj_data)):
-                for i in range(4, 7):
-                    for j in range(4, 7):
+                for i in range(0, len(subj_data)):
+                    for j in range(0, len(subj_data)):
+                # for i in range(4, 7):
+                #     for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -423,7 +423,7 @@ if __name__ == "__main__":
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
     # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
-    parameters = config.populate_study_parameters("CTS_EICS2020.toml")
+    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)

@@ -4,11 +4,11 @@ from BioHCI.definitions.learning_def import LearningDefinition
 class NeuralNetworkDefinition(LearningDefinition):
     def __init__(self, input_size: int, output_size: int, use_cuda: bool) -> None:
         # hyper-parameters
-        self.__num_hidden = 300  # number of nodes per hidden layer
-        self.__num_epochs = 1000 # number of epochs over which to train
+        self.__num_hidden = 100  # number of nodes per hidden layer
+        self.__num_epochs = 250 # number of epochs over which to train
         # self.__samples_per_seq = 25  # the number of measurements to be included in one sequence
-        self.__learning_rate = 0.0001  # If you set this too high, it might explode. If too low, it might not learn
-        self.__batch_size = 32  # The number of instances in one batch
+        self.__learning_rate = 0.001  # If you set this too high, it might explode. If too low, it might not learn
+        self.__batch_size = 16  # The number of instances in one batch
         self.__dropout_rate = 0  # dropout rate: if 0, no dropout - to be passed to the architectures learning
         self.__num_layers = 3  # number of layers of LSTM
         self.__batch_first = True

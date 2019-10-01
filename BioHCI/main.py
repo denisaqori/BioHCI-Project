@@ -3,6 +3,7 @@ import argparse
 import torch
 
 from BioHCI.architectures.cnn_lstm import CNN_LSTM
+from BioHCI.architectures.lstm_merged import LSTM_Merged
 from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
@@ -68,7 +69,7 @@ def main():
     data_splitter = AcrossSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
-    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
+    descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
                                              extra_name="_pipeline_test")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
 
@@ -86,7 +87,7 @@ def main():
     assert parameters.neural_net is True
     learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(dataset_categories),
                                            use_cuda=args.cuda)
-    neural_net = CNN_LSTM(nn_learning_def=learning_def)
+    neural_net = LSTM(nn_learning_def=learning_def)
     if args.cuda:
         neural_net.cuda()
 
