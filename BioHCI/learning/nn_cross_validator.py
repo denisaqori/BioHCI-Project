@@ -14,6 +14,7 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
+from BioHCI.knitted_components.knitted_component import KnittedComponent
 from BioHCI.learning.cross_validator import CrossValidator
 from BioHCI.learning.evaluator import Evaluator
 from BioHCI.learning.trainer import Trainer
@@ -23,7 +24,8 @@ class NNCrossValidator(CrossValidator):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
-    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], extra_model_name: str = ""):
+    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], knitted_component:
+    KnittedComponent, extra_model_name: str = ""):
         assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
                                                 "trying to instantiate a NNCrossValidator object!"
         # this list contains lists of accuracies for each epoch. There will be self._num_folds lists of _num_epochs
@@ -34,12 +36,16 @@ class NNCrossValidator(CrossValidator):
         self.__all_epoch_val_losses = []
 
         super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor, category_balancer,
-                                               neural_net, parameters, learning_def, all_categories, extra_model_name)
+                                               neural_net, parameters, learning_def, all_categories,
+                                               knitted_component, extra_model_name)
         # the stochastic gradient descent function to update weights a self.perform_cross_validation()nd biases
         self.__optimizer = torch.optim.Adam(self.neural_net.parameters(), lr=learning_def.learning_rate)
-        # the negative log likelihood loss function - useful to train classification problems with C classes
-        self.__criterion = nn.NLLLoss()
 
+        if parameters.classification:
+            # the negative log likelihood loss function - useful to train classification problems with C classes
+            self.__criterion = nn.NLLLoss()
+        else:
+            self.__criterion = nn.SmoothL1Loss()
 
     @property
     def all_epoch_train_accuracies(self) -> List[List[float]]:
@@ -68,24 +74,28 @@ class NNCrossValidator(CrossValidator):
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
     def _get_data_and_labels(self, subj_dataset):
-        data, cat = self.get_all_subj_data(subj_dataset)
+        if self.neural_net.name == "MLP":
+            data, cat = self.get_all_subj_data(subj_dataset, seq=False)
+        else:
+            data, cat = self.get_all_subj_data(subj_dataset)
 
         # convert numpy ndarray to PyTorch tensor
         np_data = np.asarray(data, dtype=np.float32)
         data = torch.from_numpy(np_data)
-        del np_data
+
         # convert categories from string to integer
-        int_cat = utils.convert_categories(self.category_map, cat)
-        cat = torch.from_numpy(int_cat)
-        del int_cat
+        labels = utils.convert_categories(self.category_map, cat)
+
+        # TODO: convert int_cat to yarn_positions by calling a function/property of touchpad
+        if not self.parameters.classification:
+            labels = self.knitted_component.get_button_centers(labels)
+
+        labels = torch.from_numpy(labels)
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
         # and one with labels (train or val respectively)
 
         standardized_data = self.standardize(data)
-        tensor_dataset = TensorDataset(standardized_data, cat)
-
-        # print(f"\n\nUsing the PyTorch DataLoader to load the training data (shuffled) with: \nbatch size = "
-        #       f"{self.learning_def.batch_size} & number of threads = {self.parameters.num_threads}")
+        tensor_dataset = TensorDataset(standardized_data, labels)
 
         data_loader = DataLoader(tensor_dataset, batch_size=self.learning_def.batch_size,
                                  num_workers=self.parameters.num_threads, shuffle=True, pin_memory=True)
@@ -97,7 +107,7 @@ class NNCrossValidator(CrossValidator):
     # epoch to the respective list in the CrossValidator object standout
     def train(self, train_dataset):
         train_data_loader = self._get_data_and_labels(train_dataset)
-        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion,
+        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion, self.knitted_component,
                           self.learning_def, self.parameters, self.writer, self.model_path)
 
         return trainer.loss, trainer.accuracy
@@ -107,8 +117,8 @@ class NNCrossValidator(CrossValidator):
         val_data_loader = self._get_data_and_labels(val_dataset)
         model_to_eval = torch.load(self.model_path)
 
-        evaluator = Evaluator(val_data_loader, model_to_eval, self.criterion, self.confusion_matrix,
-                              self.learning_def, self.writer)
+        evaluator = Evaluator(val_data_loader, model_to_eval, self.criterion, self.knitted_component,
+                              self.confusion_matrix, self.learning_def, self.parameters, self.writer)
 
         fold_accuracy = evaluator.accuracy
         self.all_val_accuracies.append(fold_accuracy)
@@ -220,6 +230,5 @@ class NNCrossValidator(CrossValidator):
         self.result_logger.info(f"Average validation accuracy: {self.avg_val_accuracy:.2f}\n")
 
     def _format_list(self, float_ls: List[float]) -> List[str]:
-        my_formatted_list = ['%.2f' % elem for elem in float_ls]
+        my_formatted_list = [   '%.2f' % elem for elem in float_ls]
         return my_formatted_list
-

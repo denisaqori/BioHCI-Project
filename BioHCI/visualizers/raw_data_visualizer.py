@@ -535,6 +535,7 @@ if __name__ == "__main__":
     # raw_data_vis.plot_all_subj_categories()
     # visualizing data per category
     # raw_data_vis.plot_each_category()
+    # raw_data_vis.compute_spectrogram(subject_dict)
 
     rel_path = "/" + parameters.study_name + "/dataset plots/spectrograms"
     raw_data_vis.get_CTS_column_view(rel_path)

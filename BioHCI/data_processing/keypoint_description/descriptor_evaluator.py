@@ -143,10 +143,10 @@ class DescriptorEvaluator:
                 subj_int_cat = utils.convert_categories(cat_map, subj_cat)
 
                 tuple_list = []
-                for i in range(0, len(subj_data)):
-                    for j in range(0, len(subj_data)):
-                # for i in range(4, 7):
-                #     for j in range(4, 7):
+                # for i in range(0, len(subj_data)):
+                #     for j in range(0, len(subj_data)):
+                for i in range(4, 7):
+                    for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -181,6 +181,41 @@ class DescriptorEvaluator:
             self.save(heatmap_fig, ".png")
 
         print(f"\nEnd of descriptor evaluator {self.dataset_eval_name}!\n")
+
+    def compute_distance_seq(self, all_dataset_categories: List[str]):
+
+        for subj_name, subj in self.dataset_descriptors.items():
+            subj_data = subj.data
+            subj_cat = subj.categories
+            cat_map = utils.map_categories(all_dataset_categories)
+            subj_int_cat = utils.convert_categories(cat_map, subj_cat)
+
+            # for testing purposes
+            l1 = []
+            l2 = []
+
+            tuple_list = []
+            # for i in range(0, len(subj_data)):
+            #     for j in range(0, len(subj_data)):
+            for i in range(4, 17):
+                for j in range(4, 17):
+                    keypress1 = subj_data[i]
+                    cat1 = subj_int_cat[i]
+
+                    keypress2 = subj_data[j]
+                    cat2 = subj_int_cat[j]
+
+                    # for testing purposes
+                    lev_dist_1 = self.euclidean_levenshtein_distance(keypress1, keypress2)
+                    l1.append(lev_dist_1)
+                    lev_dist_2 = self.euclidean_levenshtein_distance(keypress2, keypress1)
+                    l2.append(lev_dist_2)
+
+            lists_same = (l1 == l2)
+            zero_in_l1 = (0 in l1)
+            print(f"Are lists the same: {lists_same}")
+            print(f"Does l1 contain a 0? {zero_in_l1}")
+            print()
 
     def compute_distance_parallelized(self, args):
         """
@@ -397,7 +432,7 @@ class DescriptorEvaluator:
         sns.set(font_scale=1.4)
         heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
 
-        self.save(heatmap_fig, ".png")
+        self.save(heatmap_fig, ".pdf")
 
     def generate_heatmap_fig_from_obj_name(self, heatmap_name: str) -> None:
         """
@@ -465,11 +500,11 @@ if __name__ == "__main__":
 
     # create descriptor computer
     desc_computer = DescriptorComputer(DescType.MSD, subject_dataset, parameters, seq_len=SeqLen.Existing,
-                                       extra_name="_test")
+                                       extra_name="_eics2020")
     # evaluate distances between tensors and compute statistics on them
     desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
-    # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
-    desc_eval.log_statistics()
+    desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
+    # desc_eval.log_statistics()
 
     print("")
     # """

@@ -1,15 +1,16 @@
+import torch
 import torch.nn as nn
 from torch.autograd import Variable
-import torch
 
 from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 
-class CNN_LSTM(AbstractNeuralNetwork):
+
+class CNN_LSTM_R(AbstractNeuralNetwork):
 
     def __init__(self, nn_learning_def):
-        super(CNN_LSTM, self).__init__()
+        super(CNN_LSTM_R, self).__init__()
 
-        self.__name = "CNN_LSTM"
+        self.__name = "CNN_LSTM_regression"
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size
@@ -48,11 +49,11 @@ class CNN_LSTM(AbstractNeuralNetwork):
         self.lstm = nn.LSTM(input_size=32, hidden_size=self.hidden_size, num_layers=self.num_layers,
                             dropout=self.dropout_rate, batch_first=self.batch_first)
 
-        self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
-        # self.hidden2out = nn.Linear(32, self.output_size)
-        self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
+        self.hidden2out = nn.Linear(self.hidden_size, 1)
+        self.sigmoid = nn.Sigmoid()
 
-    def weights_init(self, m):
+    @staticmethod
+    def weights_init(m):
         if isinstance(m, nn.Conv1d):
             torch.nn.init.xavier_uniform(m.weight.data)
 
@@ -86,12 +87,13 @@ class CNN_LSTM(AbstractNeuralNetwork):
         # the output is returned as (batch_number x sequence_length x hidden_size) since batch_first is set to true
         # otherwise, if the default settings are used, batch number comes second in dimensions
         # we are interested in only the output of the last time step, since this is a many to one architectures
+
         if self.batch_first:
             output = self.hidden2out(output[:, -1, :])
         else:
             output = self.hidden2out(output[-1, :, :])
 
-        output = self.softmax(output)
+        output = self.sigmoid(output)
         return output
 
     @property

@@ -1,7 +1,6 @@
 import logging
 import platform
 import time
-import torch
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import join
@@ -20,12 +19,15 @@ from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.learning_def import LearningDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
+from BioHCI.knitted_components.knitted_component import KnittedComponent
 
 
+#TODO: restructure - KnittedComponent is too specific to be in CV
 class CrossValidator(ABC):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
-    StudyParameters, learning_def: LearningDefinition, all_categories: List[str], extra_model_name: str = ""):
+    StudyParameters, learning_def: LearningDefinition, all_categories: List[str], knitted_component: KnittedComponent,
+                 extra_model_name: str = ""):
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
@@ -36,6 +38,8 @@ class CrossValidator(ABC):
         self.__parameters = parameters
         self.__num_folds = parameters.num_folds
         self.__extra_model_name = extra_model_name
+        self.__knitted_component = knitted_component
+        self.__classification = parameters.classification
 
         self.__all_val_accuracies = []
         self.__all_train_accuracies = []
@@ -129,6 +133,10 @@ class CrossValidator(ABC):
         return self.__num_folds
 
     @property
+    def knitted_component(self) -> KnittedComponent:
+        return self.__knitted_component
+
+    @property
     def general_name(self) -> str:
         name = self.neural_net.name + "-batch-" + str(self.learning_def.batch_size) + "-" + self.extra_model_name
         return name
@@ -213,37 +221,6 @@ class CrossValidator(ABC):
     def extra_model_name(self) -> str:
         return self.__extra_model_name
 
-    def perform_simple_train_val(self) -> None:
-        cv_start = time.time()
-
-        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
-        train_dataset, val_dataset = self.data_splitter.split_dataset_features(feature_dataset, 0.7)
-
-        # balance each dataset individually
-        balanced_train = self.category_balancer.balance(train_dataset)
-        balanced_val = self.category_balancer.balance(val_dataset)
-        # del train_dataset
-        # del balanced_val
-
-        print(f"\nNetwork Architecture: {self.neural_net}\n")
-
-        self.__model_name = self.__produce_model_name()
-        self.__model_path = join(self.__saved_model_dir, self.model_name)
-
-        # starting training with the above-defined parameters
-        train_start = time.time()
-        self.train(balanced_train)
-        self.train_time = utils.time_since(train_start)
-
-        # start validating the learning
-        val_start = time.time()
-        self.val(balanced_val)
-        self.val_time = utils.time_since(val_start)
-
-        self.cv_time = utils.time_since(cv_start)
-        self.log_cv_results()
-        self.draw_confusion_matrix()
-
     def perform_cross_validation(self) -> None:
         cv_start = time.time()
 
@@ -274,6 +251,9 @@ class CrossValidator(ABC):
 
             # starting training and evaluation with the above-defined parameters
             self._specific_train_val(balanced_train, balanced_val)
+
+            # only one fold for now
+            break
 
         self.cv_time = utils.time_since(cv_start)
 
@@ -352,7 +332,7 @@ class CrossValidator(ABC):
             avg_losses.append(epoch_loss / self.num_folds)
         return avg_losses
 
-    def get_all_subj_data(self, subj_dict: types.subj_dataset) -> Tuple[List[np.ndarray], List[str]]:
+    def get_all_subj_data(self, subj_dict: types.subj_dataset, seq: bool = True) -> Tuple[List[np.ndarray], List[str]]:
         """
         Creates a dataset of chunks of all subjects with the corresponding categories. At this point the subject data
         is not separated anymore.
@@ -374,6 +354,8 @@ class CrossValidator(ABC):
 
         for subj_name, subj in subj_dict.items():
             for i, data in enumerate(subj.data):
+                if not seq:
+                    data = data.flatten()
                 all_data.append(data.astype(np.float32))
                 all_cat.append(subj.categories[i])
 

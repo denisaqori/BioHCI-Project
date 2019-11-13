@@ -6,7 +6,8 @@ from torch.autograd import Variable
 
 
 class Evaluator:
-    def __init__(self, val_data_loader, model_to_eval, criterion, confusion, neural_network_def, summary_writer):
+    def __init__(self, val_data_loader, model_to_eval, criterion, knitted_component, confusion, neural_network_def,
+                 parameters, summary_writer):
         # print("\n\nInitializing Evaluation...")
 
         self.__model_to_eval = model_to_eval
@@ -16,7 +17,9 @@ class Evaluator:
         self.__val_data_loader = val_data_loader
         self.__use_cuda = neural_network_def.use_cuda
         self.__writer = summary_writer
+        self.__parameters = parameters
 
+        self.__knitted_component = knitted_component
         # accuracy of evaluation
         self.__loss, self.__accuracy = self.evaluate(self.__val_data_loader, confusion)
 
@@ -50,7 +53,10 @@ class Evaluator:
             # data_chunk_tensor has shape (batch_size x samples_per_step x num_attr)
             # category_tensor has shape (batch_size)
             # batch_size is passed as an argument to train_data_loader
-            category_tensor = category_tensor.long()
+            if self.__parameters.classification:
+                category_tensor = category_tensor.long()  # the loss function requires it
+            else:
+                category_tensor = category_tensor.float()
             data_chunk_tensor = data_chunk_tensor.float()
 
             # getting the architectures guess for the category
@@ -61,13 +67,18 @@ class Evaluator:
             for i in range(0, len(category_tensor)):
                 total = total + 1
                 # calculating true category
-                guess_idx = self.category_from_output(output)
                 category_i = int(category_tensor[i])
 
-                # adding data to the matrix
-                confusion[category_i][guess_idx] += 1
+                # calculating predicted categories for the whole batch
+                if self.__parameters.classification:
+                    predicted_i = self.category_from_output(output[i])
+                else:
+                    predicted_i = self.__category_from_knitted_component(output[i])
 
-                if category_i == guess_idx:
+                # adding data to the matrix
+                confusion[category_i][predicted_i] += 1
+
+                if category_i == predicted_i:
                     # print("Correct Guess")
                     correct += 1
 
@@ -78,9 +89,12 @@ class Evaluator:
     # this method returns the predicted category based on the architectures output - each category will be associated
     # with a likelihood topk is used to get the index of highest value
     def category_from_output(self, output):
-        top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
-        category_i = int(top_i[0][0])
+        top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
+        category_i = top_i[0].item()
         return category_i
+
+    def __category_from_knitted_component(self, output):
+        return self.__knitted_component.get_button_id(output)
 
     @property
     def accuracy(self):
@@ -89,4 +103,3 @@ class Evaluator:
     @property
     def loss(self):
         return self.__loss
-

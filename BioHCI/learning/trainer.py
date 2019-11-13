@@ -15,13 +15,14 @@ from BioHCI.definitions.study_parameters import StudyParameters
 
 class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
-                 criterion, neural_network_def: NeuralNetworkDefinition, parameters:
+                 criterion, knitted_component, neural_network_def: NeuralNetworkDefinition, parameters:
             StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
         # print("\nInitializing Training...")
 
         self.__neural_net = neural_net
         self.__optimizer = optimizer
         self.__criterion = criterion
+        self.__knitted_component = knitted_component
         self.__num_epochs = neural_network_def.num_epochs
         self.__samples_per_chunk = parameters.samples_per_chunk
         self.__batch_size = neural_network_def.batch_size
@@ -31,22 +32,22 @@ class Trainer:
         self.__parameters = parameters
         self.__writer = summary_writer
 
-        # self.__all_losses = []
-        # self.__all_accuracies = []
-        # self.__epoch_losses, self.__epoch_accuracies = self.__train(train_data_loader)
         self.__loss, self.__accuracy = self.__train(train_data_loader)
 
     @property
     def model_path(self) -> str:
         return self.__model_path
 
+    def __category_from_knitted_component(self, output):
+        return self.__knitted_component.get_button_id(output)
+
     # this method returns the category based on the architectures output - each category will be associated with a
     # likelihood
     # topk is used to get the index of highest value
     def __category_from_output(self, output):
-        top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
-        category_i = int(top_i[0][0])
-        return category_i
+        top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
+        predicted_i = top_i[0].item()
+        return predicted_i
 
     # this function represents the training of one step - one chunk of data (samples_per_step) with its corresponding
     # category
@@ -107,7 +108,11 @@ class Trainer:
             # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
             # category_tensor has shape (batch_size)
             # batch_size is passed as an argument to train_data_loader
-            category_tensor = category_tensor.long()
+            if self.__parameters.classification:
+                category_tensor = category_tensor.long()  # the loss function requires it
+            else:
+                category_tensor = category_tensor.float()
+
             data_chunk_tensor = data_chunk_tensor.float()
 
             output, loss = self.__train_chunks_in_batch(category_tensor, data_chunk_tensor)
@@ -116,11 +121,15 @@ class Trainer:
             # for every element of the batch
             for i in range(0, len(category_tensor)):
                 total = total + 1
-                # calculating true category
-                guess_idx = self.__category_from_output(output)
-                category_i = int(category_tensor[i])
 
-                if category_i == guess_idx:
+                # calculating predicted categories for the whole batch
+                if self.__parameters.classification:
+                    predicted_i = self.__category_from_output(output[i])
+                else:
+                    predicted_i = self.__category_from_knitted_component(output[i])
+
+                category_i = int(category_tensor[i])
+                if category_i == predicted_i:
                     correct += 1
 
         # for name, param in self.__neural_net.named_parameters():
@@ -191,14 +200,6 @@ class Trainer:
         torch.save(self.__neural_net, self.model_path)
         return all_losses, all_accuracies
 
-    # @property
-    # def epoch_losses(self):
-    #     return self.__epoch_losses
-    #
-    # @property
-    # def epoch_accuracies(self):
-    #     return self.__epoch_accuracies
-    #
     @property
     def loss(self):
         return self.__loss

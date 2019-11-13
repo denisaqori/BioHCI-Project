@@ -24,3 +24,4 @@ feature_overlap = false
 num_folds = 5
 num_threads = 12
 neural_net = true
+classification = true

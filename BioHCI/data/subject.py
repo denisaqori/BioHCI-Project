@@ -40,11 +40,12 @@ class Subject:
         # if each subject has a directory for each category
         if self.__parameter.cat_names == 'dir':
             for cat_data_container in os.listdir(self.__subj_data_path):
-                subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
-                if os.path.isdir(subj_cat_data_path):
-                    category_data, category_names = self.__read_files(subj_cat_data_path, cat_data_container)
-                    subj_category_data.append(category_data)
-                    subj_category_names.append(category_names)
+                if cat_data_container != "button000":
+                    subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
+                    if os.path.isdir(subj_cat_data_path):
+                        category_data, category_names = self.__read_files(subj_cat_data_path, cat_data_container)
+                        subj_category_data.append(category_data)
+                        subj_category_names.append(category_names)
 
             subj_category_data = [item for sublist in subj_category_data for item in sublist]
             subj_category_names = [item for sublist in subj_category_names for item in sublist]

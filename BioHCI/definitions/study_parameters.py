@@ -60,6 +60,7 @@ class StudyParameters(object):
         self.__feature_overlap = None  # determining whether to overlap instances while constructing features
 
         self.__num_folds = None  # The number of folds for cross-validation
+        self.__classification = None # classification or regression problem
 
         # run information
         self.__num_threads = None  # The number of threads to be used during training (for gradient computing and
@@ -393,6 +394,14 @@ class StudyParameters(object):
         assert int(num_folds) > 0, "Number of folds for cross validation needs to " \
                                    "be a positive integer."
         self.__num_folds = num_folds
+
+    @property
+    def classification(self) -> Optional[bool]:
+        return self.__classification
+
+    @classification.setter
+    def classification(self, classification: bool) -> None:
+        self.__classification = classification
 
     def clear_attribute_values(self) -> None:
         """
