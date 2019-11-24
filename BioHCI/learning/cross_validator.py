@@ -9,6 +9,7 @@ from typing import List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import torch
 from tensorboardX import SummaryWriter
 
 import BioHCI.helpers.type_aliases as types
@@ -68,7 +69,8 @@ class CrossValidator(ABC):
         # below
         # self.__confusion_matrix = torch.zeros(len(all_categories), len(all_categories))
 
-        self.__confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
+        # self.__confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
+        self.__confusion_matrix = np.zeros((12, 12))
 
     def define_result_logger(self) -> logging.Logger:
         """
@@ -252,8 +254,7 @@ class CrossValidator(ABC):
             # starting training and evaluation with the above-defined parameters
             self._specific_train_val(balanced_train, balanced_val)
 
-            # only one fold for now
-            break
+            print(f"\nNetwork Architecture: {self.neural_net}\n")
 
         self.cv_time = utils.time_since(cv_start)
 
@@ -261,10 +262,35 @@ class CrossValidator(ABC):
         self.log_cv_results()
         self.draw_confusion_matrix()
 
-    def _specific_train_val(self, balanced_train, balanced_val):
-        return
+    def train_only(self):
+        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        balanced_train = self.category_balancer.balance(feature_dataset)
 
-    def _store_specific_results(self):
+        self.__model_name = self.general_name + ".pt"
+        self.__model_path = join(self.__saved_model_dir, self.model_name)
+
+        self._specific_train_only(balanced_train)
+        print(f"\nNetwork Architecture: {self.neural_net}\n")
+
+        torch.save(self.neural_net, self.model_path)
+        print(f"Saved model to {self.model_path}")
+
+        self.log_train_only_results()
+
+    def eval_only(self, model_path=None):
+
+        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        balanced_val = self.category_balancer.balance(feature_dataset)
+
+        self._specific_eval_only(balanced_val, model_path=model_path)
+
+        print(f"\nNetwork Architecture: {self.neural_net}\n")
+        print(f"Model from: {model_path}")
+
+        self.log_eval_only_results()
+        self.draw_confusion_matrix()
+
+    def _specific_train_val(self, balanced_train, balanced_val):
         return
 
     @abstractmethod
@@ -303,7 +329,7 @@ class CrossValidator(ABC):
 
     @property
     def confusion_matrix_path(self) -> str:
-        name = self.general_name + "_confusion_matrix.pnghigh"
+        name = self.general_name + "_confusion_matrix.png"
         confusion_path = join(self.__results_log_path, name)
         return confusion_path
 
@@ -409,6 +435,86 @@ class CrossValidator(ABC):
 
         logging.shutdown()
 
+    def log_train_only_results(self):
+        now = datetime.now()
+        self.result_logger.info(f"\nTrain Only Results!!!!!!")
+        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}")
+        self.result_logger.debug(f"System information: {platform.uname()}")
+
+        self.result_logger.info(f"Dataset Name: {self.parameters.study_name}")
+        self.result_logger.info(f"Neural Network: {self.neural_net.name}")
+
+        self.result_logger.info(str(self.neural_net) + "\n")
+
+        self.result_logger.debug(f"Number of original unprocessed attributes: {self.parameters.num_attr}")
+        self.result_logger.debug(f"Columns used: {self.parameters.relevant_columns}\n")
+
+        if self.parameters.neural_net:
+            self.result_logger.info(f"Was cuda used? - {self.learning_def.use_cuda}")
+            self.result_logger.info(f"Sequence Length: {self.parameters.samples_per_chunk}")
+            self.result_logger.info(f"Learning rate: {self.learning_def.learning_rate}")
+            self.result_logger.info(f"Batch size: {self.learning_def.batch_size}")
+            self.result_logger.info(f"Dropout Rate: {self.learning_def.dropout_rate}\n")
+
+        # metrics more specific to the cv type
+        self._log_specific_train_only_results()
+
+        # adding performance information
+        self.result_logger.info(f"Performance Metrics:")
+        self.result_logger.info(f"Number of threads: {self.parameters.num_threads}")
+        self.result_logger.info(f"Train time (over last cross-validation pass): {self.train_time}")
+        self.result_logger.debug(
+            "\n***************************************************************************************************\n\n")
+
+        # close and detach all handlers
+        handlers = self.result_logger.handlers[:]
+        for handler in handlers:
+            handler.close()
+            self.result_logger.removeHandler(handler)
+
+        logging.shutdown()
+
+    def log_eval_only_results(self):
+        now = datetime.now()
+        self.result_logger.info(f"\nEvaluation Only Results!!!!!!")
+        self.result_logger.info(f"\nTime: {now:%A, %d. %B %Y %I: %M %p}")
+
+        self.result_logger.debug(f"System information: {platform.uname()}")
+
+        self.result_logger.info(f"Dataset Name: {self.parameters.study_name}")
+        self.result_logger.info(f"Neural Network: {self.neural_net.name}")
+
+        self.result_logger.info(str(self.neural_net) + "\n")
+
+        self.result_logger.debug(f"Number of original unprocessed attributes: {self.parameters.num_attr}")
+        self.result_logger.debug(f"Columns used: {self.parameters.relevant_columns}\n")
+
+        if self.parameters.neural_net:
+            self.result_logger.info(f"Was cuda used? - {self.learning_def.use_cuda}")
+            self.result_logger.info(f"Sequence Length: {self.parameters.samples_per_chunk}")
+            self.result_logger.info(f"Learning rate: {self.learning_def.learning_rate}")
+            self.result_logger.info(f"Batch size: {self.learning_def.batch_size}")
+            self.result_logger.info(f"Dropout Rate: {self.learning_def.dropout_rate}\n")
+
+        # metrics more specific to the cv type
+        self._log_specific_eval_only_results()
+
+        # adding performance information
+        self.result_logger.info(f"Performance Metrics:")
+        self.result_logger.info(f"Number of threads: {self.parameters.num_threads}")
+        self.result_logger.info(f"Test time (over last cross-validation pass): {self.val_time}")
+        self.result_logger.debug(
+            "\n***************************************************************************************************\n\n")
+
+        # close and detach all handlers
+        handlers = self.result_logger.handlers[:]
+        for handler in handlers:
+            handler.close()
+            self.result_logger.removeHandler(handler)
+
+        logging.shutdown()
+
+
     @abstractmethod
     def _log_specific_results(self):
         pass
@@ -416,9 +522,9 @@ class CrossValidator(ABC):
     def draw_confusion_matrix(self):
         plt.figure(figsize=(14, 10))
         sns.set(font_scale=1.4)
-        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=5, yticklabels=5,
+        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=3, yticklabels=3,
                                            cmap=sns.color_palette("RdGy", 10))
-        plt.show()
+        # plt.show()
 
         confusion_matrix_fig.figure.savefig(self.confusion_matrix_path)
         print(f"Saved confusion matrix to {self.confusion_matrix_path}")
@@ -429,3 +535,20 @@ class CrossValidator(ABC):
         stds = dataset.std(dim=1, keepdim=True)
         standardized_data = (dataset - means) / stds
         return standardized_data
+
+    @abstractmethod
+    def _specific_train_only(self, balanced_train):
+        pass
+
+    def _log_specific_train_only_results(self):
+        pass
+
+    def _store_specific_results(self):
+        pass
+
+    def _specific_eval_only(self, balanced_val):
+        pass
+
+    def _log_specific_eval_only_results(self):
+        pass
+

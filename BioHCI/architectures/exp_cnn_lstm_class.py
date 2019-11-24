@@ -1,16 +1,16 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-
+from BioHCI.learning.expandergraphlayer import ExpanderConv1d, ExpanderReLU, ExpanderLinear
 from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 
 
-class CNN_LSTM_R(AbstractNeuralNetwork):
+class EXP_CNN_LSTM(AbstractNeuralNetwork):
 
     def __init__(self, nn_learning_def):
-        super(CNN_LSTM_R, self).__init__()
+        super(EXP_CNN_LSTM, self).__init__()
 
-        self.__name = "CNN_LSTM_regression"
+        self.__name = "CNN_LSTM_classification"
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size
@@ -24,38 +24,37 @@ class CNN_LSTM_R(AbstractNeuralNetwork):
             # the actual input is (samples_per_chunk x num_attr), batch_size is implicit
             # input size expected by Conv1d: (batch_size x number of channels x length of signal sequence)
             # so in our case it needs to be (batch_size x input_size x samples_per_chunk)
-            nn.Conv1d(
-                in_channels=self.input_size,
-                out_channels=32,  # number of filters
+            ExpanderConv1d(
+                inWCin=self.input_size,
+                inWCout=32,  # number of filters
+                expandSize=8,
                 kernel_size=5,  # size of filter
                 stride=1,  # filter movement/step
                 padding=2  # padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
                 ),
             nn.ReLU(),
-            nn.BatchNorm1d(32),
-            nn.Conv1d(
-                in_channels=32,
-                out_channels=32,  # number of filters
+            ExpanderConv1d(
+                inWCin=32,
+                inWCout=32,  # number of filters
+                expandSize=8,
                 kernel_size=5,  # size of filter
                 stride=1,  # filter movement/step
                 padding=2  # padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
                 ),
             nn.ReLU(),
-            nn.BatchNorm1d(32),
             nn.MaxPool1d(kernel_size=2)
             )
 
         # xavier initialization for convolutional layer
-        # self.conv1.apply(self.weights_init)
+        self.conv1.apply(self.weights_init)
 
         self.lstm = nn.LSTM(input_size=32, hidden_size=self.hidden_size, num_layers=self.num_layers,
                             dropout=self.dropout_rate, batch_first=self.batch_first)
 
-        self.hidden2out = nn.Linear(self.hidden_size, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
+        self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
 
-    @staticmethod
-    def weights_init(m):
+    def weights_init(self, m):
         if isinstance(m, nn.Conv1d):
             torch.nn.init.xavier_uniform(m.weight.data)
 
@@ -94,8 +93,8 @@ class CNN_LSTM_R(AbstractNeuralNetwork):
             output = self.hidden2out(output[:, -1, :])
         else:
             output = self.hidden2out(output[-1, :, :])
+        output = self.softmax(output)
 
-        output = self.sigmoid(output)
         return output
 
     @property

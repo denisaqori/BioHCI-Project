@@ -136,6 +136,13 @@ class UniformTouchpad(KnittedComponent):
         centers_norm = self.__scale(centers_raw)
         return centers_norm
 
+    def get_row_labels(self, button_list: np.ndarray) -> np.ndarray:
+        row_cat_list = []
+        for button in button_list:
+            row_cat = math.floor(button/3)
+            row_cat_list.append(row_cat)
+        return np.asarray(row_cat_list)
+
     @staticmethod
     def __scale(raw_values: List[float]) -> List[float]:
         min = raw_values[0]

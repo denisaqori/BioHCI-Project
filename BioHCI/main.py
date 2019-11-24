@@ -1,11 +1,11 @@
 import argparse
+from os.path import join
 
 import torch
 
+import BioHCI.helpers.utilities as utils
 from BioHCI.architectures.cnn_lstm_class import CNN_LSTM_C
-from BioHCI.architectures.lstm import LSTM
 from BioHCI.architectures.cnn_lstm_regr import CNN_LSTM_R
-from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
 from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
@@ -41,8 +41,9 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
+    parameters = config.populate_study_parameters("CTS_CHI2020_test_basic.toml")
+    # parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
     # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
-    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
     print(parameters)
 
     # generating the data from files
@@ -50,14 +51,13 @@ def main():
     # during data construction under "Subject" - button000 is ignored (baseline data)
     subject_dict = data.get_subject_dataset()
 
-
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
     data_splitter = WithinSubjectSplitter(subject_dict)
     # data_splitter = AcrossSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
-    descriptor_computer = DescriptorComputer(DescType.MSD, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
-                                             extra_name="_classification")
+    descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
+                                             extra_name="_test_fl_all_train")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
     # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 
@@ -71,10 +71,10 @@ def main():
     dataset_categories = data.get_all_dataset_categories()
 
     assert parameters.neural_net is True
-    learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(dataset_categories),
+    learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=int(len(dataset_categories) / 3),
                                            use_cuda=args.cuda)
     if parameters.classification:
-        neural_net = LSTM(nn_learning_def=learning_def)
+        neural_net = CNN_LSTM_C(nn_learning_def=learning_def)
     else:
         neural_net = CNN_LSTM_R(nn_learning_def=learning_def)
 
@@ -88,8 +88,16 @@ def main():
     cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, neural_net, parameters,
                           learning_def, dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
 
-    cv.perform_cross_validation()
-    # cv.perform_simple_train_val()
+    # cv.perform_cross_validation()
+    # cv.train_only()
+
+    model_subdir = parameters.study_name + "/trained_models"
+    model_name = "CNN_LSTM_classification-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_real_train_only.pt"
+    # model_name = "CNN_LSTM_classification-batch-128-" \
+    #              "CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_classification-fold-5-5.pt"
+    saved_model_path = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir, model_name))
+
+    cv.eval_only(model_path=saved_model_path)
 
     print("\nEnd of main program.")
 

@@ -26,20 +26,23 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
             # so in our case it needs to be (batch_size x input_size x samples_per_chunk)
             nn.Conv1d(
                 in_channels=self.input_size,
-                out_channels=32,  # number of filters
+                out_channels=self.input_size*8,  # number of filters
                 kernel_size=5,  # size of filter
                 stride=1,  # filter movement/step
                 padding=2  # padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
                 ),
             nn.ReLU(),
+            nn.BatchNorm1d(self.input_size*8),
+            # nn.Dropout(),
             nn.Conv1d(
-                in_channels=32,
-                out_channels=32,  # number of filters
-                kernel_size=5,  # size of filter
-                stride=1,  # filter movement/step
-                padding=2  # padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
+                 in_channels=self.input_size*8,
+                 out_channels=32,  # number of filters
+                 kernel_size=5,  # size of filter
+                 stride=1,  # filter movement/step
+                 padding=2  # padding=(kernel_size-1)/2 if willstride=1 -> added to both sides of input
                 ),
             nn.ReLU(),
+            # nn.BatchNorm1d(32),
             nn.MaxPool1d(kernel_size=2)
             )
 

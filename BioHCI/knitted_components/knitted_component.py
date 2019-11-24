@@ -18,3 +18,6 @@ class KnittedComponent(ABC):
     @abstractmethod
     def get_button_centers(self, ids: np.ndarray):
         pass
+
+    def get_row_labels(self, cat):
+        pass

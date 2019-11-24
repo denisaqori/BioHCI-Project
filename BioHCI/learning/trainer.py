@@ -10,7 +10,7 @@ from BioHCI.definitions.study_parameters import StudyParameters
 
 
 # This class is based on PyTorch sample code from Sean Robertson (Classifying Names with a Character-Level RNN)
-# http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html 
+# http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
 
 
 class Trainer:
@@ -44,7 +44,8 @@ class Trainer:
     # this method returns the category based on the architectures output - each category will be associated with a
     # likelihood
     # topk is used to get the index of highest value
-    def __category_from_output(self, output):
+    @staticmethod
+    def __category_from_output(output):
         top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
         predicted_i = top_i[0].item()
         return predicted_i
@@ -58,7 +59,7 @@ class Trainer:
     def __train_chunks_in_batch(self, category_tensor, data_chunk_tensor):
 
         # clear accumulated gradients from previous example
-        self.__optimizer.zero_grad()
+        # self.__optimizer.zero_grad()
 
         # if cuda is available, initialize the tensors there
         if self.__use_cuda:
@@ -84,6 +85,7 @@ class Trainer:
         # execute a gradient descent step based on the gradients calculated during the .backward() operation
         # to update the parameters of our learning
         self.__optimizer.step()
+        self.__optimizer.zero_grad()
 
         # delete variables once we are done with them to free up space
         del input
@@ -101,9 +103,9 @@ class Trainer:
 
         # goes through the whole training dataset in tensor chunks and batches computing output and loss
         for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader):  # gives batch data
-            # if step == 0:
-            # 	input = Variable(data_chunk_tensor)
-            # 	self.__writer.add_graph(self.__model, input.cuda(async =True), True)
+            if step == 0:
+                input = Variable(data_chunk_tensor)
+                self.__writer.add_graph(self.__neural_net, input.cuda(), True)
 
             # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
             # category_tensor has shape (batch_size)
@@ -155,9 +157,9 @@ class Trainer:
             total = 0
             # goes through the whole training dataset in tensor chunks and batches computing output and loss
             for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader):  # gives batch data
-                # if step == 0:
-                # 	input = Variable(data_chunk_tensor)
-                # 	self.__writer.add_graph(self.__model, input.cuda(async =True), True)
+                if step == 0:
+                    input = Variable(data_chunk_tensor)
+                    self.__writer.add_graph(self.__neural_net, input.cuda(), True)
 
                 # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
                 # category_tensor has shape (batch_size)

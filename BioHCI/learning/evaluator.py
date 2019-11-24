@@ -81,6 +81,7 @@ class Evaluator:
                 if category_i == predicted_i:
                     # print("Correct Guess")
                     correct += 1
+            print(f"Accuracy so far: {correct/total}")
 
         accuracy = correct / total
         # print("The number of correct guesses in the test set is:", correct, "out of", total, "total samples")

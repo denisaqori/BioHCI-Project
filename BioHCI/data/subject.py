@@ -40,7 +40,8 @@ class Subject:
         # if each subject has a directory for each category
         if self.__parameter.cat_names == 'dir':
             for cat_data_container in os.listdir(self.__subj_data_path):
-                if cat_data_container != "button000":
+                if (cat_data_container != "button000"):# and (cat_data_container == "button017" or cat_data_container
+                                                            # == "button018" or cat_data_container == "button019"):
                     subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
                     if os.path.isdir(subj_cat_data_path):
                         category_data, category_names = self.__read_files(subj_cat_data_path, cat_data_container)

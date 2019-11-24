@@ -40,6 +40,7 @@ class NNCrossValidator(CrossValidator):
                                                knitted_component, extra_model_name)
         # the stochastic gradient descent function to update weights a self.perform_cross_validation()nd biases
         self.__optimizer = torch.optim.Adam(self.neural_net.parameters(), lr=learning_def.learning_rate)
+        # weight_decay=1e-5)
 
         if parameters.classification:
             # the negative log likelihood loss function - useful to train classification problems with C classes
@@ -90,6 +91,8 @@ class NNCrossValidator(CrossValidator):
         if not self.parameters.classification:
             labels = self.knitted_component.get_button_centers(labels)
 
+        labels = self.knitted_component.get_row_labels(labels)
+
         labels = torch.from_numpy(labels)
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
         # and one with labels (train or val respectively)
@@ -113,9 +116,13 @@ class NNCrossValidator(CrossValidator):
         return trainer.loss, trainer.accuracy
 
     # evaluate the learning created during training on the validation dataset
-    def val(self, val_dataset):
+    def val(self, val_dataset, model_path=None):
         val_data_loader = self._get_data_and_labels(val_dataset)
-        model_to_eval = torch.load(self.model_path)
+
+        if model_path is None:
+            model_to_eval = torch.load(self.model_path)
+        else:
+            model_to_eval = torch.load(model_path)
 
         evaluator = Evaluator(val_data_loader, model_to_eval, self.criterion, self.knitted_component,
                               self.confusion_matrix, self.learning_def, self.parameters, self.writer)
@@ -182,6 +189,107 @@ class NNCrossValidator(CrossValidator):
 
         # torch.save(self.neural_net, self.model_path)
 
+    def _specific_train_only(self, balanced_train):
+        epoch_train_losses = []
+        epoch_train_accuracies = []
+        train_time_s = 0
+
+        for epoch in range(1, self.learning_def.num_epochs + 1):
+
+            train_start = time.time()
+            current_train_loss, current_train_accuracy = self.train(balanced_train)
+            train_time_diff = utils.time_diff(train_start)
+            train_time_s += train_time_diff
+
+            self.writer.add_scalar('Train Loss', current_train_loss, epoch)
+            self.writer.add_scalar('Train Accuracy', current_train_accuracy, epoch)
+
+            # Print epoch number, loss, accuracy, name and guess
+            print_every = 10
+            if epoch % print_every == 0:
+                print(
+                    f"Epoch {epoch}:    Train Loss: {(current_train_loss / epoch):.5f}    Train Accuracy:"
+                    f" {current_train_accuracy:.3f}")
+
+            # Add current loss avg to list of losses
+            epoch_train_losses.append(current_train_loss / epoch)
+            epoch_train_accuracies.append(current_train_accuracy)
+
+            self.writer.add_scalar('Train Avg Loss', current_train_loss / epoch, epoch)
+
+        self.__all_epoch_train_accuracies.append(epoch_train_accuracies)
+        self.__all_epoch_train_losses.append(epoch_train_losses)
+
+        self.train_time = utils.time_s_to_str(train_time_s)
+
+    # does not actually use epochs
+    def _specific_eval_only(self, balanced_val, model_path=None):
+        epoch_val_losses = []
+        epoch_val_accuracies = []
+
+        val_time_s = 0
+
+        # start validating the learning
+        val_start = time.time()
+        current_val_loss, current_val_accuracy = self.val(balanced_val, model_path)
+        val_time_diff = utils.time_diff(val_start)
+        val_time_s += val_time_diff
+
+        self.writer.add_scalar('Val Loss', current_val_loss)
+        self.writer.add_scalar('Val Accuracy', current_val_accuracy)
+
+        # Add current loss avg to list of losses
+        epoch_val_losses.append(current_val_loss)
+        epoch_val_accuracies.append(current_val_accuracy)
+
+        self.__all_epoch_val_accuracies.append(epoch_val_accuracies)
+        self.__all_epoch_val_losses.append(epoch_val_losses)
+
+        self.val_time = utils.time_s_to_str(val_time_s)
+
+    def _log_specific_train_only_results(self):
+        self.result_logger.debug(f" All fold train accuracies (all epochs): {self.all_epoch_train_accuracies} ")
+        log_every = 10
+        for i, ls in enumerate(self.all_epoch_train_accuracies):
+            if log_every % 10 == 0:
+                self.result_logger.debug(self._format_list(ls))
+
+        self.result_logger.debug(f"All fold train losses (all epochs): {self.all_epoch_train_losses}")
+        log_every = 10
+        for i, ls in enumerate(self.all_epoch_train_losses):
+            if log_every % 10 == 0:
+                self.result_logger.debug(self._format_list(ls))
+
+        # find mean of accuracies from the last 10 epochs
+        ls = self.all_epoch_train_accuracies[0][-10:]
+        sum = 0.0
+        for el in ls:
+            sum += float(el)
+        mean = sum / len(ls)
+        self.result_logger.info(f"The mean of train accuracies of the last 10 epochs is {mean}")
+
+    def _log_specific_eval_only_results(self):
+
+        self.result_logger.debug(f"All fold evaluation accuracies (all epochs): {self.all_epoch_val_accuracies}")
+        log_every = 10
+        for i, ls in enumerate(self.all_epoch_val_accuracies):
+            if log_every % 10 == 0:
+                self.result_logger.debug(self._format_list(ls))
+
+        self.result_logger.debug(f"All fold val losses (all epochs): {self.all_epoch_val_losses}")
+        log_every = 10
+        for i, ls in enumerate(self.all_epoch_val_losses):
+            if log_every % 10 == 0:
+                self.result_logger.debug(self._format_list(ls))
+
+        # find mean of accuracies from the last 10 epochs
+        ls = self.all_epoch_val_accuracies[0][-10:]
+        sum = 0.0
+        for el in ls:
+            sum += float(el)
+        mean = sum / len(ls)
+        self.result_logger.info(f"The mean of evaluation accuracies of the last 10 epochs is {mean}")
+
     def _store_specific_results(self):
         # accuracies for each epoch and each fold are added to the list that belongs only to this class
         # "_all_epoch_train_accuracies". The last accuracy of each train epoch is added to the list
@@ -230,5 +338,5 @@ class NNCrossValidator(CrossValidator):
         self.result_logger.info(f"Average validation accuracy: {self.avg_val_accuracy:.2f}\n")
 
     def _format_list(self, float_ls: List[float]) -> List[str]:
-        my_formatted_list = [   '%.2f' % elem for elem in float_ls]
+        my_formatted_list = ['%.2f' % elem for elem in float_ls]
         return my_formatted_list
