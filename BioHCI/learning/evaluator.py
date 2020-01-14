@@ -6,7 +6,7 @@ from torch.autograd import Variable
 
 
 class Evaluator:
-    def __init__(self, val_data_loader, model_to_eval, criterion, knitted_component, confusion, neural_network_def,
+    def __init__(self, val_data_loader, model_to_eval, criterion, confusion, neural_network_def,
                  parameters, summary_writer):
         # print("\n\nInitializing Evaluation...")
 
@@ -19,7 +19,6 @@ class Evaluator:
         self.__writer = summary_writer
         self.__parameters = parameters
 
-        self.__knitted_component = knitted_component
         # accuracy of evaluation
         self.__loss, self.__accuracy = self.evaluate(self.__val_data_loader, confusion)
 
@@ -70,10 +69,8 @@ class Evaluator:
                 category_i = int(category_tensor[i])
 
                 # calculating predicted categories for the whole batch
-                if self.__parameters.classification:
-                    predicted_i = self.category_from_output(output[i])
-                else:
-                    predicted_i = self.__category_from_knitted_component(output[i])
+                assert self.__parameters.classification
+                predicted_i = self.__category_from_output(output[i])
 
                 # adding data to the matrix
                 confusion[category_i][predicted_i] += 1
@@ -89,13 +86,10 @@ class Evaluator:
 
     # this method returns the predicted category based on the architectures output - each category will be associated
     # with a likelihood topk is used to get the index of highest value
-    def category_from_output(self, output):
+    def __category_from_output(self, output):
         top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
         category_i = top_i[0].item()
         return category_i
-
-    def __category_from_knitted_component(self, output):
-        return self.__knitted_component.get_button_id(output)
 
     @property
     def accuracy(self):

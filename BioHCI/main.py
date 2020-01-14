@@ -13,10 +13,11 @@ from BioHCI.data_processing.keypoint_description.descriptor_computer import Desc
 from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
+from BioHCI.definitions import learning_def
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.knitted_components.uniform_touchpad import UniformTouchpad
-from BioHCI.learning.nn_cross_validator import NNCrossValidator
+from BioHCI.learning.knitting_cv import KnittingCrossValidator
 
 
 def main():
@@ -41,7 +42,7 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_CHI2020_test_basic.toml")
+    parameters = config.populate_study_parameters("CTS_CHI2020_test.toml")
     # parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
     # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     print(parameters)
@@ -71,25 +72,31 @@ def main():
     dataset_categories = data.get_all_dataset_categories()
 
     assert parameters.neural_net is True
-    learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=int(len(dataset_categories) / 3),
-                                           use_cuda=args.cuda)
+    row_learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=int(len(dataset_categories) / 3),
+                                                use_cuda=args.cuda)
+    button_learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=3, use_cuda=args.cuda)
+
     if parameters.classification:
-        neural_net = CNN_LSTM_C(nn_learning_def=learning_def)
+        row_neural_net = CNN_LSTM_C(nn_learning_def=row_learning_def)
+        button_neural_net = CNN_LSTM_C(nn_learning_def=button_learning_def)
     else:
-        neural_net = CNN_LSTM_R(nn_learning_def=learning_def)
+        row_neural_net = CNN_LSTM_R(nn_learning_def=row_learning_def)
+        button_neural_net = CNN_LSTM_R(nn_learning_def=button_learning_def)
 
     if args.cuda:
-        neural_net.cuda()
+        row_neural_net.cuda()
+        button_neural_net.cuda()
 
     # cross-validation
     assert parameters.neural_net is True
     touchpad = UniformTouchpad(num_rows=12, num_cols=3, total_resistance=534675,
                                button_resistance=7810.0, inter_button_resistance=4590.0, inter_col_resistance=13033.0)
-    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, neural_net, parameters,
-                          learning_def, dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
+    cv = KnittingCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, row_neural_net,
+                                button_neural_net, parameters, row_learning_def, button_learning_def,
+                                dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
 
     # cv.perform_cross_validation()
-    # cv.train_only()
+    cv.train_only()
 
     model_subdir = parameters.study_name + "/trained_models"
     model_name = "CNN_LSTM_classification-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_real_train_only.pt"

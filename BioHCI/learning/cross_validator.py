@@ -20,14 +20,12 @@ from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.learning_def import LearningDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
-from BioHCI.knitted_components.knitted_component import KnittedComponent
 
 
-#TODO: restructure - KnittedComponent is too specific to be in CV
 class CrossValidator(ABC):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
-    StudyParameters, learning_def: LearningDefinition, all_categories: List[str], knitted_component: KnittedComponent,
+    StudyParameters, learning_def: LearningDefinition, all_categories: List[str],
                  extra_model_name: str = ""):
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
@@ -39,7 +37,6 @@ class CrossValidator(ABC):
         self.__parameters = parameters
         self.__num_folds = parameters.num_folds
         self.__extra_model_name = extra_model_name
-        self.__knitted_component = knitted_component
         self.__classification = parameters.classification
 
         self.__all_val_accuracies = []
@@ -133,10 +130,6 @@ class CrossValidator(ABC):
     @property
     def num_folds(self) -> int:
         return self.__num_folds
-
-    @property
-    def knitted_component(self) -> KnittedComponent:
-        return self.__knitted_component
 
     @property
     def general_name(self) -> str:
@@ -514,15 +507,14 @@ class CrossValidator(ABC):
 
         logging.shutdown()
 
-
     @abstractmethod
     def _log_specific_results(self):
         pass
 
     def draw_confusion_matrix(self):
-        plt.figure(figsize=(14, 10))
-        sns.set(font_scale=1.4)
-        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=3, yticklabels=3,
+        plt.figure(figsize=(20, 10))
+        sns.set(font_scale=1.5)
+        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=1, yticklabels=1,
                                            cmap=sns.color_palette("RdGy", 10))
         # plt.show()
 
@@ -551,4 +543,3 @@ class CrossValidator(ABC):
 
     def _log_specific_eval_only_results(self):
         pass
-

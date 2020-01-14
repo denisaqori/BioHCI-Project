@@ -126,7 +126,7 @@ class WithinSubjectOversampler(CategoryBalancer):
             # in the category
             for j in range(0, num_to_add):
                 chunks_to_add.append(current_cat_data[j])
-                print("(if) First inst:", current_cat_data[j][0])
+                # print("(if) First inst:", current_cat_data[j][0])
         else:  # if we need to add more than 100% of the existing chunks
             current_num = 0
             while current_num < num_to_add:

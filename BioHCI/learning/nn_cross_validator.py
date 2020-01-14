@@ -14,7 +14,6 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
-from BioHCI.knitted_components.knitted_component import KnittedComponent
 from BioHCI.learning.cross_validator import CrossValidator
 from BioHCI.learning.evaluator import Evaluator
 from BioHCI.learning.trainer import Trainer
@@ -24,20 +23,19 @@ class NNCrossValidator(CrossValidator):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter, feature_constructor:
     FeatureConstructor, category_balancer: CategoryBalancer, neural_net: AbstractNeuralNetwork, parameters:
-    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], knitted_component:
-    KnittedComponent, extra_model_name: str = ""):
+    StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str], extra_model_name: str = ""):
         assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
                                                 "trying to instantiate a NNCrossValidator object!"
         # this list contains lists of accuracies for each epoch. There will be self._num_folds lists of _num_epochs
         # elements in this list after all training is done
+        self.__learning_def = learning_def
         self.__all_epoch_train_accuracies = []
         self.__all_epoch_train_losses = []
         self.__all_epoch_val_accuracies = []
         self.__all_epoch_val_losses = []
 
         super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor, category_balancer,
-                                               neural_net, parameters, learning_def, all_categories,
-                                               knitted_component, extra_model_name)
+                                               neural_net, parameters, learning_def, all_categories, extra_model_name)
         # the stochastic gradient descent function to update weights a self.perform_cross_validation()nd biases
         self.__optimizer = torch.optim.Adam(self.neural_net.parameters(), lr=learning_def.learning_rate)
         # weight_decay=1e-5)
@@ -72,6 +70,10 @@ class NNCrossValidator(CrossValidator):
     def criterion(self):
         return self.__criterion
 
+    @property
+    def learning_def(self) -> NeuralNetworkDefinition:
+        return self.__learning_def
+
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
     def _get_data_and_labels(self, subj_dataset):
@@ -86,12 +88,6 @@ class NNCrossValidator(CrossValidator):
 
         # convert categories from string to integer
         labels = utils.convert_categories(self.category_map, cat)
-
-        # TODO: convert int_cat to yarn_positions by calling a function/property of touchpad
-        if not self.parameters.classification:
-            labels = self.knitted_component.get_button_centers(labels)
-
-        labels = self.knitted_component.get_row_labels(labels)
 
         labels = torch.from_numpy(labels)
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
@@ -110,7 +106,7 @@ class NNCrossValidator(CrossValidator):
     # epoch to the respective list in the CrossValidator object standout
     def train(self, train_dataset):
         train_data_loader = self._get_data_and_labels(train_dataset)
-        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion, self.knitted_component,
+        trainer = Trainer(train_data_loader, self.neural_net, self.optimizer, self.criterion,
                           self.learning_def, self.parameters, self.writer, self.model_path)
 
         return trainer.loss, trainer.accuracy
@@ -124,8 +120,8 @@ class NNCrossValidator(CrossValidator):
         else:
             model_to_eval = torch.load(model_path)
 
-        evaluator = Evaluator(val_data_loader, model_to_eval, self.criterion, self.knitted_component,
-                              self.confusion_matrix, self.learning_def, self.parameters, self.writer)
+        evaluator = Evaluator(val_data_loader, model_to_eval, self.criterion, self.confusion_matrix, self.learning_def,
+                              self.parameters, self.writer)
 
         fold_accuracy = evaluator.accuracy
         self.all_val_accuracies.append(fold_accuracy)
