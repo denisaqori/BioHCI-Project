@@ -1,4 +1,3 @@
-import torch
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from torch.optim.optimizer import Optimizer
@@ -11,7 +10,6 @@ from BioHCI.definitions.study_parameters import StudyParameters
 
 # This class is based on PyTorch sample code from Sean Robertson (Classifying Names with a Character-Level RNN)
 # http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
-
 
 class Trainer:
     def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
@@ -31,7 +29,7 @@ class Trainer:
         self._parameters = parameters
         self._writer = summary_writer
 
-        self._loss, self._accuracy = self._train(train_data_loader)
+        # self._loss, self._accuracy = self._train(train_data_loader)
 
     @property
     def model_path(self) -> str:
@@ -41,7 +39,7 @@ class Trainer:
     # likelihood
     # topk is used to get the index of highest value
     @staticmethod
-    def __category_from_output(output) -> int:
+    def _category_from_output(output) -> int:
         top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
         predicted_i = top_i[0].item()
         return predicted_i
@@ -52,7 +50,7 @@ class Trainer:
     # category_from_output function above. The loss data is used to go back to the weights of the architectures and
     # adjust
     # them
-    def _train_chunks_in_batch(self, category_tensor, data_chunk_tensor, neural_net):
+    def _train_chunks_in_batch(self, category_tensor, data_chunk_tensor, neural_net, optimizer):
 
         # clear accumulated gradients from previous example
         # self.__optimizer.zero_grad()
@@ -80,14 +78,13 @@ class Trainer:
         loss = self._criterion(output, label)
         # calculate gradient descent for the variables
         loss.backward()
+
         # execute a gradient descent step based on the gradients calculated during the .backward() operation
         # to update the parameters of our learning
-        self._optimizer.step()
-        self._optimizer.zero_grad()
-
-        # delete variables once we are done with them to free up space
-        del input
-        del label
+        # self._optimizer.step()
+        # self._optimizer.zero_grad()
+        optimizer.step()
+        optimizer.zero_grad()
 
         # we return the output of the architectures, together with the loss information
         return output, float(loss.item())
@@ -114,8 +111,8 @@ class Trainer:
                 category_tensor = category_tensor.float()
 
             data_chunk_tensor = data_chunk_tensor.float()
-
-            output, loss = self._train_chunks_in_batch(category_tensor, data_chunk_tensor, self._neural_net)
+            output, loss = self._train_chunks_in_batch(category_tensor, data_chunk_tensor, self._neural_net,
+                                                       self._optimizer)
             loss += loss
 
             # for every element of the batch
@@ -124,7 +121,7 @@ class Trainer:
 
                 # calculating predicted categories for the whole batch
                 assert self._parameters.classification
-                predicted_i = self.__category_from_output(output[i])
+                predicted_i = self._category_from_output(output[i])
 
                 category_i = int(category_tensor[i])
                 if category_i == predicted_i:

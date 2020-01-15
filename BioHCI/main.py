@@ -42,9 +42,9 @@ def main():
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_CHI2020_test.toml")
+    # parameters = config.populate_study_parameters("CTS_CHI2020_test.toml")
     # parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
-    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     print(parameters)
 
     # generating the data from files
@@ -58,7 +58,7 @@ def main():
     category_balancer = WithinSubjectOversampler()
 
     descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
-                                             extra_name="_test_fl_all_train")
+                                             extra_name="_test02")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
     # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 
@@ -95,8 +95,8 @@ def main():
                                 button_neural_net, parameters, row_learning_def, button_learning_def,
                                 dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
 
-    cv.perform_cross_validation()
-    # cv.train_only()
+    # cv.perform_cross_validation()
+    cv.train_only()
 
     model_subdir = parameters.study_name + "/trained_models"
     model_name = "CNN_LSTM_classification-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_real_train_only.pt"

@@ -60,7 +60,7 @@ class CrossValidator(ABC):
         model_subdir = parameters.study_name + "/trained_models"
         self.__saved_model_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir))
 
-        utils.cleanup(self.model_dir, "_test")
+        # utils.cleanup(self.model_dir, "_test")
 
         # create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
         # below

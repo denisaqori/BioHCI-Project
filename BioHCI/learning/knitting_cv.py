@@ -2,10 +2,12 @@
 Created: 1/7/20
 © Denisa Qori McDonald 2020 All Rights Reserved
 """
+import time
 from typing import List
 
 import numpy as np
 import torch
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, TensorDataset
 
 import BioHCI.helpers.type_aliases as types
@@ -17,9 +19,9 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.knitted_components.knitted_component import KnittedComponent
+from BioHCI.learning.nn_cross_validator import NNCrossValidator
 from BioHCI.learning.two_step_evaluator import TwoStepEvaluator
 from BioHCI.learning.two_step_trainer import TwoStepTrainer
-from BioHCI.learning.nn_cross_validator import NNCrossValidator
 
 
 class KnittingCrossValidator(NNCrossValidator):
@@ -35,8 +37,10 @@ class KnittingCrossValidator(NNCrossValidator):
                                                 "trying to instantiate a NNCrossValidator object!"
         self.__secondary_nn = secondary_neural_net
         self.__secondary_learning_def = secondary_learning_def
-        self.__nn_array = []
+        self.__nn_ls = []
+        self.__optim_ls = []
         self.__populate_secondary_nn_ls()
+        self.__populate_secondary_optim_ls()
         super(KnittingCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
                                                      category_balancer, neural_net, parameters, learning_def,
                                                      all_categories, extra_model_name)
@@ -51,19 +55,29 @@ class KnittingCrossValidator(NNCrossValidator):
 
     @property
     def secondary_neural_net_ls(self) -> List[AbstractNeuralNetwork]:
-        return self.__nn_array
+        return self.__nn_ls
+
+    @property
+    def secondary_optim_ls(self) -> List[Optimizer]:
+        return self.__optim_ls
 
     def __populate_secondary_nn_ls(self) -> None:
         for _ in range(0, self.knitted_component.num_rows):
-            self.__nn_array.append(self.__secondary_nn)
+            self.__nn_ls.append(self.__secondary_nn)
+
+    def __populate_secondary_optim_ls(self) -> None:
+        for nn in self.secondary_neural_net_ls:
+            optim = torch.optim.Adam(nn.parameters(), lr=self.secondary_learning_def.learning_rate)
+            self.__optim_ls.append(optim)
 
     def train(self, train_dataset):
         row_data_loader, button_data_loader = self._get_data_and_labels(train_dataset)
         trainer = TwoStepTrainer(row_data_loader, button_data_loader, self.neural_net, self.secondary_neural_net_ls,
-                                 self.optimizer, self.criterion, self.knitted_component, self.learning_def,
-                                 self.secondary_learning_def, self.parameters, self.writer, self.model_path)
+                                 self.optimizer, self.secondary_optim_ls, self.criterion, self.knitted_component,
+                                 self.learning_def, self.secondary_learning_def, self.parameters, self.writer,
+                                 self.model_path)
 
-        return trainer.loss, trainer.accuracy
+        return trainer.row_loss, trainer.row_accuracy, trainer.button_loss, trainer.button_accuracy
 
     # evaluate the learning created during training on the validation dataset
     def val(self, val_dataset, model_path=None):
@@ -109,9 +123,52 @@ class KnittingCrossValidator(NNCrossValidator):
 
         # DO NOT SHUFFLE either one !!!!! Later code relies on maintaining order
         row_data_loader = DataLoader(row_tensor_dataset, batch_size=self.learning_def.batch_size,
-                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
+                                     num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
 
         button_data_loader = DataLoader(button_tensor_dataset, batch_size=self.learning_def.batch_size,
-                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
+                                        num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
 
         return row_data_loader, button_data_loader
+
+    def _specific_train_only(self, balanced_train):
+        epoch_train_row_losses = []
+        epoch_train_row_accuracies = []
+        epoch_train_button_losses = []
+        epoch_train_button_accuracies = []
+        train_time_s = 0
+
+        print(f"\nNetwork Architecture: {self.neural_net}\n")
+        for epoch in range(1, self.learning_def.num_epochs + 1):
+
+            train_start = time.time()
+            current_train_row_loss, current_train_row_accuracy, current_train_button_loss, \
+            current_train_button_accuracy = self.train(balanced_train)
+            train_time_diff = utils.time_diff(train_start)
+            train_time_s += train_time_diff
+
+            self.writer.add_scalar('Train Row Loss', current_train_row_loss, epoch)
+            self.writer.add_scalar('Train Row Accuracy', current_train_row_accuracy, epoch)
+
+            self.writer.add_scalar('Train Button Loss', current_train_button_loss, epoch)
+            self.writer.add_scalar('Train Button Accuracy', current_train_button_accuracy, epoch)
+
+            # Print epoch number, loss, accuracy, name and guess
+            print_every = 10
+            if epoch % print_every == 0:
+                print(
+                    f"Epoch {epoch}:    Train Row Loss: {(current_train_row_loss / epoch):.5f}    Train Row Accuracy:"
+                    f" {current_train_row_accuracy:.3f}     Train Button Loss: {(current_train_button_loss / epoch):.5f}"
+                    f"    Train Button Accuracy: {current_train_button_accuracy:.3f} ")
+
+            # Add current loss avg to list of losses
+            epoch_train_row_losses.append(current_train_row_loss / epoch)
+            epoch_train_row_accuracies.append(current_train_row_accuracy)
+            epoch_train_button_losses.append(current_train_button_loss / epoch)
+            epoch_train_button_accuracies.append(current_train_button_accuracy)
+
+            self.writer.add_scalar('Train Avg Loss', current_train_button_loss / epoch, epoch)
+
+        self.__all_epoch_train_accuracies.append(epoch_train_button_accuracies)
+        self.__all_epoch_train_losses.append(epoch_train_button_losses)
+
+        self.train_time = utils.time_s_to_str(train_time_s)
