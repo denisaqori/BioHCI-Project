@@ -19,23 +19,23 @@ class Trainer:
             StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
         # print("\nInitializing Training...")
 
-        self.__neural_net = neural_net
-        self.__optimizer = optimizer
-        self.__criterion = criterion
-        self.__num_epochs = neural_network_def.num_epochs
-        self.__samples_per_chunk = parameters.samples_per_chunk
-        self.__batch_size = neural_network_def.batch_size
-        self.__use_cuda = neural_network_def.use_cuda
-        self.__model_path = model_path
+        self._neural_net = neural_net
+        self._optimizer = optimizer
+        self._criterion = criterion
+        self._num_epochs = neural_network_def.num_epochs
+        self._samples_per_chunk = parameters.samples_per_chunk
+        self._batch_size = neural_network_def.batch_size
+        self._use_cuda = neural_network_def.use_cuda
+        self._model_path = model_path
 
-        self.__parameters = parameters
-        self.__writer = summary_writer
+        self._parameters = parameters
+        self._writer = summary_writer
 
-        self.__loss, self.__accuracy = self.__train(train_data_loader)
+        self._loss, self._accuracy = self._train(train_data_loader)
 
     @property
     def model_path(self) -> str:
-        return self.__model_path
+        return self._model_path
 
     # this method returns the category based on the architectures output - each category will be associated with a
     # likelihood
@@ -52,13 +52,13 @@ class Trainer:
     # category_from_output function above. The loss data is used to go back to the weights of the architectures and
     # adjust
     # them
-    def __train_chunks_in_batch(self, category_tensor, data_chunk_tensor):
+    def _train_chunks_in_batch(self, category_tensor, data_chunk_tensor, neural_net):
 
         # clear accumulated gradients from previous example
         # self.__optimizer.zero_grad()
 
         # if cuda is available, initialize the tensors there
-        if self.__use_cuda:
+        if self._use_cuda:
             # data_chunk_tensor = data_chunk_tensor.cuda(async=True)
             # category_tensor = category_tensor.cuda(async=True)
             data_chunk_tensor = data_chunk_tensor.cuda()
@@ -72,16 +72,18 @@ class Trainer:
         # or every chunk/sequence of data producing an output layer, and
         # a hidden layer; the hidden layer goes in the architectures its next run
         # together with a new input - workings internal to the architectures at this point
-        output = self.__neural_net(input)
+
+        # output = self.__neural_net(input)
+        output = neural_net(input)
 
         # compute loss
-        loss = self.__criterion(output, label)
+        loss = self._criterion(output, label)
         # calculate gradient descent for the variables
         loss.backward()
         # execute a gradient descent step based on the gradients calculated during the .backward() operation
         # to update the parameters of our learning
-        self.__optimizer.step()
-        self.__optimizer.zero_grad()
+        self._optimizer.step()
+        self._optimizer.zero_grad()
 
         # delete variables once we are done with them to free up space
         del input
@@ -90,7 +92,7 @@ class Trainer:
         # we return the output of the architectures, together with the loss information
         return output, float(loss.item())
 
-    def __train(self, train_data_loader):
+    def _train(self, train_data_loader):
         # Keep track of losses for plotting
         # number of correct guesses
         correct = 0
@@ -101,19 +103,19 @@ class Trainer:
         for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader):  # gives batch data
             if step == 0:
                 input = Variable(data_chunk_tensor)
-                self.__writer.add_graph(self.__neural_net, input.cuda(), True)
+                self._writer.add_graph(self._neural_net, input.cuda(), True)
 
             # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
             # category_tensor has shape (batch_size)
             # batch_size is passed as an argument to train_data_loader
-            if self.__parameters.classification:
+            if self._parameters.classification:
                 category_tensor = category_tensor.long()  # the loss function requires it
             else:
                 category_tensor = category_tensor.float()
 
             data_chunk_tensor = data_chunk_tensor.float()
 
-            output, loss = self.__train_chunks_in_batch(category_tensor, data_chunk_tensor)
+            output, loss = self._train_chunks_in_batch(category_tensor, data_chunk_tensor, self._neural_net)
             loss += loss
 
             # for every element of the batch
@@ -121,7 +123,7 @@ class Trainer:
                 total = total + 1
 
                 # calculating predicted categories for the whole batch
-                assert self.__parameters.classification
+                assert self._parameters.classification
                 predicted_i = self.__category_from_output(output[i])
 
                 category_i = int(category_tensor[i])
@@ -138,8 +140,8 @@ class Trainer:
 
     @property
     def loss(self):
-        return self.__loss
+        return self._loss
 
     @property
     def accuracy(self):
-        return self.__accuracy
+        return self._accuracy

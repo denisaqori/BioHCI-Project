@@ -35,6 +35,8 @@ class KnittingCrossValidator(NNCrossValidator):
                                                 "trying to instantiate a NNCrossValidator object!"
         self.__secondary_nn = secondary_neural_net
         self.__secondary_learning_def = secondary_learning_def
+        self.__nn_array = []
+        self.__populate_secondary_nn_ls()
         super(KnittingCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
                                                      category_balancer, neural_net, parameters, learning_def,
                                                      all_categories, extra_model_name)
@@ -44,16 +46,20 @@ class KnittingCrossValidator(NNCrossValidator):
         return self.__knitted_component
 
     @property
-    def secondary_neural_net(self) -> AbstractNeuralNetwork:
-        return self.__secondary_nn
-
-    @property
     def secondary_learning_def(self) -> NeuralNetworkDefinition:
         return self.__secondary_learning_def
 
+    @property
+    def secondary_neural_net_ls(self) -> List[AbstractNeuralNetwork]:
+        return self.__nn_array
+
+    def __populate_secondary_nn_ls(self) -> None:
+        for _ in range(0, self.knitted_component.num_rows):
+            self.__nn_array.append(self.__secondary_nn)
+
     def train(self, train_dataset):
         row_data_loader, button_data_loader = self._get_data_and_labels(train_dataset)
-        trainer = TwoStepTrainer(row_data_loader, button_data_loader, self.neural_net, self.secondary_neural_net,
+        trainer = TwoStepTrainer(row_data_loader, button_data_loader, self.neural_net, self.secondary_neural_net_ls,
                                  self.optimizer, self.criterion, self.knitted_component, self.learning_def,
                                  self.secondary_learning_def, self.parameters, self.writer, self.model_path)
 
@@ -101,10 +107,11 @@ class KnittingCrossValidator(NNCrossValidator):
         row_tensor_dataset = TensorDataset(standardized_data, row_labels)
         button_tensor_dataset = TensorDataset(standardized_data, button_labels)
 
+        # DO NOT SHUFFLE either one !!!!! Later code relies on maintaining order
         row_data_loader = DataLoader(row_tensor_dataset, batch_size=self.learning_def.batch_size,
-                                 num_workers=self.parameters.num_threads, shuffle=True, pin_memory=True)
+                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
 
         button_data_loader = DataLoader(button_tensor_dataset, batch_size=self.learning_def.batch_size,
-                                 num_workers=self.parameters.num_threads, shuffle=True, pin_memory=True)
+                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
 
         return row_data_loader, button_data_loader

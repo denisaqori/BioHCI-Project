@@ -3,6 +3,8 @@ Created: 11/7/19
 © Denisa Qori McDonald 2019 All Rights Reserved
 """
 from abc import ABC, abstractmethod
+from typing import Optional
+
 import numpy as np
 
 
@@ -21,3 +23,11 @@ class KnittedComponent(ABC):
 
     def get_row_labels(self, cat):
         pass
+
+    @property
+    def num_rows(self) -> Optional[int]:
+        return None
+
+    @property
+    def num_cols(self) -> Optional[int]:
+        return None

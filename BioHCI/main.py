@@ -95,8 +95,8 @@ def main():
                                 button_neural_net, parameters, row_learning_def, button_learning_def,
                                 dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
 
-    # cv.perform_cross_validation()
-    cv.train_only()
+    cv.perform_cross_validation()
+    # cv.train_only()
 
     model_subdir = parameters.study_name + "/trained_models"
     model_name = "CNN_LSTM_classification-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_real_train_only.pt"
