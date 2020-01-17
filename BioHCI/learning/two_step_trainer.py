@@ -22,7 +22,6 @@ class TwoStepTrainer(Trainer):
             NeuralNetworkDefinition, secondary_learning_def: NeuralNetworkDefinition, parameters: StudyParameters,
                  summary_writer: SummaryWriter, model_path: str) -> None:
 
-        self.__button_data_loader = secondary_data_loader
         self.__button_nn_ls = secondary_neural_net_ls
         self.__button_learning_def = secondary_learning_def
         self.__knitted_component = knitted_component

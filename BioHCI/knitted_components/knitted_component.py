@@ -31,3 +31,7 @@ class KnittedComponent(ABC):
     @property
     def num_cols(self) -> Optional[int]:
         return None
+
+    @property
+    def num_buttons(self) -> Optional[int]:
+        return None

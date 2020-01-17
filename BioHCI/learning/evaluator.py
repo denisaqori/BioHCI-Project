@@ -10,20 +10,20 @@ class Evaluator:
                  parameters, summary_writer):
         # print("\n\nInitializing Evaluation...")
 
-        self.__model_to_eval = model_to_eval
+        self._model_to_eval = model_to_eval
         self.__batch_size = neural_network_def.batch_size
         self.__criterion = criterion
 
         self.__val_data_loader = val_data_loader
         self.__use_cuda = neural_network_def.use_cuda
         self.__writer = summary_writer
-        self.__parameters = parameters
+        self._parameters = parameters
 
         # accuracy of evaluation
         self.__loss, self.__accuracy = self.evaluate(self.__val_data_loader, confusion)
 
     # returns output layer given a tensor of data
-    def evaluate_chunks_in_batch(self, data_chunk_tensor, category_tensor):
+    def evaluate_chunks_in_batch(self, data_chunk_tensor, category_tensor, model_to_eval):
         # if cuda is available, initialize the tensors there
         if self.__use_cuda:
             # data_chunk_tensor = data_chunk_tensor.cuda(async=True)
@@ -33,7 +33,8 @@ class Evaluator:
         input = Variable(data_chunk_tensor.cuda())
         label = Variable(category_tensor.cuda())
 
-        output = self.__model_to_eval(input)
+        # output = self.__model_to_eval(input)
+        output = model_to_eval(input)
         # compute loss
         loss = self.__criterion(output, label)
 
@@ -52,14 +53,14 @@ class Evaluator:
             # data_chunk_tensor has shape (batch_size x samples_per_step x num_attr)
             # category_tensor has shape (batch_size)
             # batch_size is passed as an argument to train_data_loader
-            if self.__parameters.classification:
+            if self._parameters.classification:
                 category_tensor = category_tensor.long()  # the loss function requires it
             else:
                 category_tensor = category_tensor.float()
             data_chunk_tensor = data_chunk_tensor.float()
 
             # getting the architectures guess for the category
-            output, loss = self.evaluate_chunks_in_batch(data_chunk_tensor, category_tensor)
+            output, loss = self.evaluate_chunks_in_batch(data_chunk_tensor, category_tensor, self._model_to_eval)
             loss += loss
 
             # for every element of the batch
@@ -69,7 +70,7 @@ class Evaluator:
                 category_i = int(category_tensor[i])
 
                 # calculating predicted categories for the whole batch
-                assert self.__parameters.classification
+                assert self._parameters.classification
                 predicted_i = self.__category_from_output(output[i])
 
                 # adding data to the matrix
@@ -86,7 +87,7 @@ class Evaluator:
 
     # this method returns the predicted category based on the architectures output - each category will be associated
     # with a likelihood topk is used to get the index of highest value
-    def __category_from_output(self, output):
+    def _category_from_output(self, output):
         top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
         category_i = top_i[0].item()
         return category_i

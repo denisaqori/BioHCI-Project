@@ -10,6 +10,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, TensorDataset
 
+from os.path import join
 import BioHCI.helpers.type_aliases as types
 import BioHCI.helpers.utilities as utils
 from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
@@ -37,10 +38,17 @@ class KnittingCrossValidator(NNCrossValidator):
                                                 "trying to instantiate a NNCrossValidator object!"
         self.__secondary_nn = secondary_neural_net
         self.__secondary_learning_def = secondary_learning_def
+        self.__secondary_confusion = np.zeros((knitted_component.num_buttons, knitted_component.num_buttons))
+
+        # TODO: add a list of models created and make sure that things are saved properly - might be challenging
         self.__nn_ls = []
         self.__optim_ls = []
+        self.__secondary_model_ls = []              # gets populated as models are produced
+        self.__secondary_confusion_ls = []
         self.__populate_secondary_nn_ls()
         self.__populate_secondary_optim_ls()
+
+        self.__populate_secondary_confusion_ls()
         super(KnittingCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
                                                      category_balancer, neural_net, parameters, learning_def,
                                                      all_categories, extra_model_name)
@@ -58,8 +66,16 @@ class KnittingCrossValidator(NNCrossValidator):
         return self.__nn_ls
 
     @property
+    def secondary_model_ls(self) -> List[AbstractNeuralNetwork]:
+        return self.__secondary_model_ls
+
+    @property
     def secondary_optim_ls(self) -> List[Optimizer]:
         return self.__optim_ls
+
+    @property
+    def secondary_confusion_ls(self) -> List[np.ndarray]:
+        return self.__secondary_confusion_ls
 
     def __populate_secondary_nn_ls(self) -> None:
         for _ in range(0, self.knitted_component.num_rows):
@@ -70,12 +86,22 @@ class KnittingCrossValidator(NNCrossValidator):
             optim = torch.optim.Adam(nn.parameters(), lr=self.secondary_learning_def.learning_rate)
             self.__optim_ls.append(optim)
 
+    def __populate_secondary_confusion_ls(self) -> None:
+        for _ in range(0, self.knitted_component.num_rows):
+            self.__secondary_confusion_ls.append(self.__secondary_confusion)
+
     def train(self, train_dataset):
         row_data_loader, button_data_loader = self._get_data_and_labels(train_dataset)
         trainer = TwoStepTrainer(row_data_loader, button_data_loader, self.neural_net, self.secondary_neural_net_ls,
-                                 self.optimizer, self.secondary_optim_ls, self.criterion, self.knitted_component,
-                                 self.learning_def, self.secondary_learning_def, self.parameters, self.writer,
-                                 self.model_path)
+                    self.optimizer, self.secondary_optim_ls, self.criterion, self.knitted_component, self.learning_def,
+                    self.secondary_learning_def, self.parameters, self.writer, self.model_path)
+
+        # save the trained models and their paths as well
+        for r, nn in enumerate(self.secondary_neural_net_ls):
+            model_name = self.general_name + "_r" + str(r) + ".pt"
+            model_path = join(self.model_dir, model_name)
+            torch.save(nn, model_path)
+            self.secondary_model_ls.append(model_path)
 
         return trainer.row_loss, trainer.row_accuracy, trainer.button_loss, trainer.button_accuracy
 
@@ -88,8 +114,9 @@ class KnittingCrossValidator(NNCrossValidator):
         else:
             model_to_eval = torch.load(model_path)
 
-        evaluator = TwoStepEvaluator(row_data_loader, model_to_eval, self.criterion, self.knitted_component,
-                                     self.confusion_matrix, self.learning_def, self.parameters, self.writer)
+        evaluator = TwoStepEvaluator(row_data_loader, button_data_loader, model_to_eval, self.secondary_model_ls,
+                    self.criterion, self.knitted_component, self.confusion_matrix, self.secondary_confusion_ls,
+                                     self.learning_def, self.parameters, self.writer)
 
         fold_accuracy = evaluator.accuracy
         self.all_val_accuracies.append(fold_accuracy)
