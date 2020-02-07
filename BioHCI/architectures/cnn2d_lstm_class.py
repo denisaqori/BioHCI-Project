@@ -10,7 +10,9 @@ class CNN2D_LSTM_C(AbstractNeuralNetwork):
     def __init__(self, nn_learning_def):
         super(CNN2D_LSTM_C, self).__init__()
 
-        self.__name = "CNN2D_LSTM_classification"
+        self.__name = "CNN2D_LSTM_cl"
+        assert self.__name == nn_learning_def.nn_name
+
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size
@@ -25,17 +27,19 @@ class CNN2D_LSTM_C(AbstractNeuralNetwork):
             # input size expected by Conv1d: (batch_size x number of channels x length of signal sequence)
             # so in our case it needs to be (batch_size x input_size x samples_per_chunk)
             nn.Conv2d(
-                in_channels=self.input_size,
-                out_channels=self.input_size*8,  # number of filters
-                kernel_size=5,  # size of filter
+                # in_channels=self.input_size,
+                # out_channels=self.input_size*8,  # number of filters
+                in_channels=1,
+                out_channels=1*8,  # number of filters
+                kernel_size=3,  # size of filter
                 stride=1,  # filter movement/step
                 padding=2  # padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
                 ),
             nn.ReLU(),
-            nn.BatchNorm2d(self.input_size*8),
-            # nn.Dropout(),
+            nn.BatchNorm2d(1*8),
+            nn.Dropout2d(),
             nn.Conv2d(
-                 in_channels=self.input_size*8,
+                 in_channels=1*8,
                  out_channels=32,  # number of filters
                  kernel_size=5,  # size of filter
                  stride=1,  # filter movement/step
@@ -52,7 +56,8 @@ class CNN2D_LSTM_C(AbstractNeuralNetwork):
         self.lstm = nn.LSTM(input_size=32, hidden_size=self.hidden_size, num_layers=self.num_layers,
                             dropout=self.dropout_rate, batch_first=self.batch_first)
 
-        self.hidden = nn.Linear(32*500, self.hidden_size)
+        # self.hidden = nn.Linear(32*125, self.hidden_size)
+        self.hidden = nn.Linear(252*self.hidden_size, self.hidden_size)
         self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
         self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
 
@@ -73,7 +78,8 @@ class CNN2D_LSTM_C(AbstractNeuralNetwork):
     def forward(self, input):
         # reshape the input from (batch_size x seq_len x input_size) to (batch_size x input_size x seq_len)
         # since that is how CNN expects it
-        input = torch.transpose(input, 1, 2).unsqueeze_(3)
+        # input = torch.transpose(input, 1, 2)
+        input = input.unsqueeze_(1)
 
         input = self.conv(input)
         # the output of conv1d is expected to be (batch_size x output_channels(number of kernels) x seq_len)
@@ -82,17 +88,15 @@ class CNN2D_LSTM_C(AbstractNeuralNetwork):
         # transpose input again since LSTM expects it as (batch_size x seq_len x input_size)
         # noinspection PyUnresolvedReferences
 
-        # input = torch.transpose(input, 1, 2)
-        input = input.view(-1, input.size()[1] * input.size()[2] * input.size()[3])
-
-        # self.lstm.flatten_parameters()
-        # output, (hidden, cell) = self.lstm(input, None)
+        input = input.view(input.size(0), -1, 32).contiguous()
+        output, (hidden, cell) = self.lstm(input, None)
 
         # the output is returned as (batch_number x sequence_length x hidden_size) since batch_first is set to true
         # otherwise, if the default settings are used, batch number comes second in dimensions
         # we are interested in only the output of the last time step, since this is a many to one architectures
 
-        output = self.hidden(input)
+        output = torch.reshape(output, (output.size(0), -1))
+        output = self.hidden(output)
 
         output = self.hidden2out(output)
         output = self.softmax(output)

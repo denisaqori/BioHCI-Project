@@ -4,7 +4,7 @@ Created: 11/6/19
 """
 import math
 from math import floor
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -136,12 +136,43 @@ class UniformTouchpad(KnittedComponent):
         centers_norm = self.__scale(centers_raw)
         return centers_norm
 
-    def get_row_labels(self, button_list: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def get_row_column_labels(button_list: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         row_cat_list = []
+        column_cat_list = []
+
         for button in button_list:
             row_cat = math.floor(button/3)
+            # for even rows
+            if row_cat % 2 == 0:
+                column_cat = button % 3
+            # for odd rows, flip column (to follow serpentine knit structure)
+            else:
+                if button % 3 == 0:
+                    column_cat = 2
+                elif button % 3 == 2:
+                    column_cat = 0
+                else:
+                    column_cat = 1
+
             row_cat_list.append(row_cat)
-        return np.asarray(row_cat_list)
+            column_cat_list.append(column_cat)
+
+        return np.asarray(row_cat_list), np.asarray(column_cat_list)
+
+    @staticmethod
+    def get_button_position(row_num: int, col_num: int) -> int:
+        if row_num % 2 == 0:
+            button_num = row_num * 3 + col_num
+        else:
+            if col_num == 0:
+                button_num = row_num * 3 + 2
+            elif col_num == 2:
+                button_num = row_num * 3 - 2
+            else:
+                assert col_num == 1
+                button_num = row_num * 3 + col_num
+        return button_num
 
     @staticmethod
     def __scale(raw_values: List[float]) -> List[float]:

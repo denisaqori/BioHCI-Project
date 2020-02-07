@@ -13,6 +13,8 @@ class LSTM(AbstractNeuralNetwork):
         super(LSTM, self).__init__()
 
         self.__name = "LSTM"
+        assert self.__name == nn_learning_def.nn_name
+
         self.input_size = nn_learning_def.input_size
         self.hidden_size = nn_learning_def.num_hidden
         self.output_size = nn_learning_def.output_size

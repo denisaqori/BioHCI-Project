@@ -9,6 +9,7 @@ class CNN(AbstractNeuralNetwork):
         super(CNN, self).__init__()
 
         self.__name = "CNN"
+        assert self.__name == self.nn_learning_def.nn_name
         self.hidden_size = hidden_size
 
         self.conv1 = nn.Sequential(  # data_chunk_tensor has shape: (batch_size x samples_per_step x num_attr)

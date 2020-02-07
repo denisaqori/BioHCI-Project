@@ -1,8 +1,11 @@
 from torch.autograd import Variable
 
-
+import BioHCI.helpers.type_aliases as types
 # Class based on PyTorch sample code from Sean Robertson (Classifying Names with a Character-Level RNN)
-# http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html 
+# http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
+from BioHCI.data_processing.keypoint_description.desc_type import DescType
+from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
+from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 
 
 class Evaluator:
@@ -71,7 +74,7 @@ class Evaluator:
 
                 # calculating predicted categories for the whole batch
                 assert self._parameters.classification
-                predicted_i = self.__category_from_output(output[i])
+                predicted_i = self._category_from_output(output[i])
 
                 # adding data to the matrix
                 confusion[category_i][predicted_i] += 1
@@ -79,7 +82,7 @@ class Evaluator:
                 if category_i == predicted_i:
                     # print("Correct Guess")
                     correct += 1
-            print(f"Accuracy so far: {correct/total}")
+            # print(f"Accuracy so far: {correct/total}")
 
         accuracy = correct / total
         # print("The number of correct guesses in the test set is:", correct, "out of", total, "total samples")
@@ -99,3 +102,5 @@ class Evaluator:
     @property
     def loss(self):
         return self.__loss
+
+

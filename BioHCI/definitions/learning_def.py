@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional
 
+
 class LearningDefinition(ABC):
+
     def __init__(self, input_size):
         self.__input_size = input_size
 
@@ -45,3 +47,6 @@ class LearningDefinition(ABC):
     def output_size(self) -> Optional[int]:
         return None
 
+    @property
+    def nn_name(self) -> Optional[str]:
+        return None

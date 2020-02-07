@@ -10,7 +10,9 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
     def __init__(self, nn_learning_def):
         super(CNN_LSTM_C, self).__init__()
 
-        self.__name = "CNN_LSTM_classification"
+        self.__name = "CNN_LSTM_cl"
+        assert self.__name == nn_learning_def.nn_name
+
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size
@@ -33,7 +35,7 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
                 ),
             nn.ReLU(),
             nn.BatchNorm1d(self.input_size*8),
-            # nn.Dropout(),
+            nn.Dropout(),
             nn.Conv1d(
                  in_channels=self.input_size*8,
                  out_channels=32,  # number of filters
@@ -57,7 +59,7 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
 
     def weights_init(self, m):
         if isinstance(m, nn.Conv1d):
-            torch.nn.init.xavier_uniform(m.weight.data)
+            torch.nn.init.xavier_uniform_(m.weight.data)
 
     def init_hidden(self):
         if self.use_cuda:

@@ -40,7 +40,7 @@ class Subject:
         # if each subject has a directory for each category
         if self.__parameter.cat_names == 'dir':
             for cat_data_container in os.listdir(self.__subj_data_path):
-                if (cat_data_container != "button000"):# and (cat_data_container == "button017" or cat_data_container
+                if (cat_data_container != "button000"): # and (cat_data_container == "button017" or cat_data_container
                                                             # == "button018" or cat_data_container == "button019"):
                     subj_cat_data_path = os.path.join(self.__subj_data_path, cat_data_container)
                     if os.path.isdir(subj_cat_data_path):
@@ -120,7 +120,25 @@ class Subject:
             # keep info only from the relevant columns and rows
             file_lines = (
                 file_lines[self.__parameter.start_row:, self.__parameter.relevant_columns]).astype(np.float32)
+
+            # calculating average of all frequencies for each signal
+            # mean_array = self.get_attribute_means(file_lines)
+            # return mean_array
             return file_lines
+
+    def get_attribute_means(self, single_file_dataset):
+
+        # return values of odd columns
+        odd_column_array = single_file_dataset[:, 1::2]
+        odd_mean = np.mean(odd_column_array, axis=1)
+        odd_mean = np.expand_dims(odd_mean, axis=1)
+        # return values of even columns
+        even_column_array = single_file_dataset[:, 0::2]
+        even_mean = np.mean(even_column_array, axis=1)
+        even_mean = np.expand_dims(even_mean, axis=1)
+
+        mean_array = np.concatenate((odd_mean, even_mean), axis=1)
+        return mean_array
 
     @property
     def data(self) -> List[np.ndarray]:

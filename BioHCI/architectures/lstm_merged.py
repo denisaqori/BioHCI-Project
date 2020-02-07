@@ -17,6 +17,8 @@ class LSTM_Merged(AbstractNeuralNetwork):
         super(LSTM_Merged, self).__init__()
 
         self.__name = "LSTM_Merged"
+        assert self.__name == self.nn_learning_def.nn_name
+
         self.input_size = nn_learning_def.input_size
         self.hidden_size = nn_learning_def.num_hidden
         self.output_size = nn_learning_def.output_size

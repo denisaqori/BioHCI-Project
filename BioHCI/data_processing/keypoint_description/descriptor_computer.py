@@ -44,7 +44,7 @@ class DescriptorComputer:
         self.__desc_obj_path = join(self.__saved_desc_dir, self.dataset_desc_name)
 
         # remove any files remaining from previous tests
-        # utils.cleanup(self.saved_desc_dir, "_test")
+        utils.cleanup(self.saved_desc_dir, "_test")
 
         # create the full path to save the current descriptor if it does not exist, or to load from if it does
         if os.path.exists(self.desc_obj_path):

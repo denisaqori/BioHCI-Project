@@ -10,7 +10,9 @@ class EXP_CNN_LSTM(AbstractNeuralNetwork):
     def __init__(self, nn_learning_def):
         super(EXP_CNN_LSTM, self).__init__()
 
-        self.__name = "CNN_LSTM_classification"
+        self.__name = "EXP_CNN_LSTM_classification"
+        assert self.__name == self.nn_learning_def.nn_name
+
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size

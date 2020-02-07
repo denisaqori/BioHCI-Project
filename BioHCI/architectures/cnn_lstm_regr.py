@@ -11,6 +11,8 @@ class CNN_LSTM_R(AbstractNeuralNetwork):
         super(CNN_LSTM_R, self).__init__()
 
         self.__name = "CNN_LSTM_regression"
+        assert self.__name == self.nn_learning_def.nn_name
+
         self.hidden_size = nn_learning_def.num_hidden
         self.use_cuda = nn_learning_def.use_cuda
         self.batch_size = nn_learning_def.batch_size

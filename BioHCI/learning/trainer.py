@@ -29,7 +29,7 @@ class Trainer:
         self._parameters = parameters
         self._writer = summary_writer
 
-        # self._loss, self._accuracy = self._train(train_data_loader)
+        self._loss, self._accuracy = self._train(train_data_loader)
 
     @property
     def model_path(self) -> str:
@@ -89,7 +89,8 @@ class Trainer:
         # we return the output of the architectures, together with the loss information
         return output, float(loss.item())
 
-    def _train(self, train_data_loader):
+    def _train(self, *train_data_loaders):
+        train_data_loader = train_data_loaders[0]
         # Keep track of losses for plotting
         # number of correct guesses
         correct = 0
@@ -98,9 +99,9 @@ class Trainer:
 
         # goes through the whole training dataset in tensor chunks and batches computing output and loss
         for step, (data_chunk_tensor, category_tensor) in enumerate(train_data_loader):  # gives batch data
-            if step == 0:
-                input = Variable(data_chunk_tensor)
-                self._writer.add_graph(self._neural_net, input.cuda(), True)
+            # if step == 0:
+            #     input = Variable(data_chunk_tensor)
+            #     self._writer.add_graph(self._neural_net, input.cuda(), True)
 
             # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
             # category_tensor has shape (batch_size)

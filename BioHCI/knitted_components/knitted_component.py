@@ -21,7 +21,7 @@ class KnittedComponent(ABC):
     def get_button_centers(self, ids: np.ndarray):
         pass
 
-    def get_row_labels(self, cat):
+    def get_row_column_labels(self, cat):
         pass
 
     @property
@@ -35,3 +35,6 @@ class KnittedComponent(ABC):
     @property
     def num_buttons(self) -> Optional[int]:
         return None
+
+    def get_button_position(self, row_predicted_i, column_predicted_i):
+        pass
