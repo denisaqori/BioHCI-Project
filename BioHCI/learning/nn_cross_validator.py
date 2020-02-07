@@ -105,9 +105,6 @@ class NNCrossValidator(CrossValidator):
         evaluator = Evaluator(val_data_loader, model_to_eval, self.criterion, self.confusion_matrix, self.learning_def,
                               self.parameters, self.writer)
 
-        fold_accuracy = evaluator.accuracy
-        # self.all_val_accuracies.append(fold_accuracy)
-
         return evaluator.loss, evaluator.accuracy
 
     def compute_label_msd_dict(self, val_subject_dict: types.subj_dataset):
@@ -136,6 +133,11 @@ class NNCrossValidator(CrossValidator):
         val_loss = None
         val_accuracy = None
 
+        all_epoch_train_acc = []
+        all_epoch_val_acc = []
+        all_epoch_train_loss = []
+        all_epoch_val_loss = []
+
         for epoch in range(1, self.learning_def.num_epochs + 1):
 
             train_start = time.time()
@@ -161,6 +163,11 @@ class NNCrossValidator(CrossValidator):
             train_loss = current_train_loss / epoch
             val_loss = current_val_loss / epoch
 
+            all_epoch_train_acc.append(train_accuracy)
+            all_epoch_val_acc.append(val_accuracy)
+            all_epoch_train_loss.append(train_loss)
+            all_epoch_val_loss.append(val_loss)
+
             # Print epoch number, loss, accuracy, name and guess
             print_every = 10
             if epoch % print_every == 0:
@@ -177,7 +184,13 @@ class NNCrossValidator(CrossValidator):
         self.result_logger.info(f"\nTrain time (over last cross-validation pass): {train_time}")
         self.result_logger.info(f"Test time (over last cross-validation pass): {val_time}")
 
-        return train_loss, train_accuracy, val_loss, val_accuracy
+        # calculate averages over the last 10 epochs
+        avg_train_loss = sum(all_epoch_train_loss[-10:]) / 10
+        avg_train_accuracy = sum(all_epoch_train_acc[-10:]) / 10
+        avg_val_loss = sum(all_epoch_val_loss[-10:]) / 10
+        avg_val_accuracy = sum(all_epoch_val_acc[-10:]) / 10
+
+        return avg_train_loss, avg_train_accuracy, avg_val_loss, avg_val_accuracy
 
     def _specific_train_only(self, balanced_train, neural_net, optimizer):
         train_time_s = 0
@@ -218,4 +231,3 @@ class NNCrossValidator(CrossValidator):
 
         val_time = utils.time_s_to_str(val_time_s)
         self.result_logger.info(f"\nTest time (over last cross-validation pass): {val_time}")
-

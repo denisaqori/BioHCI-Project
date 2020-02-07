@@ -40,8 +40,8 @@ def main():
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
     # parameters = config.populate_study_parameters("CTS_CHI2020_test.toml")
-    # parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
-    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
+    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     print(parameters)
 
     # generating the data from files
@@ -50,12 +50,13 @@ def main():
     subject_dict = data.get_subject_dataset()
 
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
-    data_splitter = WithinSubjectSplitter(subject_dict)
-    # data_splitter = AcrossSubjectSplitter(subject_dict)
+    # data_splitter = WithinSubjectSplitter(subject_dict)
+    data_splitter = AcrossSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
     descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
-                                             extra_name="_single_debug_logger")
+                                             extra_name="_all_freq_0_drop_cnn1")
+                                            # extra_name = "_single_conf_test2")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
     # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 

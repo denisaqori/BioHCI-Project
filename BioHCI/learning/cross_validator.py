@@ -4,7 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os.path import join
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -50,7 +50,7 @@ class CrossValidator(ABC):
 
         results_log_subdir = self.parameters.study_name + "/learning_logs"
         self.__results_log_path = utils.create_dir(join(utils.get_root_path("Results"), results_log_subdir))
-        self.__result_logger = self.define_result_logger()
+        self._result_logger = self.define_result_logger()
 
         model_subdir = parameters.study_name + "/trained_models"
         self.__saved_model_dir = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir))
@@ -131,7 +131,7 @@ class CrossValidator(ABC):
 
     @property
     def result_logger(self) -> logging.Logger:
-        return self.__result_logger
+        return self._result_logger
 
     @property
     def confusion_matrix(self):
@@ -162,6 +162,8 @@ class CrossValidator(ABC):
         # Create a custom logger
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
+        logger.propagate = False  # events logged to this logger will not be passed to the handlers of higher level (
+        # ancestor) loggers
 
         # Create handlers
         c_handler = logging.StreamHandler()
@@ -310,18 +312,20 @@ class CrossValidator(ABC):
         self.result_logger.info(
             f"Total cross-validation time ({self.parameters.num_folds} - Fold): {cv_time}")
         self.result_logger.info(
-            f"Train Losses over all folds: {train_fold_losses}")
+            f"Train Losses over all folds: {self.format_list(train_fold_losses)}")
         self.result_logger.info(
-            f"Train Accuracies over all folds: {train_fold_accuracies}")
+            f"Train Accuracies over all folds: {self.format_list(train_fold_accuracies)}")
         self.result_logger.info(
-            f"Validation Losses over all folds: {val_fold_losses}")
+            f"Validation Losses over all folds: {self.format_list(val_fold_losses)}")
         self.result_logger.info(
-            f"Validation Accuracies over all folds: {val_fold_accuracies}")
+            f"Validation Accuracies over all folds: {self.format_list(val_fold_accuracies)}")
 
+        avg_train_acc = sum(train_fold_accuracies) / len(train_fold_accuracies)
+        avg_val_acc = sum(val_fold_accuracies) / len(val_fold_accuracies)
         self.result_logger.info(
-            f"\nAverage Train Accuracy: {sum(train_fold_accuracies) / len(train_fold_accuracies)}")
+            f"\nAverage Train Accuracy: {avg_train_acc : .3f}")
         self.result_logger.info(
-            f"Average Val Accuracy: {sum(val_fold_accuracies) / len(val_fold_accuracies)}")
+            f"Average Val Accuracy: {avg_val_acc : .3f}")
         self.draw_confusion_matrix()
         self.close_logger()
 
@@ -393,8 +397,8 @@ class CrossValidator(ABC):
     def draw_confusion_matrix(self):
         plt.figure(figsize=(20, 10))
         sns.set(font_scale=1.5)
-        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=1, yticklabels=1,
-                                           cmap=sns.color_palette("RdGy", 10))
+        confusion_matrix_fig = sns.heatmap(self.confusion_matrix, xticklabels=1, yticklabels=1)
+                                           # cmap = sns.color_palette("Reds", 10))
         # plt.show()
 
         confusion_matrix_fig.figure.savefig(self.confusion_matrix_path)
@@ -413,6 +417,11 @@ class CrossValidator(ABC):
             self.result_logger.removeHandler(handler)
 
         logging.shutdown()
+
+    @staticmethod
+    def format_list(float_ls: List[Optional[float]]) -> List[str]:
+        my_formatted_list = ['%.3f' % elem for elem in float_ls]
+        return my_formatted_list
 
     def _specific_train_val(self, balanced_train, balanced_val, neural_net, optimizer):
         return None, None, None, None
