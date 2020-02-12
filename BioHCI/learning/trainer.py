@@ -12,7 +12,7 @@ from BioHCI.definitions.study_parameters import StudyParameters
 # http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
 
 class Trainer:
-    def __init__(self, train_data_loader: DataLoader, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
+    def __init__(self, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
                  criterion, neural_network_def: NeuralNetworkDefinition, parameters:
             StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
         # print("\nInitializing Training...")
@@ -28,8 +28,6 @@ class Trainer:
 
         self._parameters = parameters
         self._writer = summary_writer
-
-        self._loss, self._accuracy = self._train(train_data_loader)
 
     @property
     def model_path(self) -> str:
@@ -89,7 +87,7 @@ class Trainer:
         # we return the output of the architectures, together with the loss information
         return output, float(loss.item())
 
-    def _train(self, *train_data_loaders):
+    def train(self, *train_data_loaders):
         train_data_loader = train_data_loaders[0]
         # Keep track of losses for plotting
         # number of correct guesses
@@ -136,10 +134,3 @@ class Trainer:
 
         return loss, accuracy
 
-    @property
-    def loss(self):
-        return self._loss
-
-    @property
-    def accuracy(self):
-        return self._accuracy

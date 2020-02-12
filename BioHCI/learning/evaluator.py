@@ -1,32 +1,24 @@
 from torch.autograd import Variable
 
-import BioHCI.helpers.type_aliases as types
+
 # Class based on PyTorch sample code from Sean Robertson (Classifying Names with a Character-Level RNN)
 # http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
-from BioHCI.data_processing.keypoint_description.desc_type import DescType
-from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
-from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 
 
 class Evaluator:
-    def __init__(self, val_data_loader, model_to_eval, criterion, confusion, neural_network_def,
-                 parameters, summary_writer):
+    def __init__(self, model_to_eval, criterion, neural_network_def, parameters, summary_writer):
         # print("\n\nInitializing Evaluation...")
 
         self._model_to_eval = model_to_eval
         self.__batch_size = neural_network_def.batch_size
         self.__criterion = criterion
 
-        self.__val_data_loader = val_data_loader
         self.__use_cuda = neural_network_def.use_cuda
         self.__writer = summary_writer
         self._parameters = parameters
 
-        # accuracy of evaluation
-        self.__loss, self.__accuracy = self.evaluate(self.__val_data_loader, confusion)
-
     # returns output layer given a tensor of data
-    def evaluate_chunks_in_batch(self, data_chunk_tensor, category_tensor, model_to_eval):
+    def _evaluate_chunks_in_batch(self, data_chunk_tensor, category_tensor, model_to_eval):
         # if cuda is available, initialize the tensors there
         if self.__use_cuda:
             # data_chunk_tensor = data_chunk_tensor.cuda(async=True)
@@ -63,7 +55,7 @@ class Evaluator:
             data_chunk_tensor = data_chunk_tensor.float()
 
             # getting the architectures guess for the category
-            output, loss = self.evaluate_chunks_in_batch(data_chunk_tensor, category_tensor, self._model_to_eval)
+            output, loss = self._evaluate_chunks_in_batch(data_chunk_tensor, category_tensor, self._model_to_eval)
             loss += loss
 
             # for every element of the batch
@@ -90,17 +82,8 @@ class Evaluator:
 
     # this method returns the predicted category based on the architectures output - each category will be associated
     # with a likelihood topk is used to get the index of highest value
-    def _category_from_output(self, output):
+    @staticmethod
+    def _category_from_output(output):
         top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
         category_i = top_i[0].item()
         return category_i
-
-    @property
-    def accuracy(self):
-        return self.__accuracy
-
-    @property
-    def loss(self):
-        return self.__loss
-
-

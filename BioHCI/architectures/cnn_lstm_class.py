@@ -35,7 +35,7 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
                 ),
             nn.ReLU(),
             nn.BatchNorm1d(self.input_size*8),
-            nn.Dropout(p=self.dropout_rate),
+            # nn.Dropout(p=self.dropout_rate),
             nn.Conv1d(
                  in_channels=self.input_size*8,
                  out_channels=32,  # number of filters

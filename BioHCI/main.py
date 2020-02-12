@@ -13,8 +13,7 @@ from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOvers
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.helpers.study_config import StudyConfig
 from BioHCI.knitted_components.uniform_touchpad import UniformTouchpad
-from BioHCI.learning.knitting_cv import KnittingCrossValidator
-from BioHCI.learning.nn_cross_validator import NNCrossValidator
+from BioHCI.learning.nn_msd_cv import NN_MSD_CrossValidator
 
 
 def main():
@@ -40,8 +39,8 @@ def main():
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
     # parameters = config.populate_study_parameters("CTS_CHI2020_test.toml")
-    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
-    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    # parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
+    parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
     print(parameters)
 
     # generating the data from files
@@ -50,13 +49,13 @@ def main():
     subject_dict = data.get_subject_dataset()
 
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
-    # data_splitter = WithinSubjectSplitter(subject_dict)
-    data_splitter = AcrossSubjectSplitter(subject_dict)
+    data_splitter = WithinSubjectSplitter(subject_dict)
+    # data_splitter = AcrossSubjectSplitter(subject_dict)
     category_balancer = WithinSubjectOversampler()
 
     descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
-                                             extra_name="_all_freq_0_drop_cnn1")
-                                            # extra_name = "_single_conf_test2")
+                                             # extra_name="_1f_drop_lstm")
+                                            extra_name = "_debug")
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
     # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 
@@ -78,7 +77,7 @@ def main():
     assert parameters.neural_net is True
     touchpad = UniformTouchpad(num_rows=12, num_cols=3, total_resistance=534675,
                                button_resistance=7810.0, inter_button_resistance=4590.0, inter_col_resistance=13033.0)
-    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, parameters,
+    cv = NN_MSD_CrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, parameters,
                                 row_learning_def, dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
 
     cv.perform_cross_validation()

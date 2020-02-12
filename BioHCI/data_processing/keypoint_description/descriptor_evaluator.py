@@ -9,6 +9,7 @@ import time
 import numpy as np
 from scipy import stats
 from BioHCI.data.data_constructor import DataConstructor
+from BioHCI.data_processing.keypoint_description.ELD import ELD
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.helpers.study_config import StudyConfig
@@ -36,6 +37,7 @@ class DescriptorEvaluator:
 
         print(f"\nPerforming descriptor dataset evaluation...\n")
 
+        self.__distance = ELD()
         self.__heatmap = heatmap_global
         self.descriptor_computer = descriptor_computer
 
@@ -88,6 +90,10 @@ class DescriptorEvaluator:
 
         print(f"Logging into file: {results_log_path}")
         return logger
+
+    @property
+    def distance(self):
+        return self.__distance
 
     @property
     def num_processes(self) -> int:
@@ -206,9 +212,9 @@ class DescriptorEvaluator:
                     cat2 = subj_int_cat[j]
 
                     # for testing purposes
-                    lev_dist_1 = self.euclidean_levenshtein_distance(keypress1, keypress2)
+                    lev_dist_1 = self.distance.compute_distance(keypress1, keypress2)
                     l1.append(lev_dist_1)
-                    lev_dist_2 = self.euclidean_levenshtein_distance(keypress2, keypress1)
+                    lev_dist_2 = self.distance.compute_distance(keypress2, keypress1)
                     l2.append(lev_dist_2)
 
             lists_same = (l1 == l2)
@@ -232,59 +238,13 @@ class DescriptorEvaluator:
         """
         keypress1, cat1, keypress2, cat2 = args
 
-        lev_dist = self.euclidean_levenshtein_distance(keypress1, keypress2)
+        lev_dist = self.distance.compute_distance(keypress1, keypress2)
 
         heatmap_global[cat1, cat2] = heatmap_global[cat1, cat2] + lev_dist
         with counter.get_lock():
             counter.value += 1
             if counter.value % 100 == 0:
                 print(f"{counter.value}: Process {multiprocessing.current_process()}")
-
-    @staticmethod
-    def euclidean_levenshtein_distance(keypress1: np.ndarray, keypress2: np.ndarray) -> float:
-        """
-        Computes the euclidean levenshtein distance between two tensors. This type of distance is similar to the
-        levenshtein distance used on strings, but incorporates euclidean distance instead of the 0 or 1 values used
-        for strings. Intuitively it measures the minimal cost of converting one tensor to another.
-
-        Args:
-            keypress1 (np.ndarray): the first tensor
-            keypress2 (np.ndarray): the second tensor
-
-        Returns:
-            minimal_cost (float): the minimal cost of converting one tensor to another; distance between two tensors.
-
-        """
-        lev_matrix = np.zeros((keypress1.shape[0], keypress2.shape[0]))
-        # changed initial index from 1 to 0 (no idea why I was skipping it before)
-        for i in range(0, keypress1.shape[0]):
-            for j in range(0, keypress2.shape[0]):
-
-                k1_i = keypress1[i, :]
-                k2_j = keypress2[j, :]
-
-                k1_i_norm = np.linalg.norm(k1_i)
-                k2_j_norm = np.linalg.norm(k2_j)
-                diff_norm = np.linalg.norm(k1_i - k2_j)
-
-                if min(i, j) == 0:
-                    lev_matrix[i, j] = max(k1_i_norm, k2_j_norm)
-
-                else:
-                    left = lev_matrix[i - 1, j]
-                    min_clause_1 = left + k1_i_norm
-
-                    up = lev_matrix[i, j - 1]
-                    min_clause_2 = up + k2_j_norm
-
-                    diag = lev_matrix[i - 1, j - 1]
-                    min_clause_3 = diag + diff_norm
-
-                    lev_matrix[i, j] = min(min_clause_1, min_clause_2, min_clause_3)
-
-        # return the last element of the diagonal
-        minimal_cost = lev_matrix[keypress1.shape[0] - 1, keypress2.shape[0] - 1]
-        return minimal_cost
 
     def save(self, obj, ext: str, extra_name: str = "") -> None:
         """

@@ -93,7 +93,7 @@ class DescriptorComputer:
             for subj_name, subj in subject_dataset.items():
                 subj_data = subj.data
 
-                print(f"Total number of descriptor sets to compute: {len(subj_data)}")
+                # print(f"Total number of descriptor sets to compute: {len(subj_data)}")
                 with multiprocessing.Pool(processes=num_processes) as pool:
                     subj_keypress_desc = pool.map(self.produce_subj_keypress_descriptors, subj_data)
                 pool.close()
@@ -112,7 +112,7 @@ class DescriptorComputer:
 
         descriptor_subj_dataset = self.adjust_sequence_length(descriptor_subj_dataset)
 
-        self.save_descriptors(descriptor_subj_dataset)
+        # self.save_descriptors(descriptor_subj_dataset)
         return descriptor_subj_dataset
 
     def produce_subj_keypress_descriptors(self, keypress: np.ndarray) -> List[np.ndarray]:

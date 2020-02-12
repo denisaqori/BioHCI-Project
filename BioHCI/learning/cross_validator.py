@@ -298,7 +298,7 @@ class CrossValidator(ABC):
 
             # starting training and evaluation with the above-defined parameters
             train_loss, train_accuracy, val_loss, val_accuracy = \
-                self._specific_train_val(balanced_train, balanced_val, neural_net, optimizer)
+                self._specific_train_val(balanced_train, balanced_val, neural_net, optimizer, i)
             train_fold_losses.append(train_loss)
             train_fold_accuracies.append(train_accuracy)
             val_fold_losses.append(val_loss)
