@@ -85,8 +85,9 @@ class NNCrossValidator(CrossValidator):
 
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
         # and one with labels (train or val respectively)
-        standardized_data = self.standardize(data)
-        tensor_dataset = TensorDataset(standardized_data, labels)
+
+        # standardized_data = self.standardize(data)
+        tensor_dataset = TensorDataset(data, labels)
 
         data_loader = DataLoader(tensor_dataset, batch_size=self.learning_def.batch_size,
                                  num_workers=self.parameters.num_threads, shuffle=False, pin_memory=False)
@@ -153,7 +154,7 @@ class NNCrossValidator(CrossValidator):
         all_epoch_train_loss = []
         all_epoch_val_loss = []
 
-        self.__msd_train_dict = self.compute_label_msd_dict(balanced_train, fold)
+        # self.__msd_train_dict = self.compute_label_msd_dict(balanced_train, fold+1)
         for epoch in range(1, self.learning_def.num_epochs + 1):
 
             train_start = time.time()
@@ -200,11 +201,11 @@ class NNCrossValidator(CrossValidator):
         self.result_logger.info(f"\nTrain time (over last cross-validation pass): {train_time}")
         self.result_logger.info(f"Test time (over last cross-validation pass): {val_time}")
 
-        # calculate averages over the last 10 epochs
-        avg_train_loss = sum(all_epoch_train_loss[-10:]) / 10
-        avg_train_accuracy = sum(all_epoch_train_acc[-10:]) / 10
-        avg_val_loss = sum(all_epoch_val_loss[-10:]) / 10
-        avg_val_accuracy = sum(all_epoch_val_acc[-10:]) / 10
+        # calculate averages over the last 50 epochs
+        avg_train_loss = sum(all_epoch_train_loss[-50:]) / 50
+        avg_train_accuracy = sum(all_epoch_train_acc[-50:]) / 50
+        avg_val_loss = sum(all_epoch_val_loss[-50:]) / 50
+        avg_val_accuracy = sum(all_epoch_val_acc[-50:]) / 50
 
         return avg_train_loss, avg_train_accuracy, avg_val_loss, avg_val_accuracy
 
@@ -246,5 +247,6 @@ class NNCrossValidator(CrossValidator):
         self.writer.add_scalar('Val Accuracy', current_val_accuracy)
 
         val_time = utils.time_s_to_str(val_time_s)
+        self.result_logger.info(f"Test Accuracy: {current_val_accuracy:.3f}")
         self.result_logger.info(f"\nTest time (over last cross-validation pass): {val_time}")
 

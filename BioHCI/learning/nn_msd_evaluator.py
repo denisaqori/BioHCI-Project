@@ -48,11 +48,10 @@ class NN_MSD_Evaluator(Evaluator):
     def distance(self):
         return self.__distance
 
-    def evaluate(self, val_data_loader, confusion):
+    def evaluate(self, val_data_loader, confusion, buttons_correct, fold_count, overall_rows_correct):
         # number of correct guesses
         row_correct = 0
-        button_correct = 0
-        button_only_correct = 0
+        # button_correct = 0
 
         total = 0
         row_loss = 0
@@ -94,19 +93,15 @@ class NN_MSD_Evaluator(Evaluator):
                 # adding data to the matrix
                 confusion[row_category_i][row_predicted_i] += 1
 
+                fold_count += 1
                 if row_category_i == row_predicted_i:
                     row_correct += 1
+                    overall_rows_correct += 1
                     if button_predicted_i == button_category_i:
-                        button_only_correct += 1
-
-                if button_predicted_i == button_category_i:
-                    button_correct += 1
+                        buttons_correct += 1
 
         row_accuracy = row_correct / total
-        button_accuracy = button_correct / total
-        button_only_accuracy = button_only_correct / row_correct
-
-        return row_loss, row_accuracy, button_accuracy, button_only_accuracy
+        return row_loss, row_accuracy
 
     def predict_button(self, raw_sample: np.ndarray, row_number: int) -> int:
         button_ls = self.get_buttons_of_row(row_number)

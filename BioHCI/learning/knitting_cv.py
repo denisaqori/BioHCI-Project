@@ -330,7 +330,7 @@ class KnittingCrossValidator(NNCrossValidator):
         row_labels = torch.from_numpy(row_labels)
         column_labels = torch.from_numpy(column_labels)
 
-        standardized_data = self.standardize(data)
+        # standardized_data = self.standardize(data)
         row_tensor_dataset = TensorDataset(standardized_data, row_labels)
         column_tensor_dataset = TensorDataset(standardized_data, column_labels)
 

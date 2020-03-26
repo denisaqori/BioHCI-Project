@@ -2,21 +2,21 @@
 Created: 5/7/19
 © Denisa Qori McDonald 2019 All Rights Reserved
 """
-from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
-from BioHCI.data_processing.feature_constructor import FeatureConstructor
-from BioHCI.data_processing.keypoint_description.desc_type import DescType
-from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
-from BioHCI.helpers.study_config import StudyConfig
-from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
-from BioHCI.definitions.study_parameters import StudyParameters
-import BioHCI.helpers.type_aliases as types
 from typing import Optional
 
-#TODO: add functionality to pad each key-press if desired
+import BioHCI.helpers.type_aliases as types
+from BioHCI.data.data_constructor import DataConstructor
+from BioHCI.data_processing.feature_constructor import FeatureConstructor
+from BioHCI.data_processing.keypoint_description.desc_type import DescType
+from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
+from BioHCI.data_processing.stat_dataset_processor import StatDatasetProcessor
+from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
+from BioHCI.definitions.study_parameters import StudyParameters
+from BioHCI.helpers.study_config import StudyConfig
+
+
 class KeypointFeatureConstructor(FeatureConstructor):
-    def __init__(self, parameters: StudyParameters,
-                 descriptor_computer: DescriptorComputer) -> None:
+    def __init__(self, parameters: StudyParameters, descriptor_computer: DescriptorComputer) -> None:
 
         print("Keypoint Feature Constructor being initiated...")
         self.descriptor_computer = descriptor_computer
@@ -39,6 +39,7 @@ class KeypointFeatureConstructor(FeatureConstructor):
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
         feature_dataset = self.descriptor_computer.dataset_descriptors
         return feature_dataset
+
 
 if __name__ == "__main__":
     print("Running msbsd_feature_constructor module...")

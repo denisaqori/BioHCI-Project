@@ -72,12 +72,9 @@ class Evaluator:
                 confusion[category_i][predicted_i] += 1
 
                 if category_i == predicted_i:
-                    # print("Correct Guess")
                     correct += 1
-            # print(f"Accuracy so far: {correct/total}")
 
         accuracy = correct / total
-        # print("The number of correct guesses in the test set is:", correct, "out of", total, "total samples")
         return loss, accuracy
 
     # this method returns the predicted category based on the architectures output - each category will be associated
