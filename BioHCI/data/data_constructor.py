@@ -37,7 +37,7 @@ class DataConstructor:
 
         self.subj_dataset = self.build_all_subj_dataset(self.subj_dir_list)
 
-        self.print_all_subj_dataset()
+        # self.print_all_subj_dataset()
 
     # this method determines the path to the directory with each subject's data files and returns a list of names of
     # directories which should be of each subject

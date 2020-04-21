@@ -51,8 +51,11 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
         # xavier initialization for convolutional layer
         self.conv1.apply(self.weights_init)
 
-        self.lstm = nn.LSTM(input_size=32, hidden_size=self.hidden_size, num_layers=self.num_layers,
-                            dropout=self.dropout_rate, batch_first=self.batch_first)
+        #self.lstm = nn.LSTM(input_size=32, hidden_size=self.hidden_size, num_layers=self.num_layers,
+        #                    dropout=self.dropout_rate, batch_first=self.batch_first)
+
+        # NOTE: No dropout on this one
+        self.lstm = nn.LSTM(input_size=32, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=self.batch_first)
 
         self.hidden2out = nn.Linear(self.hidden_size, self.output_size)
         self.softmax = nn.LogSoftmax(dim=1)  # already ensured this is the right dimension and calculation is correct
@@ -77,6 +80,7 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
         input = torch.transpose(input, 1, 2)
 
         input = self.conv1(input)
+
         # the output of conv1d is expected to be (batch_size x output_channels(number of kernels) x seq_len)
         # but seq_len can be shorter, since it's valid cross-correlation not full cross-correlation
 

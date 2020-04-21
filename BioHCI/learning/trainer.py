@@ -1,4 +1,4 @@
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -14,7 +14,7 @@ from BioHCI.definitions.study_parameters import StudyParameters
 class Trainer:
     def __init__(self, neural_net: AbstractNeuralNetwork, optimizer: Optimizer,
                  criterion, neural_network_def: NeuralNetworkDefinition, parameters:
-            StudyParameters, summary_writer: SummaryWriter, model_path: str) -> None:
+            StudyParameters, model_path: str) -> None:
         # print("\nInitializing Training...")
 
         self._neural_net = neural_net
@@ -27,7 +27,7 @@ class Trainer:
         self._model_path = model_path
 
         self._parameters = parameters
-        self._writer = summary_writer
+        # self._writer = summary_writer
 
     @property
     def model_path(self) -> str:
@@ -104,9 +104,9 @@ class Trainer:
             # data_chunk_tensor has shape (batch_size x samples_per_chunk x num_attr)
             # category_tensor has shape (batch_size)
             # batch_size is passed as an argument to train_data_loader
-            if self._parameters.classification:
-                category_tensor = category_tensor.long()  # the loss function requires it
-            else:
+            category_tensor = category_tensor.long()  # the loss function requires it
+
+            if not self._parameters.classification:
                 category_tensor = category_tensor.float()
 
             data_chunk_tensor = data_chunk_tensor.float()
@@ -130,7 +130,7 @@ class Trainer:
         #     self.__writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch)
 
         accuracy = correct / total
-        # self.__all_accuracies.append(accuracy)
+        avg_sample_loss = loss / total
 
-        return loss, accuracy
+        return avg_sample_loss, accuracy
 

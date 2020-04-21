@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 import BioHCI.helpers.type_aliases as types
 import BioHCI.helpers.utilities as utils
@@ -32,6 +32,7 @@ class CrossValidator(ABC):
                  feature_constructor: FeatureConstructor, category_balancer: CategoryBalancer,
                  parameters: StudyParameters, learning_def: LearningDefinition, all_categories: List[str],
                  extra_model_name: str = ""):
+        self.__all_categories = all_categories
         self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
@@ -48,7 +49,7 @@ class CrossValidator(ABC):
 
         tbx_name = parameters.study_name + "/tensorboardX_runs"
         self.__tbx_path = utils.create_dir(join(utils.get_root_path("Results"), tbx_name))
-        self.__writer = SummaryWriter(self.tbx_path)
+        # self.__writer = SummaryWriter(self.tbx_path)
 
         results_log_subdir = self.parameters.study_name + "/learning_logs"
         self.__results_log_path = utils.create_dir(join(utils.get_root_path("Results"), results_log_subdir))
@@ -61,13 +62,11 @@ class CrossValidator(ABC):
         self.__confusion_matrix_obj_dir = utils.create_dir(join(utils.get_root_path("saved_objects"),
                                                                 confusion_matrix_subdir))
         # utils.cleanup(self.model_dir, "_test")
+        self.__confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
 
-        # create a confusion matrix to track correct guesses (accumulated over all folds of the Cross-Validation
-        # below
-        # self.__confusion_matrix = torch.zeros(len(all_categories), len(all_categories))
-
-        # self.__confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
-        self.__confusion_matrix = np.zeros((36, 36))
+    @property
+    def all_categories(self):
+        return self.__all_categories
 
     @property
     def subject_dict(self) -> types.subj_dataset:
@@ -138,17 +137,21 @@ class CrossValidator(ABC):
     def tbx_path(self):
         return self.__tbx_path
 
-    @property
-    def writer(self):
-        return self.__writer
+    # @property
+    # def writer(self):
+    #     return self.__writer
 
     @property
     def result_logger(self) -> logging.Logger:
         return self._result_logger
 
     @property
-    def confusion_matrix(self):
+    def confusion_matrix(self) -> np.ndarray:
         return self.__confusion_matrix
+
+    @confusion_matrix.setter
+    def confusion_matrix(self, cm: np.ndarray):
+        self.__confusion_matrix = cm
 
     @property
     def extra_model_name(self) -> str:
@@ -216,7 +219,7 @@ class CrossValidator(ABC):
         Returns:
 
         """
-        name = self.general_name + extra + "-fold-" + str(i + 1) + "-" + str(self.num_folds) + ".pt"
+        name = self.general_name + extra + "-fold-" + str(i) + "-" + str(self.num_folds) + ".pt"
         return name
 
     def __init_nn(self) -> AbstractNeuralNetwork:
@@ -286,15 +289,22 @@ class CrossValidator(ABC):
         train_fold_accuracies = []
         val_fold_losses = []
         val_fold_accuracies = []
+        fold_cm = []
 
         self.log_general_info()
-        for i in range(0, self.num_folds):
+        for i in range(1, self.num_folds + 1):
             self.result_logger.info(
                 "\n*************************************************************************************************")
-            self.result_logger.info(f"Run: {i}\n")
+            self.result_logger.info(f"Cross-Validation Fold: {i} / {self.num_folds}\n")
 
+            # in data splitter, val_index starts from 0, while i in this case starts from 1
             train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
-                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=i)
+                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=(i-1))
+
+            self.result_logger.info(f"\nSubjects in training dataset: ")
+            self.print_dataset_subj(train_dataset)
+            self.result_logger.info(f"Subjects in val dataset: ")
+            self.print_dataset_subj(val_dataset)
 
             # train_dataset, val_dataset = self.data_splitter.split_into_folds_raw(
             #     subject_dictionary=self.subject_dict, num_folds=self.num_folds, val_index=i)
@@ -308,13 +318,14 @@ class CrossValidator(ABC):
 
             if self.parameters.neural_net:
                 neural_net = self.__init_nn()
-                if i == 0:
+                if i == 1:
                     self.result_logger.info(f"Neural Network: {str(neural_net)}\n")
-            # the stochastic gradient descent function to update weights a self.perform_cross_validation()nd biases
+            # the stochastic gradient descent function to update weights and biases
             optimizer = torch.optim.Adam(neural_net.parameters(), lr=self.learning_def.learning_rate)
 
             self.__model_name = self._produce_model_name(i=i)
             self.__model_path = join(self.__saved_model_dir, self.model_name)
+            self.result_logger.info(f"\nModel path: {self.model_path}\n")
 
             # starting training and evaluation with the above-defined parameters
             train_loss, train_accuracy, val_loss, val_accuracy = \
@@ -323,6 +334,11 @@ class CrossValidator(ABC):
             train_fold_accuracies.append(train_accuracy)
             val_fold_losses.append(val_loss)
             val_fold_accuracies.append(val_accuracy)
+
+            # save current value of confusion matrix in a list, and zero it out for next fold
+            current_cm = self.confusion_matrix
+            fold_cm.append(current_cm)
+            self.confusion_matrix = np.zeros((len(self.all_categories), len(self.all_categories)))
 
         cv_time = utils.time_since(cv_start)
 
@@ -351,6 +367,11 @@ class CrossValidator(ABC):
         self.compute_cm_stats(self.confusion_matrix)
         # self.close_logger()
 
+    def print_dataset_subj(self, dataset):
+        for subj_name, subj in dataset.items():
+            self.result_logger.info(subj_name)
+        self.result_logger.info("\n")
+
     def train_only(self, neural_net):
         feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
         balanced_train = self.category_balancer.balance(feature_dataset)
@@ -378,6 +399,9 @@ class CrossValidator(ABC):
 
         feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
         balanced_val = self.category_balancer.balance(feature_dataset)
+
+        self.result_logger.info(f"Val dataset: ")
+        self.print_dataset_subj(balanced_val)
 
         self.log_general_info()
         self.result_logger.info(f"\nEvaluation Only Results!!!!!!")

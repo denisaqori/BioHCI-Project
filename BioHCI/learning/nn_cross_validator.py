@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 import BioHCI.helpers.type_aliases as types
+from BioHCI.architectures.cnn_lstm_class import CNN_LSTM_C
 from BioHCI.data.data_splitter import DataSplitter
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
@@ -18,7 +19,6 @@ from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
 from BioHCI.learning.cross_validator import CrossValidator
 from BioHCI.learning.evaluator import Evaluator
-from BioHCI.learning.nn_msd_evaluator import NN_MSD_Evaluator
 from BioHCI.learning.trainer import Trainer
 
 
@@ -125,8 +125,12 @@ class NNCrossValidator(CrossValidator):
     # epoch to the respective list in the CrossValidator object standout
     def train(self, train_dataset, neural_net, optimizer):
         train_data_loader = self.get_train_dataloader(train_dataset)
+
+        # set neural network model to train mode, activating any architecture functionality such as dropout or batch
+        # normalization
+        neural_net.train()
         trainer = Trainer(neural_net, optimizer, self.criterion,
-                          self.learning_def, self.parameters, self.writer, self.model_path)
+                          self.learning_def, self.parameters, self.model_path)
 
         train_loss, train_accuracy = trainer.train(train_data_loader)
         return train_loss, train_accuracy
@@ -135,12 +139,17 @@ class NNCrossValidator(CrossValidator):
     def val(self, val_dataset, model_path=None):
         val_data_loader = self.get_val_dataloader(val_dataset)
 
+        # model_to_eval = CNN_LSTM_C(self.learning_def)
         if model_path is None:
+            # model_to_eval.load_state_dict(torch.load(self.model_path))
             model_to_eval = torch.load(self.model_path)
         else:
+            # model_to_eval.load_state_dict(torch.load(model_path))
             model_to_eval = torch.load(model_path)
 
-        evaluator = Evaluator(model_to_eval, self.criterion, self.learning_def, self.parameters, self.writer)
+        # set model to evaluation mode, ignoring layers such as dropout and batch normalization
+        model_to_eval.eval()
+        evaluator = Evaluator(model_to_eval, self.criterion, self.learning_def, self.parameters)
 
         val_loss, val_accuracy = evaluator.evaluate(val_data_loader, self.confusion_matrix)
         return val_loss, val_accuracy
@@ -158,27 +167,19 @@ class NNCrossValidator(CrossValidator):
         for epoch in range(1, self.learning_def.num_epochs + 1):
 
             train_start = time.time()
-            current_train_loss, train_accuracy = self.train(balanced_train, neural_net, optimizer)
+            train_loss, train_accuracy = self.train(balanced_train, neural_net, optimizer)
             train_time_diff = utils.time_diff(train_start)
             train_time_s += train_time_diff
 
-            self.writer.add_scalar('Train Loss', current_train_loss, epoch)
-            self.writer.add_scalar('Train Accuracy', train_accuracy, epoch)
-
             # after each epoch the new trained model
             torch.save(neural_net, self.model_path)
+            # torch.save(neural_net.state_dict(), self.model_path)
 
             # start validating the learning
             val_start = time.time()
-            current_val_loss, val_accuracy = self.val(balanced_val)
+            val_loss, val_accuracy = self.val(balanced_val)
             val_time_diff = utils.time_diff(val_start)
             val_time_s += val_time_diff
-
-            self.writer.add_scalar('Val Loss', current_val_loss, epoch)
-            self.writer.add_scalar('Val Accuracy', val_accuracy, epoch)
-
-            train_loss = current_train_loss / epoch
-            val_loss = current_val_loss / epoch
 
             all_epoch_train_acc.append(train_accuracy)
             all_epoch_val_acc.append(val_accuracy)
@@ -192,20 +193,18 @@ class NNCrossValidator(CrossValidator):
                     f"Epoch {epoch}: Train Loss: {train_loss :.5f}    Train Accuracy:"
                     f" {train_accuracy:.3f}    Val Loss: {val_loss :.5f}    Val Accuracy: {val_accuracy:.3f}")
 
-            self.writer.add_scalar('Train Avg Loss', train_loss, epoch)
-            self.writer.add_scalar('Val Avg Loss', val_loss, epoch)
-
         train_time = utils.time_s_to_str(train_time_s)
         val_time = utils.time_s_to_str(val_time_s)
 
         self.result_logger.info(f"\nTrain time (over last cross-validation pass): {train_time}")
         self.result_logger.info(f"Test time (over last cross-validation pass): {val_time}")
 
+        num_last_epochs = 50
         # calculate averages over the last 50 epochs
-        avg_train_loss = sum(all_epoch_train_loss[-50:]) / 50
-        avg_train_accuracy = sum(all_epoch_train_acc[-50:]) / 50
-        avg_val_loss = sum(all_epoch_val_loss[-50:]) / 50
-        avg_val_accuracy = sum(all_epoch_val_acc[-50:]) / 50
+        avg_train_loss = sum(all_epoch_train_loss[-num_last_epochs:]) / len(all_epoch_train_loss[-num_last_epochs:])
+        avg_train_accuracy = sum(all_epoch_train_acc[-num_last_epochs:]) / len(all_epoch_train_acc[-num_last_epochs:])
+        avg_val_loss = sum(all_epoch_val_loss[-num_last_epochs:]) / len(all_epoch_val_loss[-num_last_epochs:])
+        avg_val_accuracy = sum(all_epoch_val_acc[-num_last_epochs:]) / len(all_epoch_val_acc[-num_last_epochs:])
 
         return avg_train_loss, avg_train_accuracy, avg_val_loss, avg_val_accuracy
 
@@ -218,9 +217,6 @@ class NNCrossValidator(CrossValidator):
             train_time_diff = utils.time_diff(train_start)
             train_time_s += train_time_diff
 
-            self.writer.add_scalar('Train Loss', current_train_loss, epoch)
-            self.writer.add_scalar('Train Accuracy', current_train_accuracy, epoch)
-
             # Print epoch number, loss, accuracy, name and guess
             print_every = 10
             if epoch % print_every == 0:
@@ -228,7 +224,7 @@ class NNCrossValidator(CrossValidator):
                     f"Epoch {epoch}:    Train Loss: {(current_train_loss / epoch):.5f}    Train Accuracy:"
                     f" {current_train_accuracy:.3f}")
 
-            self.writer.add_scalar('Train Avg Loss', current_train_loss / epoch, epoch)
+            # self.writer.add_scalar('Train Avg Loss', current_train_loss / epoch, epoch)
 
         train_time = utils.time_s_to_str(train_time_s)
         self.result_logger.info(f"\nTrain time (over last cross-validation pass): {train_time}")
@@ -239,14 +235,10 @@ class NNCrossValidator(CrossValidator):
 
         # start validating the learning
         val_start = time.time()
-        current_val_loss, current_val_accuracy = self.val(balanced_val, model_path)
+        val_loss, val_accuracy = self.val(balanced_val, model_path)
         val_time_diff = utils.time_diff(val_start)
         val_time_s += val_time_diff
 
-        self.writer.add_scalar('Val Loss', current_val_loss)
-        self.writer.add_scalar('Val Accuracy', current_val_accuracy)
-
         val_time = utils.time_s_to_str(val_time_s)
-        self.result_logger.info(f"Test Accuracy: {current_val_accuracy:.3f}")
+        self.result_logger.info(f"\nTest Avg Loss: {val_loss:.5f}     Test Accuracy: {val_accuracy:.3f}")
         self.result_logger.info(f"\nTest time (over last cross-validation pass): {val_time}")
-

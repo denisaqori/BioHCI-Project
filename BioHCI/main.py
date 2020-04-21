@@ -1,11 +1,11 @@
 import argparse
 from os.path import join
 
+import numpy as np
 import torch
 
 from BioHCI.data.across_subject_splitter import AcrossSubjectSplitter
 from BioHCI.data.data_constructor import DataConstructor
-from BioHCI.data.within_subject_splitter import WithinSubjectSplitter
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
@@ -31,7 +31,12 @@ def main():
     print("Is cuda available?", torch.cuda.is_available())
     print("Is the option to use cuda set?", args.cuda)
 
-    # torch.manual_seed(1)  # reproducible Results for testing purposes
+    # for reproducible results
+    seed = 0
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
     config_dir = "config_files"
     config = StudyConfig(config_dir)
@@ -59,7 +64,8 @@ def main():
 
     descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
                                                 # extra_name="_nocoef_nolinreg_1000e_rand")
-                                                extra_name = "_test_saved_nn")
+                                                extra_name = "_latest_test")
+
     feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
     # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
 
@@ -73,8 +79,6 @@ def main():
     dataset_categories = data.get_all_dataset_categories()
 
     assert parameters.neural_net is True
-    # row_learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=int(len(dataset_categories) / 3),
-    #                                             use_cuda=args.cuda)
     button_learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=36, use_cuda=args.cuda)
 
     # cross-validation
@@ -86,22 +90,18 @@ def main():
     cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, parameters,
                            button_learning_def, dataset_categories, descriptor_computer.dataset_desc_name)
 
-    # cv.perform_cross_validation()
-    # cv.train_only()
+    cv.perform_cross_validation()
 
     # cm_obj_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_final_study1_confusion_matrix.pt"
     # cm_obj_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_nocoef_nolinreg_1500e_confusion_matrix.pt"
     # cv.generate_confusion_matrix_fig_from_obj_name(cm_obj_name)
 
     model_subdir = parameters.study_name + "/trained_models"
-    # model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_all_linreg_1500e-fold-10-10.pt"
-    # model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_final-fold-10-10.pt"
-    # model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_nocoef_nolinreg_1000e_rand-fold-1-10.pt"
-    # model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_nocoef_nolinreg_1500e-fold-10-10.pt"
-    model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_test_saved_nn-fold-2-10.pt"
+    # model_name = "CNN_LSTM_cl-batch-4-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_test_tmp_single-fold-1-3.pt"
+    model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_latest_test-fold-5-10.pt"
     saved_model_path = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir, model_name))
 
-    cv.eval_only(model_path=saved_model_path)
+    # cv.eval_only(model_path=saved_model_path)
 
     print("\nEnd of main program.")
 

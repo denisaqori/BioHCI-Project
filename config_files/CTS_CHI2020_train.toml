@@ -1,4 +1,4 @@
-#resource_path = "CTS_CHI2020_Average_Gain/train"
+#resource_path = "CTS_CHI2020/tmp/tmp_train"
 resource_path = "CTS_CHI2020/train"
 study_name = "CTS_CHI2020"
 sensor_name = "Capacitor"

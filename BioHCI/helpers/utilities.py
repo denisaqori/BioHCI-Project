@@ -67,7 +67,7 @@ def create_dir(root_dir_path, subdir_name_list=None):
 def get_module_path() -> str:
     """
 
-    Returns: absolute path of this module
+    returns: absolute path of this module
 
     """
     return dirname(abspath(__file__))

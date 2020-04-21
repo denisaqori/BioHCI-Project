@@ -6,7 +6,7 @@ from torch.autograd import Variable
 
 
 class Evaluator:
-    def __init__(self, model_to_eval, criterion, neural_network_def, parameters, summary_writer):
+    def __init__(self, model_to_eval, criterion, neural_network_def, parameters):
         # print("\n\nInitializing Evaluation...")
 
         self._model_to_eval = model_to_eval
@@ -14,7 +14,7 @@ class Evaluator:
         self.__criterion = criterion
 
         self.__use_cuda = neural_network_def.use_cuda
-        self.__writer = summary_writer
+        # self.__writer = summary_writer
         self._parameters = parameters
 
     # returns output layer given a tensor of data
@@ -75,7 +75,8 @@ class Evaluator:
                     correct += 1
 
         accuracy = correct / total
-        return loss, accuracy
+        avg_sample_loss = loss / total
+        return avg_sample_loss, accuracy
 
     # this method returns the predicted category based on the architectures output - each category will be associated
     # with a likelihood topk is used to get the index of highest value
