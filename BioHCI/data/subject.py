@@ -36,7 +36,6 @@ class Subject:
             subj_category_names (List[str]): a python list of stings, corresponding to the category names of the data in
                                              each element of subj_category_data.
         """
-        print("\nBuilding the subject dataset: ")
         subj_category_data = []
         subj_category_names = []
 
@@ -141,7 +140,7 @@ class Subject:
             # get the data in each file by first stripping and splitting the lines and
             # then creating a numpy array out of these values
             file_lines = []
-            print("Filename: ", filepath)
+            # print("Filename: ", filepath)
             for line in f:
                 line = line.strip(' \t\n\r')
                 line = re.split('\t|,', line)
@@ -176,7 +175,7 @@ class Subject:
         odd_sum = np.expand_dims(np.sum(odd_column_array, axis=1), axis=1)
         even_sum = np.expand_dims(np.sum(even_column_array, axis=1), axis=1)
 
-        """
+        # """
         # fitting a function to all frequnecies for each time step
         x = np.arange(0, odd_column_array.shape[1])
         odd_linreg_ls = []
@@ -213,8 +212,9 @@ class Subject:
         even_linreg_stats = np.array([np.array(xi) for xi in even_linreg_ls])
         odd_coef_stats = np.array([np.array(xi) for xi in odd_coef_ls])
         even_coef_stats = np.array([np.array(xi) for xi in even_coef_ls])
-        """
-        stat_array = np.concatenate((odd_mean, even_mean, odd_std, even_std, odd_sum, even_sum), axis=1)
+        # """
+        stat_array = np.concatenate((odd_mean, even_mean, odd_std, even_std, odd_sum, even_sum, odd_linreg_stats,
+                                     even_linreg_stats), axis=1)
         return stat_array
 
     @property

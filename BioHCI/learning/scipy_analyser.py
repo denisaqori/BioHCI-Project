@@ -1,10 +1,10 @@
-from BioHCI.learning.cross_validator import CrossValidator
+from BioHCI.learning.analyser import Analyser
 import BioHCI.helpers.utilities as utils
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 
 
-class ScipyCrossValidator(CrossValidator):
+class ScipyAnalyser(Analyser):
 
     def _log_specific_results(self):
         pass
@@ -13,8 +13,8 @@ class ScipyCrossValidator(CrossValidator):
     def __init__(self, subject_dict, data_splitter, feature_constructor, model, parameter,
                  learning_def, all_categories):
 
-        super(ScipyCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor,
-                                                  model, parameter, learning_def, all_categories)
+        super(ScipyAnalyser, self).__init__(subject_dict, data_splitter, feature_constructor,
+                                            model, parameter, learning_def, all_categories)
 
         assert (parameter.neural_net is False), "In StudyParameters, neural_net is set to True and you are " \
                                                 "trying to instantiate a ScipyCrossValidator object!"

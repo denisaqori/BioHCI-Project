@@ -14,6 +14,8 @@ from BioHCI.knitted_components.knitted_component import KnittedComponent
 class UniformTouchpad(KnittedComponent):
     def __init__(self, num_rows: int, num_cols: int, total_resistance: float, button_resistance:
     float, inter_button_resistance: float, inter_col_resistance: float):
+        #(num_rows=12, num_cols=3, total_resistance=534675,
+        #button_resistance=7810.0, inter_button_resistance=4590.0, inter_col_resistance=13033.0)
         self.__name = "UniformTouchpad"
         self.__num_rows = num_rows
         self.__num_cols = num_cols

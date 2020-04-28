@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
-# from tensorboardX import SummaryWriter
 
 import BioHCI.helpers.type_aliases as types
 import BioHCI.helpers.utilities as utils
@@ -27,13 +26,11 @@ from BioHCI.definitions.learning_def import LearningDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 
 
-class CrossValidator(ABC):
-    def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter,
-                 feature_constructor: FeatureConstructor, category_balancer: CategoryBalancer,
-                 parameters: StudyParameters, learning_def: LearningDefinition, all_categories: List[str],
-                 extra_model_name: str = ""):
+class Analyser(ABC):
+    def __init__(self, data_splitter: DataSplitter, feature_constructor: FeatureConstructor,
+                 category_balancer: CategoryBalancer, parameters: StudyParameters, learning_def: LearningDefinition,
+                 all_categories: List[str], extra_model_name: str = ""):
         self.__all_categories = all_categories
-        self.__subject_dict = subject_dict
         self.__data_splitter = data_splitter
         self.__feature_constructor = feature_constructor
         self.__category_balancer = category_balancer
@@ -49,7 +46,6 @@ class CrossValidator(ABC):
 
         tbx_name = parameters.study_name + "/tensorboardX_runs"
         self.__tbx_path = utils.create_dir(join(utils.get_root_path("Results"), tbx_name))
-        # self.__writer = SummaryWriter(self.tbx_path)
 
         results_log_subdir = self.parameters.study_name + "/learning_logs"
         self.__results_log_path = utils.create_dir(join(utils.get_root_path("Results"), results_log_subdir))
@@ -61,16 +57,13 @@ class CrossValidator(ABC):
         confusion_matrix_subdir = parameters.study_name + "/confusion_matrices"
         self.__confusion_matrix_obj_dir = utils.create_dir(join(utils.get_root_path("saved_objects"),
                                                                 confusion_matrix_subdir))
+        self.__cv_confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
+        self.__test_confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
         # utils.cleanup(self.model_dir, "_test")
-        self.__confusion_matrix = np.zeros((len(all_categories), len(all_categories)))
 
     @property
     def all_categories(self):
         return self.__all_categories
-
-    @property
-    def subject_dict(self) -> types.subj_dataset:
-        return self.__subject_dict
 
     @property
     def data_splitter(self) -> DataSplitter:
@@ -137,21 +130,25 @@ class CrossValidator(ABC):
     def tbx_path(self):
         return self.__tbx_path
 
-    # @property
-    # def writer(self):
-    #     return self.__writer
-
     @property
     def result_logger(self) -> logging.Logger:
         return self._result_logger
 
     @property
-    def confusion_matrix(self) -> np.ndarray:
-        return self.__confusion_matrix
+    def cv_confusion_matrix(self) -> np.ndarray:
+        return self.__cv_confusion_matrix
 
-    @confusion_matrix.setter
-    def confusion_matrix(self, cm: np.ndarray):
-        self.__confusion_matrix = cm
+    @cv_confusion_matrix.setter
+    def cv_confusion_matrix(self, cm: np.ndarray):
+        self.__cv_confusion_matrix = cm
+
+    @property
+    def test_confusion_matrix(self) -> np.ndarray:
+        return self.__test_confusion_matrix
+
+    @test_confusion_matrix.setter
+    def test_confusion_matrix(self, cm: np.ndarray):
+        self.__test_confusion_matrix = cm
 
     @property
     def extra_model_name(self) -> str:
@@ -164,14 +161,26 @@ class CrossValidator(ABC):
         return results_log_path
 
     @property
-    def confusion_matrix_path(self) -> str:
-        name = self.general_name + "_confusion_matrix.pdf"
+    def cv_confusion_matrix_path(self) -> str:
+        name = self.general_name + "_cv_confusion_matrix.pdf"
         confusion_path = join(self.results_log_dir, name)
         return confusion_path
 
     @property
-    def confusion_matrix_obj_path(self):
-        name = self.general_name + "_confusion_matrix.pt"
+    def cv_confusion_matrix_obj_path(self):
+        name = self.general_name + "_cv_confusion_matrix.pt"
+        path = join(self.confusion_matrix_obj_dir, name)
+        return path
+
+    @property
+    def test_confusion_matrix_path(self) -> str:
+        name = self.general_name + "_test_confusion_matrix.pdf"
+        confusion_path = join(self.results_log_dir, name)
+        return confusion_path
+
+    @property
+    def test_confusion_matrix_obj_path(self):
+        name = self.general_name + "_test_confusion_matrix.pt"
         path = join(self.confusion_matrix_obj_dir, name)
         return path
 
@@ -279,10 +288,10 @@ class CrossValidator(ABC):
         return all_data, all_cat
 
     # TODO: fix how msd dataset is named if we are doing only training (no cv folds)
-    def perform_cross_validation(self) -> None:
+    def perform_cross_validation(self, cv_subject_dict) -> None:
         cv_start = time.time()
 
-        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        feature_dataset = self.feature_constructor.produce_feature_dataset(cv_subject_dict)
         neural_net = None
 
         train_fold_losses = []
@@ -299,7 +308,7 @@ class CrossValidator(ABC):
 
             # in data splitter, val_index starts from 0, while i in this case starts from 1
             train_dataset, val_dataset = self.data_splitter.split_into_folds_features(
-                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=(i-1))
+                feature_dictionary=feature_dataset, num_folds=self.num_folds, val_index=(i - 1))
 
             self.result_logger.info(f"\nSubjects in training dataset: ")
             self.print_dataset_subj(train_dataset)
@@ -327,18 +336,17 @@ class CrossValidator(ABC):
             self.__model_path = join(self.__saved_model_dir, self.model_name)
             self.result_logger.info(f"\nModel path: {self.model_path}\n")
 
+            current_cm = np.zeros((len(self.all_categories), len(self.all_categories)))
             # starting training and evaluation with the above-defined parameters
             train_loss, train_accuracy, val_loss, val_accuracy = \
-                self._specific_train_val(balanced_train, balanced_val, neural_net, optimizer, i)
+                self._specific_train_val(balanced_train, balanced_val, neural_net, optimizer, current_cm, i)
             train_fold_losses.append(train_loss)
             train_fold_accuracies.append(train_accuracy)
             val_fold_losses.append(val_loss)
             val_fold_accuracies.append(val_accuracy)
 
             # save current value of confusion matrix in a list, and zero it out for next fold
-            current_cm = self.confusion_matrix
             fold_cm.append(current_cm)
-            self.confusion_matrix = np.zeros((len(self.all_categories), len(self.all_categories)))
 
         cv_time = utils.time_since(cv_start)
 
@@ -363,17 +371,52 @@ class CrossValidator(ABC):
         self.result_logger.info(
             f"Average Val Accuracy: {avg_val_acc : .3f}")
 
-        self.save_confusion_matrix(self.confusion_matrix)
-        self.compute_cm_stats(self.confusion_matrix)
-        # self.close_logger()
+        # compute confusion matrix as the average of confusion matrices of all folds
+        self.cv_confusion_matrix = sum(fold_cm) / len(fold_cm)
+        print(f"\nFinal cross-validatoin confusion matrix:\n {self.cv_confusion_matrix}")
+
+        self.save_confusion_matrix(self.cv_confusion_matrix, self.cv_confusion_matrix_obj_path,
+                                   self.cv_confusion_matrix_path)
+        self.compute_cm_stats(self.cv_confusion_matrix)
+
+    def evaluate_all_models(self, test_subject_dict):
+        self.result_logger.debug(
+            "\n********************************************************************************************************"
+            "\n********************************************************************************************************"
+            "\n")
+        self.result_logger.info(f"\nEvaluation Only Results!!!!!!")
+        self.log_general_info()
+
+        fold_cm = []
+        for i in range(1, self.num_folds + 1):
+            current_cm = np.zeros((len(self.all_categories), len(self.all_categories)))
+            model_name = self._produce_model_name(i=i)
+            model_path = join(self.__saved_model_dir, model_name)
+
+            self.result_logger.info(
+                "\n***********************************************************************************************")
+            self.result_logger.info(f"Run: {i}")
+
+            self.eval_only(test_subject_dict, confusion_matrix=current_cm, model_path=model_path)
+            # print(f"\n{current_cm}")
+            fold_cm.append(current_cm)
+
+        self.test_confusion_matrix = sum(fold_cm) / len(fold_cm)
+        print(f"\nFinal test confusion matrix:\n {self.test_confusion_matrix}")
+
+        self.save_confusion_matrix(self.test_confusion_matrix, self.test_confusion_matrix_obj_path,
+                                   self.test_confusion_matrix_path)
+        self.compute_cm_stats(self.test_confusion_matrix)
+        self.result_logger.info(
+            "\n***************************************************************************************************\n\n")
 
     def print_dataset_subj(self, dataset):
         for subj_name, subj in dataset.items():
             self.result_logger.info(subj_name)
         self.result_logger.info("\n")
 
-    def train_only(self, neural_net):
-        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+    def train_only(self, train_subject_dict, neural_net):
+        feature_dataset = self.feature_constructor.produce_feature_dataset(train_subject_dict)
         balanced_train = self.category_balancer.balance(feature_dataset)
 
         self.__model_name = self.general_name + ".pt"
@@ -393,27 +436,17 @@ class CrossValidator(ABC):
         self.result_logger.info(f"Saved model to {self.model_path}")
         self.result_logger.debug(
             "\n***************************************************************************************************\n\n")
-        self.close_logger()
 
-    def eval_only(self, model_path=None):
+    def eval_only(self, test_subject_dict, confusion_matrix, model_path=None):
 
-        feature_dataset = self.feature_constructor.produce_feature_dataset(self.subject_dict)
+        feature_dataset = self.feature_constructor.produce_feature_dataset(test_subject_dict)
         balanced_val = self.category_balancer.balance(feature_dataset)
 
-        self.result_logger.info(f"Val dataset: ")
+        self.result_logger.info(f"\nVal dataset: ")
         self.print_dataset_subj(balanced_val)
 
-        self.log_general_info()
-        self.result_logger.info(f"\nEvaluation Only Results!!!!!!")
-
         self.result_logger.info(f"Model from: {model_path}")
-        self._specific_eval_only(balanced_val, model_path=model_path)
-
-        self.save_confusion_matrix(self.confusion_matrix)
-        self.compute_cm_stats(self.confusion_matrix)
-        self.result_logger.debug(
-            "\n***************************************************************************************************\n\n")
-        self.close_logger()
+        self._specific_eval_only(balanced_val, confusion_matrix, model_path=model_path)
 
     def log_general_info(self):
         self.result_logger.debug(
@@ -441,13 +474,13 @@ class CrossValidator(ABC):
             self.result_logger.info(f"Dropout Rate: {self.learning_def.dropout_rate}\n")
         self.result_logger.info(f"Number of threads: {self.parameters.num_threads}\n")
 
-    def save_confusion_matrix(self, matrix):
-        with open(self.confusion_matrix_obj_path, 'wb') as f:
+    def save_confusion_matrix(self, matrix: np.ndarray, cm_path: str, fig_path: str):
+        with open(cm_path, 'wb') as f:
             pickle.dump(matrix, f, pickle.HIGHEST_PROTOCOL)
-        print(f"Saved confusion matrix object (.pkl) to : {self.confusion_matrix_obj_path}")
+        print(f"Saved confusion matrix object (.pkl) to : {cm_path}")
 
         # draw and save figure
-        self.draw_confusion_matrix(matrix)
+        self.draw_confusion_matrix(matrix, fig_path)
 
     def compute_cm_stats(self, confusion_matrix: np.ndarray):
 
@@ -456,11 +489,11 @@ class CrossValidator(ABC):
         self.result_logger.info(
             "\n***************************************************************************************************\n\n")
         tp = np.diag(confusion_matrix)  # true positives
-        self.result_logger.info(f"TP: {tp}")
+        self.result_logger.info(f"TP:\n {tp}\n")
         fp = np.sum(confusion_matrix, axis=0) - tp  # false positives
-        self.result_logger.info(f"FP: {fp}")
+        self.result_logger.info(f"FP:\n {fp}\n")
         fn = np.sum(confusion_matrix, axis=1) - tp  # false negatives
-        self.result_logger.info(f"FN: {fn}")
+        self.result_logger.info(f"FN:\n {fn}\n")
 
         num_classes = confusion_matrix.shape[0]
         tn = []
@@ -468,7 +501,7 @@ class CrossValidator(ABC):
             temp = np.delete(confusion_matrix, i, 0)  # delete ith row
             temp = np.delete(temp, i, 1)  # delete ith column
             tn.append(sum(sum(temp)))
-        self.result_logger.info(f"TN: {tn}\n")
+        self.result_logger.info(f"TN:\n {tn}\n")
 
         precision = tp / (tp + fp)
         recall = tp / (tp + fn)
@@ -483,21 +516,22 @@ class CrossValidator(ABC):
         self.result_logger.info(f"Macro F1 Score: {sum(f1_score) / len(f1_score): .3f}\n")
         return
 
-    def generate_confusion_matrix_fig_from_obj_name(self, cm_name: str) -> None:
+    def generate_confusion_matrix_fig_from_obj_name(self, cm_name: str, fig_path: str) -> None:
         """
         Given a confusion matrix name, produces its confusion matrix figure.
 
         Args:
             cm_name: the name of the pickled confusion matrix object to convert into a figure
+            fig_path: path to save figure
         """
         # assert cm_name.endswith(".pkl")
         path = join(self.confusion_matrix_obj_dir, cm_name)
         if os.path.exists(path):
             with (open(path, "rb")) as openfile:
                 confusion_matrix = pickle.load(openfile)
-                self.draw_confusion_matrix(confusion_matrix)
+                self.draw_confusion_matrix(confusion_matrix, fig_path)
 
-    def draw_confusion_matrix(self, confusion_matrix: np.ndarray):
+    def draw_confusion_matrix(self, confusion_matrix: np.ndarray, fig_path: str):
         plt.figure(figsize=(55, 40))
         sns.set(font_scale=4)
         confusion_matrix_fig = sns.heatmap(confusion_matrix, xticklabels=np.arange(1, 37), yticklabels=np.arange(
@@ -507,8 +541,8 @@ class CrossValidator(ABC):
         # cmap = "YlGnBu"))
         plt.show()
 
-        confusion_matrix_fig.figure.savefig(self.confusion_matrix_path, dpi=500)
-        self.result_logger.info(f"\nSaved confusion matrix figure (.png) to {self.confusion_matrix_path}")
+        confusion_matrix_fig.figure.savefig(fig_path, dpi=500)
+        self.result_logger.info(f"\nSaved confusion matrix figure (.png) to {fig_path}")
 
     def close_logger(self):
         self.result_logger.debug(
@@ -529,14 +563,14 @@ class CrossValidator(ABC):
         my_formatted_list = ['%.3f' % elem for elem in float_ls]
         return my_formatted_list
 
-    def _specific_train_val(self, balanced_train, balanced_val, neural_net, optimizer):
+    def _specific_train_val(self, balanced_train, balanced_val, neural_net, optimizer, current_cm, i):
         return None, None, None, None
 
     @abstractmethod
     def _specific_train_only(self, balanced_train, neural_net, optimizer):
         pass
 
-    def _specific_eval_only(self, balanced_val, model_path=None):
+    def _specific_eval_only(self, balanced_val, confusion_matrix, model_path=None):
         pass
 
     @abstractmethod
@@ -548,5 +582,5 @@ class CrossValidator(ABC):
         pass
 
     @abstractmethod
-    def val(self, val_dataset):
+    def val(self, val_dataset, confusion_matrix):
         pass

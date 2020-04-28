@@ -20,13 +20,13 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.knitted_components.knitted_component import KnittedComponent
-from BioHCI.learning.nn_cross_validator import NNCrossValidator
+from BioHCI.learning.nn_analyser import NNAnalyser
 from BioHCI.learning.two_step_evaluator import TwoStepEvaluator
 from BioHCI.learning.two_step_trainer import TwoStepTrainer
 
 
 #TODO: fix the way column nn is created - a new one needs to be created for each cv fold
-class KnittingCrossValidator(NNCrossValidator):
+class KnittingCrossValidator(NNAnalyser):
 
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter,
                  feature_constructor: FeatureConstructor, category_balancer: CategoryBalancer,

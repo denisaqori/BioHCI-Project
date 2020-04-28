@@ -7,7 +7,6 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 import BioHCI.helpers.type_aliases as types
-from BioHCI.architectures.cnn_lstm_class import CNN_LSTM_C
 from BioHCI.data.data_splitter import DataSplitter
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
@@ -17,17 +16,16 @@ from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.helpers import utilities as utils
-from BioHCI.learning.cross_validator import CrossValidator
+from BioHCI.learning.analyser import Analyser
 from BioHCI.learning.evaluator import Evaluator
 from BioHCI.learning.trainer import Trainer
 
 
-class NNCrossValidator(CrossValidator):
+class NNAnalyser(Analyser):
 
-    def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter,
-                 feature_constructor: FeatureConstructor, category_balancer: CategoryBalancer,
-                 parameters: StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str],
-                 extra_model_name: str = ""):
+    def __init__(self, data_splitter: DataSplitter, feature_constructor: FeatureConstructor,
+                 category_balancer: CategoryBalancer, parameters: StudyParameters,
+                 learning_def: NeuralNetworkDefinition, all_categories: List[str], extra_model_name: str = ""):
         assert (parameters.neural_net is True), "In StudyParameters, neural_net is set to False and you are " \
                                                 "trying to instantiate a NNCrossValidator object!"
         # this list contains lists of accuracies for each epoch. There will be self._num_folds lists of _num_epochs
@@ -37,8 +35,8 @@ class NNCrossValidator(CrossValidator):
         self.__seq_len = SeqLen.ExtendEdge
         self.__msd_train_dict = None
 
-        super(NNCrossValidator, self).__init__(subject_dict, data_splitter, feature_constructor, category_balancer,
-                                               parameters, learning_def, all_categories, extra_model_name)
+        super(NNAnalyser, self).__init__(data_splitter, feature_constructor, category_balancer,
+                                         parameters, learning_def, all_categories, extra_model_name)
 
         if parameters.classification:
             # the negative log likelihood loss function - useful to train classification problems with C classes
@@ -80,7 +78,6 @@ class NNCrossValidator(CrossValidator):
 
         # convert categories from string to integer
         labels = utils.convert_categories(self.category_map, cat)
-
         labels = torch.from_numpy(labels)
 
         # the tensor_dataset is a tuple of TensorDataset type, containing a tensor with data (train or val),
@@ -88,7 +85,6 @@ class NNCrossValidator(CrossValidator):
 
         # standardized_data = self.standardize(data)
         tensor_dataset = TensorDataset(data, labels)
-
         data_loader = DataLoader(tensor_dataset, batch_size=self.learning_def.batch_size,
                                  num_workers=self.parameters.num_threads, shuffle=False, pin_memory=False)
         return data_loader
@@ -97,7 +93,7 @@ class NNCrossValidator(CrossValidator):
         descriptor_computer = DescriptorComputer(self.desc_type, subject_dict, self.parameters,
                                                  self.seq_len, extra_name="_fold_" + str(fold))
 
-        descriptors = descriptor_computer.dataset_descriptors
+        descriptors = descriptor_computer.produce_dataset_descriptors(subject_dict)
         all_data, all_labels = self.get_all_subj_data(descriptors)
         labels = utils.convert_categories(self.category_map, all_labels)
 
@@ -136,7 +132,7 @@ class NNCrossValidator(CrossValidator):
         return train_loss, train_accuracy
 
     # evaluate the learning created during training on the validation dataset
-    def val(self, val_dataset, model_path=None):
+    def val(self, val_dataset, confusion_matrix, model_path=None):
         val_data_loader = self.get_val_dataloader(val_dataset)
 
         # model_to_eval = CNN_LSTM_C(self.learning_def)
@@ -151,10 +147,11 @@ class NNCrossValidator(CrossValidator):
         model_to_eval.eval()
         evaluator = Evaluator(model_to_eval, self.criterion, self.learning_def, self.parameters)
 
-        val_loss, val_accuracy = evaluator.evaluate(val_data_loader, self.confusion_matrix)
+        val_loss, val_accuracy = evaluator.evaluate(val_data_loader, confusion_matrix)
+        # val_loss, val_accuracy = evaluator.evaluate(val_data_loader, self.confusion_matrix)
         return val_loss, val_accuracy
 
-    def _specific_train_val(self, balanced_train, balanced_val, neural_net, optimizer, fold=0):
+    def _specific_train_val(self, balanced_train, balanced_val, neural_net, optimizer, current_cm, fold=0):
         train_time_s = 0
         val_time_s = 0
 
@@ -173,11 +170,10 @@ class NNCrossValidator(CrossValidator):
 
             # after each epoch the new trained model
             torch.save(neural_net, self.model_path)
-            # torch.save(neural_net.state_dict(), self.model_path)
 
             # start validating the learning
             val_start = time.time()
-            val_loss, val_accuracy = self.val(balanced_val)
+            val_loss, val_accuracy = self.val(balanced_val, current_cm)
             val_time_diff = utils.time_diff(val_start)
             val_time_s += val_time_diff
 
@@ -230,15 +226,15 @@ class NNCrossValidator(CrossValidator):
         self.result_logger.info(f"\nTrain time (over last cross-validation pass): {train_time}")
 
     # does not actually use epochs
-    def _specific_eval_only(self, balanced_val, model_path=None):
+    def _specific_eval_only(self, balanced_val, confusion_matrix, model_path=None):
         val_time_s = 0
 
         # start validating the learning
         val_start = time.time()
-        val_loss, val_accuracy = self.val(balanced_val, model_path)
+        val_loss, val_accuracy = self.val(balanced_val, confusion_matrix, model_path)
         val_time_diff = utils.time_diff(val_start)
         val_time_s += val_time_diff
 
         val_time = utils.time_s_to_str(val_time_s)
-        self.result_logger.info(f"\nTest Avg Loss: {val_loss:.5f}     Test Accuracy: {val_accuracy:.3f}")
-        self.result_logger.info(f"\nTest time (over last cross-validation pass): {val_time}")
+        self.result_logger.info(f"Test Avg Loss: {val_loss:.5f}     Test Accuracy: {val_accuracy:.3f}")
+        self.result_logger.info(f"\nTest time (over last cross-validation pass): {val_time}\n")

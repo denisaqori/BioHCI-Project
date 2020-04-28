@@ -12,8 +12,8 @@ from typing import List, Optional, Match, Iterator
 class StudyParameters(object):
     def __init__(self, attr_dict=None):
         # directory where the text data to be processed is found (all files in there are used)
-        # 'Resources/fNIRS_boredom_data' correspond to boredom data
-        self.__resource_path = None
+        self.__cv_resource_path = None  # cross-validation or train only dataset
+        self.__test_resource_path = None   # testing dataset
 
         # the name of the study
         self.__study_name = None
@@ -60,7 +60,7 @@ class StudyParameters(object):
         self.__feature_overlap = None  # determining whether to overlap instances while constructing features
 
         self.__num_folds = None  # The number of folds for cross-validation
-        self.__classification = None # classification or regression problem
+        self.__classification = None  # classification or regression problem
 
         # run information
         self.__num_threads = None  # The number of threads to be used during training (for gradient computing and
@@ -76,7 +76,8 @@ class StudyParameters(object):
     def __str__(self) -> str:
         s = "\nStudyParameters: \n"
         s = s + "\n**********************************************************"
-        s = s + "\nData source directory: " + str(self.resource_path)
+        s = s + "\nCross-Validation data source directory: " + str(self.cv_resource_path)
+        s = s + "\nTest data source directory: " + str(self.test_resource_path)
         s = s + "\nStudy name: " + str(self.study_name)
         s = s + "\nSensor type: " + str(self.sensor_name)
         s = s + "\nFile format to process: " + str(self.file_format)
@@ -105,17 +106,33 @@ class StudyParameters(object):
         return s
 
     @property
-    def resource_path(self) -> Optional[str]:
-        return self.__resource_path
+    def cv_resource_path(self) -> Optional[str]:
+        return self.__cv_resource_path
 
-    @resource_path.setter
-    def resource_path(self, dir_path: str) -> None:
-        project_root_path = util.get_root_path("Resources")
-        path = os.path.abspath(os.path.join(project_root_path, dir_path))
+    @cv_resource_path.setter
+    def cv_resource_path(self, dir_path: str) -> None:
+        self.__cv_resource_path = self.set_data_path(dir_path)
 
-        assert (os.path.exists(path)), "The directory \'" + path + "\' does not exist. Ensure the dataset is " \
-                                                                   "properly placed."
-        self.__resource_path = path
+    @property
+    def test_resource_path(self) -> Optional[str]:
+        return self.__test_resource_path
+
+    @test_resource_path.setter
+    def test_resource_path(self, dir_path: str) -> None:
+        self.__test_resource_path = self.set_data_path(dir_path)
+
+    @staticmethod
+    def set_data_path(dir_path):
+        if dir_path is "None":
+            attr = None
+        else:
+            project_root_path = util.get_root_path("Resources")
+            path = os.path.abspath(os.path.join(project_root_path, dir_path))
+
+            assert (os.path.exists(
+                path)), "The directory \'" + path + "\' does not exist. Ensure the dataset is properly placed."
+            attr = path
+        return attr
 
     @property
     def study_name(self) -> Optional[str]:

@@ -37,7 +37,8 @@ class KeypointFeatureConstructor(FeatureConstructor):
         return self.__mult_attr
 
     def _produce_specific_features(self, subject_dataset: types.subj_dataset) -> Optional[types.subj_dataset]:
-        feature_dataset = self.descriptor_computer.dataset_descriptors
+        # feature_dataset = self.descriptor_computer.dataset_descriptors
+        feature_dataset = self.descriptor_computer.produce_dataset_descriptors(subject_dataset)
         return feature_dataset
 
 
@@ -50,7 +51,6 @@ if __name__ == "__main__":
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
     parameters = config.populate_study_parameters("CTS_Keyboard_simple.toml")
-    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)

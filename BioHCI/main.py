@@ -1,5 +1,4 @@
 import argparse
-from os.path import join
 
 import numpy as np
 import torch
@@ -13,10 +12,7 @@ from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureC
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.helpers.study_config import StudyConfig
-from BioHCI.knitted_components.uniform_touchpad import UniformTouchpad
-from BioHCI.learning.nn_cross_validator import NNCrossValidator
-from BioHCI.learning.nn_msd_cv import NN_MSD_CrossValidator
-import BioHCI.helpers.utilities as utils
+from BioHCI.learning.nn_analyser import NNAnalyser
 
 
 def main():
@@ -38,72 +34,60 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
+    # printing style of numpy arrays
+    np.set_printoptions(precision=3, suppress=True)
+
     config_dir = "config_files"
     config = StudyConfig(config_dir)
 
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
 
-    # TODO: save confusion matrix
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    # parameters = config.populate_study_parameters("CTS_CHI2020_test.toml")
-    parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
-    # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
+    # parameters = config.populate_study_parameters("CTS_UbiComp2020.toml")
+    parameters = config.populate_study_parameters("CTS_UbiComp2020_tmp.toml")
+    # parameters = config.populate_study_parameters("CTS_CHI2020_train.toml")
     print(parameters)
 
     # generating the data from files
     data = DataConstructor(parameters)
-    # during data construction under "Subject" - button000 is ignored (baseline data)
-    subject_dict = data.get_subject_dataset()
+    cv_subject_dict = data.cv_subj_dataset
+    test_subject_dict = data.test_subj_dataset
     category_balancer = WithinSubjectOversampler()
 
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
-    # data_splitter = WithinSubjectSplitter(subject_dict)
-    data_splitter = AcrossSubjectSplitter(subject_dict)
-
-    descriptor_computer = DescriptorComputer(DescType.RawData, subject_dict, parameters, seq_len=SeqLen.ExtendEdge,
-                                                # extra_name="_nocoef_nolinreg_1000e_rand")
-                                                extra_name = "_latest_test")
-
-    feature_constructor = KeypointFeatureConstructor(parameters, descriptor_computer)
-    # feature_constructor = StatFeatureConstructor(parameters, dataset_processor)
+    data_splitter = AcrossSubjectSplitter(cv_subject_dict)
+    cv_descriptor_computer = DescriptorComputer(DescType.RawData, cv_subject_dict, parameters,
+                                                seq_len=SeqLen.ExtendEdge, extra_name="_test")
+    feature_constructor = KeypointFeatureConstructor(parameters, cv_descriptor_computer)
 
     # estimating number of resulting features based on the shape of the dataset, to be passed later to the feature
     # constructor
-    any_subj_name, any_subj = next(iter(subject_dict.items()))
-    num_attr = any_subj.data[0].shape[-1]
-    input_size = feature_constructor.mult_attr * num_attr
-    # input_size = 1456 # for mlp
-
+    input_size = estimate_num_features(cv_subject_dict, feature_constructor)
     dataset_categories = data.get_all_dataset_categories()
 
     assert parameters.neural_net is True
-    button_learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=36, use_cuda=args.cuda)
-
-    # cross-validation
+    button_learning_def = NeuralNetworkDefinition(input_size=input_size, output_size=len(dataset_categories),
+                                                  use_cuda=args.cuda)
+    # learning analyser
     assert parameters.neural_net is True
-    # touchpad = UniformTouchpad(num_rows=12, num_cols=3, total_resistance=534675,
-    #                            button_resistance=7810.0, inter_button_resistance=4590.0, inter_col_resistance=13033.0)
-    # cv = NN_MSD_CrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, parameters,
-    #                             row_learning_def, dataset_categories, touchpad, descriptor_computer.dataset_desc_name)
-    cv = NNCrossValidator(subject_dict, data_splitter, feature_constructor, category_balancer, parameters,
-                           button_learning_def, dataset_categories, descriptor_computer.dataset_desc_name)
+    analyser = NNAnalyser(data_splitter, feature_constructor, category_balancer, parameters,
+                          button_learning_def, dataset_categories, cv_descriptor_computer.dataset_desc_name)
 
-    cv.perform_cross_validation()
-
-    # cm_obj_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_final_study1_confusion_matrix.pt"
-    # cm_obj_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_nocoef_nolinreg_1500e_confusion_matrix.pt"
-    # cv.generate_confusion_matrix_fig_from_obj_name(cm_obj_name)
-
-    model_subdir = parameters.study_name + "/trained_models"
-    # model_name = "CNN_LSTM_cl-batch-4-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_test_tmp_single-fold-1-3.pt"
-    model_name = "CNN_LSTM_cl-batch-128-CTS_CHI2020_DescType.RawData_SeqLen.ExtendEdge_latest_test-fold-5-10.pt"
-    saved_model_path = utils.create_dir(join(utils.get_root_path("saved_objects"), model_subdir, model_name))
-
-    # cv.eval_only(model_path=saved_model_path)
+    analyser.perform_cross_validation(cv_subject_dict)
+    analyser.evaluate_all_models(test_subject_dict)
+    analyser.close_logger()
 
     print("\nEnd of main program.")
+
+
+def estimate_num_features(subj_dict, feature_constructor):
+    any_subj_name, any_subj = next(iter(subj_dict.items()))
+    num_attr = any_subj.data[0].shape[-1]
+    input_size = feature_constructor.mult_attr * num_attr
+    return input_size
+
 
 if __name__ == "__main__":
     main()

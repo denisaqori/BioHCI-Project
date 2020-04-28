@@ -16,15 +16,15 @@ from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.definitions.study_parameters import StudyParameters
 from BioHCI.knitted_components.knitted_component import KnittedComponent
-from BioHCI.learning.cross_validator import CrossValidator
+from BioHCI.learning.analyser import Analyser
 from BioHCI.learning.evaluator import Evaluator
-from BioHCI.learning.nn_cross_validator import NNCrossValidator
+from BioHCI.learning.nn_analyser import NNAnalyser
 from BioHCI.learning.nn_msd_evaluator import NN_MSD_Evaluator
 
 
 # TODO: fix evaluate in evaluator in terms of signature
 # TODO: report button accuracy when confusion matrix is reported - at the end of a fold
-class NN_MSD_CrossValidator(NNCrossValidator):
+class NN_MSD_CrossValidator(NNAnalyser):
     def __init__(self, subject_dict: types.subj_dataset, data_splitter: DataSplitter,
                  feature_constructor: FeatureConstructor, category_balancer: CategoryBalancer,
                  parameters: StudyParameters, learning_def: NeuralNetworkDefinition, all_categories: List[str],

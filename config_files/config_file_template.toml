@@ -1,4 +1,5 @@
-_StudyParameters__resource_path = "None"
+_StudyParameters__cv_resource_path = "None"
+_StudyParameters__test_resource_path = "None"
 _StudyParameters__study_name = "None"
 _StudyParameters__sensor_name = "None"
 _StudyParameters__file_format = "None"

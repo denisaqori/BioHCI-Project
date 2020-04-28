@@ -47,13 +47,14 @@ class DescriptorComputer:
         utils.cleanup(self.saved_desc_dir, "_test")
 
         # create the full path to save the current descriptor if it does not exist, or to load from if it does
-        if os.path.exists(self.desc_obj_path):
-            print("Loading dataset descriptors from: ", self.desc_obj_path)
-            self.__dataset_descriptors = self.load_descriptors(self.desc_obj_path)
-        else:
-            print("Computing dataset descriptors...")
-            self.__dataset_descriptors = self.produce_dataset_descriptors(subject_dataset)
-        print("")
+
+        # if os.path.exists(self.desc_obj_path):
+        #     print("Loading dataset descriptors from: ", self.desc_obj_path)
+        #     self.__dataset_descriptors = self.load_descriptors(self.desc_obj_path)
+        # else:
+        #     print("Computing dataset descriptors...")
+        #     self.__dataset_descriptors = self.produce_dataset_descriptors(subject_dataset)
+        # print("")
 
     @property
     def dataset_desc_name(self) -> Optional[str]:
@@ -67,9 +68,9 @@ class DescriptorComputer:
     def desc_obj_path(self):
         return self.__desc_obj_path
 
-    @property
-    def dataset_descriptors(self) -> Optional[types.subj_dataset]:
-        return self.__dataset_descriptors
+    # @property
+    # def dataset_descriptors(self) -> Optional[types.subj_dataset]:
+    #     return self.__dataset_descriptors
 
     def produce_dataset_descriptors(self, subject_dataset: types.subj_dataset) -> types.subj_dataset:
         """
@@ -82,6 +83,8 @@ class DescriptorComputer:
             descriptor_subj_dataset (dict): a dictionary mapping a subject name to as Subject object,
                 whose data is comprised of its descriptors for each category.
         """
+        print("Computing dataset descriptors...")
+
         if self.desc_type == DescType.RawData:
             descriptor_subj_dataset = subject_dataset
 

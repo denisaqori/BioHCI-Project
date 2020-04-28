@@ -5,7 +5,7 @@ class NeuralNetworkDefinition(LearningDefinition):
     def __init__(self, input_size: int, output_size: int, use_cuda: bool) -> None:
         # hyper-parameters
         self.__num_hidden = 100  # number of nodes per hidden layer
-        self.__num_epochs = 600  # number of epochs over which to train
+        self.__num_epochs = 30  # number of epochs over which to train
         # self.__samples_per_seq = 25  # the number of measurements to be included in one sequence
         self.__learning_rate = 0.001  # If you set this too high, it might explode. If too low, it might not learn
         self.__batch_size = 128  # The number of instances in one batch
