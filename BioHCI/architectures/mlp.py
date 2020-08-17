@@ -12,7 +12,7 @@ class MLP(AbstractNeuralNetwork):
         super(MLP, self).__init__()
 
         self.__name = "MLP"
-        assert self.__name == self.nn_learning_def.nn_name
+        assert self.__name == nn_learning_def.nn_name
 
         self.input_size = nn_learning_def.input_size
         self.hidden_size = nn_learning_def.num_hidden
@@ -29,20 +29,13 @@ class MLP(AbstractNeuralNetwork):
             nn.Linear(self.hidden_size, self.hidden_size),
             nn.ReLU(),
             nn.Linear(self.hidden_size, self.hidden_size),
-            nn.ReLU(),
-            nn.Linear(self.hidden_size, self.hidden_size),
-            nn.ReLU(),
-            nn.Linear(self.hidden_size, self.hidden_size),
-            nn.ReLU(),
-            nn.Linear(self.hidden_size, self.output_size)
             )
 
-        self.layer1 = nn.Linear(self.input_size, self.hidden_size)
-        self.relu = nn.ReLU()
-        self.layer2 = nn.Linear(self.hidden_size, self.output_size)
+        # self.layer1 = nn.Linear(self.input_size, self.hidden_size)
+        # self.relu = nn.ReLU()
+        # self.layer2 = nn.Linear(self.hidden_size, self.output_size)
 
         self.softmax = nn.LogSoftmax(dim=1)  # already ensured 1 is the right dimension and calculation is correct
-        # self.relu = nn.ReLU(dim=1)
 
     def forward(self, input):
         # input = input.view(-1, self.num_flat_features(input))

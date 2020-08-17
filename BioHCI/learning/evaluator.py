@@ -33,7 +33,6 @@ class Evaluator:
         # compute loss
         loss = self.__criterion(output, label)
 
-        # delete input after we are done with it to free up space
         return output, float(loss.item())
 
     def evaluate(self, val_data_loader, confusion):

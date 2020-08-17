@@ -40,7 +40,7 @@ class NNAnalyser(Analyser):
 
         if parameters.classification:
             # the negative log likelihood loss function - useful to train classification problems with C classes
-            self.__criterion = nn.NLLLoss()
+            self.__criterion = nn.NLLLoss(reduction='sum')  # sum of losses of all samples in mini-batch is computed
         else:
             self.__criterion = nn.SmoothL1Loss()
 
@@ -135,12 +135,9 @@ class NNAnalyser(Analyser):
     def val(self, val_dataset, confusion_matrix, model_path=None):
         val_data_loader = self.get_val_dataloader(val_dataset)
 
-        # model_to_eval = CNN_LSTM_C(self.learning_def)
         if model_path is None:
-            # model_to_eval.load_state_dict(torch.load(self.model_path))
             model_to_eval = torch.load(self.model_path)
         else:
-            # model_to_eval.load_state_dict(torch.load(model_path))
             model_to_eval = torch.load(model_path)
 
         # set model to evaluation mode, ignoring layers such as dropout and batch normalization
@@ -238,3 +235,5 @@ class NNAnalyser(Analyser):
         val_time = utils.time_s_to_str(val_time_s)
         self.result_logger.info(f"Test Avg Loss: {val_loss:.5f}     Test Accuracy: {val_accuracy:.3f}")
         self.result_logger.info(f"\nTest time (over last cross-validation pass): {val_time}\n")
+
+        return val_accuracy

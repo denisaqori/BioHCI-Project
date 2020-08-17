@@ -2,14 +2,16 @@ import os
 import numpy as np
 import re
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from numpy.polynomial import Polynomial
 
 from BioHCI.definitions.study_parameters import StudyParameters
 import scipy.stats as stats
+
 labeled_dataset = Tuple[List[np.ndarray], List[str]]
 import matplotlib.pyplot as plt
+
 
 class Subject:
 
@@ -26,6 +28,7 @@ class Subject:
             "The sizes of the subject's data list and categories list do not match!!"
         self.__all_data_bool = True
 
+    # TODO: baseline folder name - unify
     def __build_subj_data(self) -> labeled_dataset:
         """
         Extracts signal data with its corresponding categories for the subject, found it the subject's files.
@@ -73,7 +76,7 @@ class Subject:
 
         return subj_category_data, subj_category_names
 
-    def __read_files(self, data_dirpath: str, baseline_dirpath = None, label = None) -> labeled_dataset:
+    def __read_files_old(self, data_dirpath: str, baseline_dirpath=None, label=None) -> labeled_dataset:
         """
         Given a directory, find files
 
@@ -103,7 +106,7 @@ class Subject:
 
                 if baseline_dirpath is not None:
                     # find the baseline file corresponding to the trial number of the data
-                    trial_num_str = name[name.find("_trial"): name.find("_button")+1]
+                    trial_num_str = name[name.find("_trial"): name.find("_button") + 1]
                     baseline_fname = None
                     for fname in all_baseline_fnames:
                         if trial_num_str in fname:
@@ -124,6 +127,105 @@ class Subject:
 
         return data, labels
 
+    def __read_files(self, data_dirpath: str, baseline_dirpath=None, label=None) -> labeled_dataset:
+        """
+        Given a directory, find files
+
+        Args:
+            data_dirpath: The data main directory
+            baseline_dirpath: If provided, it is the directory containing all baseline data
+            label: If provided, the label should be given to data from all files in that directory
+
+        Returns:
+            data: all file data
+            labels: all corresponding labels to the data
+        """
+        data = []
+        labels = []
+
+        for filename in os.listdir(data_dirpath):
+            if filename.endswith(self.__parameter.file_format) and "baseline" not in filename:
+
+                # split the filename into the name part and the extension part
+                name, extension = os.path.splitext(filename)
+                filepath = os.path.join(data_dirpath, filename)
+                filedata = self.__get_file_data(filepath)
+
+                if baseline_dirpath is not None:
+                    baseline_data = self.__get_baseline_data(structure="dir", baseline_dirpath=baseline_dirpath,
+                                                             name=name)
+                else:
+                    baseline_data = self.__get_baseline_data(structure="file", data_dirpath=data_dirpath)
+
+                if baseline_data is not None:
+                    assert baseline_data.shape == filedata.shape
+                    filedata = filedata - baseline_data
+
+                data.append(filedata)
+                if label is None:
+                    labels.append(name)
+                else:
+                    labels.append(label)
+
+        return data, labels
+
+    def __get_baseline_data(self, structure: Optional[str] = None, baseline_dirpath: Optional[str] = None,
+                            name: Optional[str] = None, data_dirpath: Optional[str] = None) -> Optional[np.ndarray]:
+        """
+        Returns the data from a baseline file.
+
+        Args:
+            structure: Indicates how the baseline data is structured: whether all is placed in one directory ("dir"),
+                       or whether a baseline file is placed within each data directory ("file").
+            baseline_dirpath: If structure is "dir", this indicates the baseline directory. Otherwise, it should be left
+                              as None.
+            name: If structure is "dir", it indicates the filename whose baseline to search in the baseline directory.
+                  Otherwise it should be left as None.
+            data_dirpath: If structure is "file" it indicates the data directory where we are searching for a baseline
+                          file to subtract from each other element of the dataset. Otherwise, it should be left as None.
+
+        Returns:
+            baseline_data: the baseline data
+        """
+        baseline_data = None
+        assert structure == "dir" or structure == "file" or structure is None, \
+            "Potential typo, or unimplemented baseline organization."
+
+        if structure == "dir":
+            all_baseline_fnames = []
+            assert baseline_dirpath is not None and name is not None, \
+                "If all baselines are found in one directory, that directory needs to be passed as an argument."
+            for baseline_fname in os.listdir(baseline_dirpath):
+                if baseline_fname.endswith(self.__parameter.file_format) and "trial" in baseline_fname:
+                    all_baseline_fnames.append(baseline_fname)
+
+            # find the baseline file corresponding to the trial number of the data
+            trial_num_str = name[name.find("_trial"): name.find("_button") + 1]
+            baseline_fname = None
+            for fname in all_baseline_fnames:
+                if trial_num_str in fname:
+                    baseline_fname = fname
+                    break
+            # get the baseline data
+            baseline_filepath = os.path.join(baseline_dirpath, baseline_fname)
+            baseline_data = self.__get_file_data(baseline_filepath)
+
+        elif structure == "file":
+            assert baseline_dirpath is None and name is None, "They are only need for 'dir' structure."
+            assert data_dirpath is not None
+            for filename in os.listdir(data_dirpath):
+                if filename.endswith(self.__parameter.file_format):
+                    if "baseline" in filename:
+                        b_filepath = os.path.join(data_dirpath, filename)
+                        baseline_data = self.__get_file_data(b_filepath)
+                        break
+
+        else:
+            assert structure is None
+            print(f"No baseline found. Returning None.")
+
+        return baseline_data
+
     def __get_file_data(self, filepath: str) -> np.ndarray:
         """
         Obtain the data in the give file, potentially filtering out some rows and columns as determined by
@@ -140,7 +242,7 @@ class Subject:
             # get the data in each file by first stripping and splitting the lines and
             # then creating a numpy array out of these values
             file_lines = []
-            # print("Filename: ", filepath)
+            print("Filename: ", filepath)
             for line in f:
                 line = line.strip(' \t\n\r')
                 line = re.split('\t|,', line)
@@ -152,9 +254,9 @@ class Subject:
                 file_lines[self.__parameter.start_row:, self.__parameter.relevant_columns]).astype(np.float32)
 
             # calculating average of all frequencies for each signal
-            stat_array = self.get_attribute_stats(file_lines)
-            return stat_array
-            # return file_lines
+            # stat_array = self.get_attribute_stats(file_lines)
+            # return stat_array
+            return file_lines
 
     @staticmethod
     def get_attribute_stats(single_file_dataset):
@@ -179,42 +281,34 @@ class Subject:
         # fitting a function to all frequnecies for each time step
         x = np.arange(0, odd_column_array.shape[1])
         odd_linreg_ls = []
-        odd_coef_ls = []
         even_linreg_ls = []
-        even_coef_ls = []
         for i in range(0, odd_column_array.shape[0]):
             odd_time_step = odd_column_array[i, :]
             even_time_step = even_column_array[i, :]
 
-            # plt.plot(x, odd_time_step)
-            # plt.plot(x, even_time_step)
-            # plt.show()
-
+            # linear regression fitting
             odd_slope, odd_intercept, odd_r_value, odd_p_value, odd_std_err = stats.linregress(x, odd_time_step)
             odd_linreg = [odd_slope, odd_intercept, odd_r_value, odd_p_value, odd_std_err]
-
-            odd_coef = Polynomial.fit(x, odd_time_step, deg=2)
-            odd_coef = odd_coef.coef.tolist()
-            odd_coef_ls.append(odd_coef)
-
             odd_linreg_ls.append(odd_linreg)
 
             even_slope, even_intercept, even_r_value, even_p_value, even_std_err = stats.linregress(x, even_time_step)
             even_linreg = [even_slope, even_intercept, even_r_value, even_p_value, even_std_err]
-
-            even_coef = Polynomial.fit(x, even_time_step, deg=2)
-            even_coef = even_coef.coef.tolist()
-            even_coef_ls.append(even_coef)
-
             even_linreg_ls.append(even_linreg)
+
+            # plotting
+            # plt.plot(x, odd_time_step, 'o', label='original data')
+            # plt.plot(x, x*odd_slope + odd_intercept, label='fitted line')
+            # plt.legend()
+            # plt.show()
 
         odd_linreg_stats = np.array([np.array(xi) for xi in odd_linreg_ls])
         even_linreg_stats = np.array([np.array(xi) for xi in even_linreg_ls])
-        odd_coef_stats = np.array([np.array(xi) for xi in odd_coef_ls])
-        even_coef_stats = np.array([np.array(xi) for xi in even_coef_ls])
         # """
-        stat_array = np.concatenate((odd_mean, even_mean, odd_std, even_std, odd_sum, even_sum, odd_linreg_stats,
-                                     even_linreg_stats), axis=1)
+
+        stat_array = np.concatenate((odd_mean, odd_std, odd_sum, odd_linreg_stats,
+                                     even_mean, even_std, even_sum, even_linreg_stats), axis=1)
+        # stat_array = np.concatenate((odd_mean, even_mean, odd_std, even_std, odd_sum, even_sum,
+        #                              odd_linreg_stats, even_linreg_stats), axis=1)
         return stat_array
 
     @property

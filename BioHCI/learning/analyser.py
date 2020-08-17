@@ -19,6 +19,7 @@ from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 from BioHCI.architectures.cnn2d_lstm_class import CNN2D_LSTM_C
 from BioHCI.architectures.cnn_lstm_class import CNN_LSTM_C
 from BioHCI.architectures.lstm import LSTM
+from BioHCI.architectures.mlp import MLP
 from BioHCI.data.data_splitter import DataSplitter
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
@@ -238,6 +239,8 @@ class Analyser(ABC):
             neural_net = CNN2D_LSTM_C(nn_learning_def=self.learning_def)
         elif self.learning_def.nn_name == "LSTM":
             neural_net = LSTM(nn_learning_def=self.learning_def)
+        elif self.learning_def.nn_name == "MLP":
+            neural_net = MLP(nn_learning_def=self.learning_def)
         else:
             neural_net = None
             print("Neural Network could not be initialized.")
@@ -388,6 +391,7 @@ class Analyser(ABC):
         self.log_general_info()
 
         fold_cm = []
+        fold_accuracies = []
         for i in range(1, self.num_folds + 1):
             current_cm = np.zeros((len(self.all_categories), len(self.all_categories)))
             model_name = self._produce_model_name(i=i)
@@ -397,12 +401,15 @@ class Analyser(ABC):
                 "\n***********************************************************************************************")
             self.result_logger.info(f"Run: {i}")
 
-            self.eval_only(test_subject_dict, confusion_matrix=current_cm, model_path=model_path)
-            # print(f"\n{current_cm}")
+            val_accuracy = self.eval_only(test_subject_dict, confusion_matrix=current_cm, model_path=model_path)
+            fold_accuracies.append(val_accuracy)
             fold_cm.append(current_cm)
 
         self.test_confusion_matrix = sum(fold_cm) / len(fold_cm)
-        print(f"\nFinal test confusion matrix:\n {self.test_confusion_matrix}")
+
+        avg_acc = sum(fold_accuracies) / len(fold_accuracies)
+        self.result_logger.info(f"\nAverage test accuracy is: {avg_acc:.3f}")
+        self.result_logger.info(f"\nFinal test confusion matrix:\n {self.test_confusion_matrix}")
 
         self.save_confusion_matrix(self.test_confusion_matrix, self.test_confusion_matrix_obj_path,
                                    self.test_confusion_matrix_path)
@@ -446,7 +453,10 @@ class Analyser(ABC):
         self.print_dataset_subj(balanced_val)
 
         self.result_logger.info(f"Model from: {model_path}")
-        self._specific_eval_only(balanced_val, confusion_matrix, model_path=model_path)
+        val_accuracy = self._specific_eval_only(balanced_val, confusion_matrix, model_path=model_path)
+
+        return val_accuracy
+
 
     def log_general_info(self):
         self.result_logger.debug(
@@ -533,12 +543,9 @@ class Analyser(ABC):
 
     def draw_confusion_matrix(self, confusion_matrix: np.ndarray, fig_path: str):
         plt.figure(figsize=(55, 40))
-        sns.set(font_scale=4)
-        confusion_matrix_fig = sns.heatmap(confusion_matrix, xticklabels=np.arange(1, 37), yticklabels=np.arange(
-            1, 37), cmap="YlGnBu")
-        # confusion_matrix_fig = sns.heatmap(confusion_matrix, xticklabels=1, yticklabels=1, cmap="YlGnBu")
-        # cmap = sns.color_palette("Reds", 10))
-        # cmap = "YlGnBu"))
+        cmap = sns.cubehelix_palette(8)
+        sns.set(font_scale=6)
+        confusion_matrix_fig = sns.heatmap(confusion_matrix, xticklabels=3, yticklabels=3, cmap=cmap)
         plt.show()
 
         confusion_matrix_fig.figure.savefig(fig_path, dpi=500)
@@ -571,6 +578,11 @@ class Analyser(ABC):
         pass
 
     def _specific_eval_only(self, balanced_val, confusion_matrix, model_path=None):
+        """
+
+        Returns:
+            val_accuracy: accuracy of validation
+        """
         pass
 
     @abstractmethod

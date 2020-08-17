@@ -1,11 +1,10 @@
 cv_resource_path = "CTS_UbiComp2020/train"
 test_resource_path = "CTS_UbiComp2020/test_basic"
-#test_resource_path = "CTS_UbiComp2020/test_fluorescent_light"
-#test_resource_path = "CTS_UbiComp2020/test_stretch"
 study_name = "CTS_UbiComp2020"
 sensor_name = "Capacitor"
 file_format = ".csv"
 relevant_columns = "[0:192]"
+#relevant_columns = [143, 144]
 column_names = "None"
 start_row = 0
 cat_names = "dir"

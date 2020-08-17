@@ -1,18 +1,41 @@
+from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-# Some bases from http://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
-# Also thanks to: https://github.com/yunjey/pytorch-tutorial and https://github.com/MorvanZhou/PyTorch-Tutorial
-from BioHCI.architectures.abstract_neural_net import AbstractNeuralNetwork
+
+class EncoderLSTM(nn.Module):
+    def __init__(self, nn_learning_def):
+        super(EncoderLSTM, self).__init__()
+
+        self.input_size = nn_learning_def.input_size
+        self.hidden_size = nn_learning_def.num_hidden
+        self.num_layers = nn_learning_def.num_layers
+
+        self.lstm = nn.LSTM(input_size=self.hidden_size, hidden_size=self.hidden_size, num_layers=self.num_layers)
+
+    def forward(self, inputs, hidden):
+        # Note: we run this all at once (over the whole input sequence)
+        output, hidden = self.lstm(inputs, hidden)
+        return output, hidden
+
+    def init_hidden(self):
+        if self.use_cuda:
+            return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda(),
+                    Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float().cuda())
+        else:
+            return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float(),
+                    Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float())
+
+        # hidden = Variable(torch.zeros(self.n_layers, 1, self.hidden_size)).cuda()
 
 
-class LSTM(AbstractNeuralNetwork):
+class AttnDecoderLSTM(AbstractNeuralNetwork):
 
     def __init__(self, nn_learning_def):
-        super(LSTM, self).__init__()
+        super(AttnDecoderLSTM, self).__init__()
 
-        self.__name = "LSTM"
+        self.__name = "AttnDecoderLSTM"
         assert self.__name == nn_learning_def.nn_name
 
         self.input_size = nn_learning_def.input_size
@@ -24,8 +47,8 @@ class LSTM(AbstractNeuralNetwork):
         self.num_layers = nn_learning_def.num_layers
         self.use_cuda = nn_learning_def.use_cuda
 
-        # the lstm layer that receives inputs of a specific size and outputs
-        # a hidden state of hidden _state
+        # defining layers
+        self.attn = nn.Linear(self.hidden_size, self.hidden_size)
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers,
                             dropout=self.dropout_rate, batch_first=self.batch_first, bidirectional=False)
 
@@ -46,12 +69,16 @@ class LSTM(AbstractNeuralNetwork):
             return (Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float(),
                     Variable(torch.zeros(1, self.batch_size, self.hidden_size)).float())
 
-    def forward(self, input):
+    def forward(self, input, last_hidden, encoder_outputs):
         # (h_0, c_0) assumed zero even if given (but we have defined them above)
         # this is the main layer of the architectures where all the gradient computation happens
         # the whole sequence is passed through there
         # output contains result for each time step, hidden only for last, and cell state contains the
         # cell state of the last time step
+
+        # Calculate attention weights and apply to encoder outputs
+        attn_weights = self.attn(last_hidden[-1], encoder_outputs)
+
 
         self.lstm.flatten_parameters()
         output, (hidden, cell) = self.lstm(input, None)

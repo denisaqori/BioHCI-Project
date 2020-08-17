@@ -127,9 +127,7 @@ class DescriptorComputer:
         Returns:
 
         """
-        # print(multiprocessing.current_process())
         interval_desc_list = IntervalDescription(keypress, self.desc_type).descriptors
-
         return interval_desc_list
 
     def __produce_dataset_desc_name(self):

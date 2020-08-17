@@ -118,8 +118,9 @@ class StudyParameters(object):
         return self.__test_resource_path
 
     @test_resource_path.setter
-    def test_resource_path(self, dir_path: str) -> None:
-        self.__test_resource_path = self.set_data_path(dir_path)
+    def test_resource_path(self, dir_path: Optional[str]) -> None:
+        if dir_path is not None:
+            self.__test_resource_path = self.set_data_path(dir_path)
 
     @staticmethod
     def set_data_path(dir_path):
@@ -257,11 +258,12 @@ class StudyParameters(object):
         return self.__plot_labels
 
     @plot_labels.setter
-    def plot_labels(self, plot_labels: List[str]) -> None:
-        assert (isinstance(plot_labels, list)), "The plot labels to process need to be passed in a list."
-        for elem in plot_labels:
-            assert isinstance(elem, str), "Each element of the list needs to be a string."
-        self.__plot_labels = plot_labels
+    def plot_labels(self, plot_labels: Optional[List[str]]) -> None:
+        if plot_labels is not None:
+            assert (isinstance(plot_labels, list)), "The plot labels to process need to be passed in a list."
+            for elem in plot_labels:
+                assert isinstance(elem, str), "Each element of the list needs to be a string."
+            self.__plot_labels = plot_labels
 
     @property
     def standardize(self) -> Optional[bool]:
