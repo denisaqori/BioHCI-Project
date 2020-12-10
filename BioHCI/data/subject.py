@@ -23,6 +23,7 @@ class Subject:
         self.__filename_list = []
 
         self.__data, self.__categories = self.__build_subj_data()
+        print(f"Number of data points is {len(self.__data)}, and number of corresponding categories is {len(self.__categories)}.")
 
         assert len(self.__data) == len(self.__categories), \
             "The sizes of the subject's data list and categories list do not match!!"
@@ -158,14 +159,24 @@ class Subject:
                     baseline_data = self.__get_baseline_data(structure="file", data_dirpath=data_dirpath)
 
                 if baseline_data is not None:
-                    assert baseline_data.shape == filedata.shape
-                    filedata = filedata - baseline_data
+                    # assert baseline_data.shape == filedata.shape
+                    # filedata = filedata - baseline_data
+                    if baseline_data.shape == filedata.shape:
+                        filedata = filedata - baseline_data
+                        data.append(filedata)
+                        if label is None:
+                            labels.append(name)
+                        else:
+                            labels.append(label)
+                    else:
+                        print(f"There is a problem with the number of rows or columns of either {filename} or its "
+                              f"baseline data. Removing file from processing.")
 
-                data.append(filedata)
-                if label is None:
-                    labels.append(name)
-                else:
-                    labels.append(label)
+                # data.append(filedata)
+                # if label is None:
+                #     labels.append(name)
+                # else:
+                #     labels.append(label)
 
         return data, labels
 
@@ -255,8 +266,31 @@ class Subject:
 
             # calculating average of all frequencies for each signal
             # stat_array = self.get_attribute_stats(file_lines)
+            # stat_array = self.get_gesture_stats(file_lines)
             # return stat_array
             return file_lines
+
+    @staticmethod
+    def get_gesture_stats(data):
+
+        mean = np.expand_dims(np.mean(data, axis=1), axis=1)
+        std = np.expand_dims(np.std(data, axis=1), axis=1)
+        sum = np.expand_dims(np.sum(data, axis=1), axis=1)
+
+        linreg_ls = []
+        x = np.arange(0, data.shape[1])
+        for i in range(0, data.shape[0]):
+            time_step = data[i, :]
+
+            # linear regression fitting
+            slope, intercept, r_value, p_value, std_err = stats.linregress(x, time_step)
+            linreg = [slope, intercept, r_value, p_value, std_err]
+            linreg_ls.append(linreg)
+
+        linreg_stats = np.array([np.array(xi) for xi in linreg_ls])
+
+        stat_array = np.concatenate((mean, std, sum, linreg_stats), axis=1)
+        return stat_array
 
     @staticmethod
     def get_attribute_stats(single_file_dataset):

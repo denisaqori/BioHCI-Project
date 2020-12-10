@@ -18,9 +18,11 @@ def time_since(since):
     s = d - m * 60
     return '%dm %ds' % (m, s)
 
+
 def time_diff(timestamp):
     now = time.time()
-    return timestamp - now
+    return now - timestamp
+
 
 def time_s_to_str(sec):
     m = math.floor(sec / 60)

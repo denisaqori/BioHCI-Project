@@ -4,7 +4,6 @@ from torch.autograd import Variable
 # Class based on PyTorch sample code from Sean Robertson (Classifying Names with a Character-Level RNN)
 # http://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
 
-
 class Evaluator:
     def __init__(self, model_to_eval, criterion, neural_network_def, parameters):
         # print("\n\nInitializing Evaluation...")
@@ -84,3 +83,5 @@ class Evaluator:
         top_n, top_i = output.data.topk(k=1)  # Tensor out of Variable with .data
         category_i = top_i[0].item()
         return category_i
+
+

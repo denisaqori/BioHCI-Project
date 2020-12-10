@@ -1,5 +1,5 @@
-cv_resource_path = "CTS_UbiComp2020/train"
-test_resource_path = "CTS_UbiComp2020/test_basic"
+cv_resource_path = "None"
+test_resource_path = "CTS_UbiComp2020/test_1sample"
 study_name = "CTS_UbiComp2020"
 sensor_name = "Capacitor"
 file_format = ".csv"
@@ -8,7 +8,7 @@ relevant_columns = "[0:192]"
 column_names = "None"
 start_row = 0
 cat_names = "dir"
-num_subj = 13
+num_subj = 1
 labels_col = "None"
 plot_labels = ["Voltage Frequency Gain", "Time"]
 standardize = false

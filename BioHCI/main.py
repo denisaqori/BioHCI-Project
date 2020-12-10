@@ -1,6 +1,5 @@
 import argparse
 import os
-from os.path import join
 
 import numpy as np
 import pickle
@@ -54,12 +53,32 @@ def main():
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
     # parameters = config.populate_study_parameters("CTS_UbiComp2020.toml")
-    parameters = config.populate_study_parameters("Solid_Pad_Gestures.toml")
+    parameters = config.populate_study_parameters("CTS_4Electrodes.toml")
     print(parameters)
 
     # generating the data from files
     data = DataConstructor(parameters)
     cv_subject_dict = data.cv_subj_dataset
+    # for subj_name, subj in cv_subject_dict.items():
+    #     print(f"Subject name: {subj_name}")
+
+        # unique_categories = list(set(subj.categories))
+        # for unique_cat in unique_categories:
+        #     for i, cat in enumerate(subj.categories):
+        #         data_to_plot = []
+        #         if unique_cat == cat:
+        #             data = subj.data[i]
+        #             data_to_plot.append(data)
+
+                    # x = np.arange(0, data.shape[0])
+                    # for i in range (0, data.shape[1]):
+                    #     feature = data[:, i]
+                    #     plt.plot(x, feature, label=str(i))
+                    # plt.legend()
+                    # plt.show()
+
+            # print("")
+
     test_subject_dict = data.test_subj_dataset
     category_balancer = WithinSubjectOversampler()
 
@@ -67,7 +86,7 @@ def main():
     # data_splitter = AcrossSubjectSplitter(cv_subject_dict)
     data_splitter = WithinSubjectSplitter(cv_subject_dict)
     cv_descriptor_computer = DescriptorComputer(DescType.RawData, cv_subject_dict, parameters,
-                                                seq_len=SeqLen.ExtendEdge, extra_name="_test_gesture_solid")
+                                                seq_len=SeqLen.ExtendEdge, extra_name="_100_samples_")
     feature_constructor = KeypointFeatureConstructor(parameters, cv_descriptor_computer)
 
     # estimating number of resulting features based on the shape of the dataset, to be passed later to the feature
@@ -84,7 +103,7 @@ def main():
     analyser = NNAnalyser(data_splitter, feature_constructor, category_balancer, parameters,
                           button_learning_def, dataset_categories, cv_descriptor_computer.dataset_desc_name)
     analyser.perform_cross_validation(cv_subject_dict)
-    # analyser.evaluate_all_models(test_subject_dict)
+    analyser.evaluate_all_models(test_subject_dict)
     analyser.close_logger()
     # """
 

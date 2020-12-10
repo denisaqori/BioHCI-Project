@@ -219,7 +219,9 @@ class RawDataVisualizer:
                 figure_path = os.path.abspath(os.path.join(self.root_dir, self.__spectrograms, figure_name))
                 fig.savefig(figure_path)
 
-    def compute_subj_cat_spectrogram(self, subj_cat_data, category, subj_name, NFFT, Fs):
+    @staticmethod
+    def compute_subj_cat_spectrogram(subj_cat_data, category, subj_name, NFFT, Fs):
+
         """
         Computes the spectrogram of one category from one subject, for every attribute.
 
@@ -305,11 +307,11 @@ class RawDataVisualizer:
                 channel_dataframe = channel_dataframe.dropna()
                 channel_dataframe.plot(figsize=(15, 10))
 
-                plt.title(category + " - " + column, fontsize=20)
+                plt.title(str(category) + " - " + str(column), fontsize=20)
                 plt.xlabel(self.__xlabel, fontsize=15, labelpad=15)
                 plt.ylabel(self.__ylabel, fontsize=15, labelpad=15)
 
-                figure_name = category + " - " + column + ".png"
+                figure_name = str(category) + " - " + str(column) + ".png"
                 figure_path = os.path.abspath(os.path.join(self.root_dir, self.__category_view, figure_name))
                 plt.savefig(figure_path)
                 feature_img_list.append(figure_path)
@@ -326,8 +328,7 @@ class RawDataVisualizer:
         """
         Combines a list of images into a smaller number of figures, where each figure is the collection of a subset
         of the images passed in the list. Such images are stored in "combined_pltos", a subdirectory of
-        dataset_plots of
-        each dataset's results.
+        dataset_plots of each dataset's results.
 
         Args:
             image_list: The list of images to combine
@@ -523,14 +524,15 @@ if __name__ == "__main__":
 
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
-    parameters = config.populate_study_parameters("CTS_one_subj_variable.toml")
+    # parameters = config.populate_study_parameters("CTS_one_subj_variable.toml")
+    parameters = config.populate_study_parameters("CTS_4Electrodes.toml")
 
     data = DataConstructor(parameters)
-    subject_dict = data.get_subject_dataset()
+    cv_subject_dict = data.cv_subj_dataset
     # build a visualizer object for the class to plot the dataset in different forms
     # we use the subject dataset as a source (a dictionary subj_name -> subj data split in categories)
     saveplot_dir_path = "Results/" + parameters.study_name + "/dataset plots"
-    raw_data_vis = RawDataVisualizer(subject_dict, parameters, saveplot_dir_path, verbose=False)
+    raw_data_vis = RawDataVisualizer(cv_subject_dict, parameters, saveplot_dir_path, verbose=True)
     # visualizing data per subject
     # raw_data_vis.plot_all_subj_categories()
     # visualizing data per category
@@ -545,7 +547,8 @@ if __name__ == "__main__":
 # variable_path = "CTS_one_subj_variable/dataset plots/spectrograms"
 #
 # path_list = [soft_path, firm_path, variable_path]
-# label_list = [str(i) for i in range(1, 37)]  # keys 1 to 36 (inclusive)
+# path_list = [soft_path]
+# label_list = [str(i) for i in range(0, 36)]  # keys 1 to 36 (inclusive)
 # label_list.append("Baseline")
 # plot_dir_path = util.get_root_path("Results")
 # save_dir = util.create_dir(os.path.join(plot_dir_path, "CTS_across_dataset_plots", "spectrograms"))

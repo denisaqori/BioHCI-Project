@@ -111,7 +111,8 @@ class StudyParameters(object):
 
     @cv_resource_path.setter
     def cv_resource_path(self, dir_path: str) -> None:
-        self.__cv_resource_path = self.set_data_path(dir_path)
+        if dir_path is not None:
+            self.__cv_resource_path = self.set_data_path(dir_path)
 
     @property
     def test_resource_path(self) -> Optional[str]:
