@@ -21,6 +21,7 @@ from BioHCI.architectures.cnn_lstm_class import CNN_LSTM_C
 from BioHCI.architectures.lstm import LSTM
 from BioHCI.architectures.mlp import MLP
 from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_augmentation.vae_generator import VAE_Generator
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.learning_def import LearningDefinition
@@ -456,7 +457,6 @@ class Analyser(ABC):
         val_accuracy = self._specific_eval_only(balanced_val, confusion_matrix, model_path=model_path)
 
         return val_accuracy
-
 
     def log_general_info(self):
         self.result_logger.debug(

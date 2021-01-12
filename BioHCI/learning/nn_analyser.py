@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 import BioHCI.helpers.type_aliases as types
 from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_augmentation.vae_generator import VAE_Generator
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
@@ -66,7 +67,8 @@ class NNAnalyser(Analyser):
 
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
-    def _get_data_and_labels(self, subj_dataset):
+    def _get_data_and_labels(self, subj_dataset, batch_size=None):
+
         if self.learning_def.nn_name == "MLP":
             data, cat = self.get_all_subj_data(subj_dataset, seq=False)
         else:
@@ -85,8 +87,13 @@ class NNAnalyser(Analyser):
 
         # standardized_data = self.standardize(data)
         tensor_dataset = TensorDataset(data, labels)
-        data_loader = DataLoader(tensor_dataset, batch_size=self.learning_def.batch_size,
-                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=False)
+        if batch_size is None:
+            batch_size = self.learning_def.batch_size
+        else:
+            batch_size = batch_size
+
+        data_loader = DataLoader(tensor_dataset, batch_size=batch_size,
+                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
         return data_loader
 
     def compute_label_msd_dict(self, subject_dict: types.subj_dataset, fold):
@@ -115,6 +122,12 @@ class NNAnalyser(Analyser):
 
     def get_train_dataloader(self, train_dataset):
         return self._get_data_and_labels(train_dataset)
+
+    def perform_data_augmentation(self, train_dataset, val_dataset):
+
+        val_data_loader = self.get_val_dataloader(val_dataset)
+        train_data_loader = self.get_train_dataloader(train_dataset)
+        vae_gen = VAE_Generator(train_data_loader, val_data_loader, self.learning_def)
 
     # implement the abstract method from the parent class CrossValidator; it is called for each fold in
     # cross-validation and after it trains for that fold, it appends the calculated losses and accuracies for each
@@ -156,6 +169,8 @@ class NNAnalyser(Analyser):
         all_epoch_val_acc = []
         all_epoch_train_loss = []
         all_epoch_val_loss = []
+
+        self.perform_data_augmentation(balanced_train, balanced_val)
 
         # self.__msd_train_dict = self.compute_label_msd_dict(balanced_train, fold+1)
         for epoch in range(1, self.learning_def.num_epochs + 1):

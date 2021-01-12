@@ -98,6 +98,8 @@ def get_root_path(val: str) -> str:
         path = dirname(get_module_path())
     elif val.lower() == "saved_objects" or val.lower() == "saved objects" or val.lower() == "objects":
         path = join(dirname(get_module_path()), "saved_objects")
+    elif val.lower() == "practice":
+        path = join(dirname(dirname(get_module_path())), "Practice")
     else:
         path = None
         print("Root path for " + val + " is set to None...")
