@@ -12,6 +12,7 @@ from BioHCI.data_processing.keypoint_description.desc_type import DescType
 from BioHCI.data_processing.keypoint_description.descriptor_computer import DescriptorComputer
 from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 from BioHCI.data_processing.keypoint_feature_constructor import KeypointFeatureConstructor
+from BioHCI.data_processing.wavelet_transform import WaveletTransform
 from BioHCI.data_processing.within_subject_oversampler import WithinSubjectOversampler
 from BioHCI.definitions.neural_net_def import NeuralNetworkDefinition
 from BioHCI.helpers.study_config import StudyConfig
@@ -59,34 +60,20 @@ def main():
     # generating the data from files
     data = DataConstructor(parameters)
     cv_subject_dict = data.cv_subj_dataset
-    # for subj_name, subj in cv_subject_dict.items():
-    #     print(f"Subject name: {subj_name}")
-
-        # unique_categories = list(set(subj.categories))
-        # for unique_cat in unique_categories:
-        #     for i, cat in enumerate(subj.categories):
-        #         data_to_plot = []
-        #         if unique_cat == cat:
-        #             data = subj.data[i]
-        #             data_to_plot.append(data)
-
-                    # x = np.arange(0, data.shape[0])
-                    # for i in range (0, data.shape[1]):
-                    #     feature = data[:, i]
-                    #     plt.plot(x, feature, label=str(i))
-                    # plt.legend()
-                    # plt.show()
-
-            # print("")
+    # wv_trans = WaveletTransform()
+    # filtered cv dataset
+    # cv_subject_dict = wv_trans.filter_dataset(cv_subject_dict)
 
     test_subject_dict = data.test_subj_dataset
-    category_balancer = WithinSubjectOversampler()
+    # filtered test dataset
+    # test_subject_dict = wv_trans.filter_dataset(test_subject_dict)
 
+    category_balancer = WithinSubjectOversampler()
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
-    # data_splitter = AcrossSubjectSplitter(cv_subject_dict)
-    data_splitter = WithinSubjectSplitter(cv_subject_dict)
+    data_splitter = AcrossSubjectSplitter(cv_subject_dict)
+    # data_splitter = WithinSubjectSplitter(cv_subject_dict)
     cv_descriptor_computer = DescriptorComputer(DescType.RawData, cv_subject_dict, parameters,
-                                                seq_len=SeqLen.ExtendEdge, extra_name="_100_samples_")
+                                                seq_len=SeqLen.ExtendEdge, extra_name="_4electrodes_lstm_unfiltered")
     feature_constructor = KeypointFeatureConstructor(parameters, cv_descriptor_computer)
 
     # estimating number of resulting features based on the shape of the dataset, to be passed later to the feature

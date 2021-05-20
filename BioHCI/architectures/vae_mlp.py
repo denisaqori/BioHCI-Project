@@ -5,10 +5,10 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 
-class VAE(nn.Module):
+class VAE_MLP(nn.Module):
 
     def __init__(self):
-        super(VAE, self).__init__()
+        super(VAE_MLP, self).__init__()
 
         self.input_size = 1000  # x.shape[1] * x.shape{2] = 250 * 4
 
@@ -22,23 +22,29 @@ class VAE(nn.Module):
         self.fc4 = nn.Linear(400, self.input_size)
 
     def encode(self, x):
-        h1 = F.relu(self.fc1(x))
-        h21 = self.fc21(h1)
-        h22 = self.fc22(h1)
+        h1 = self.fc1(x)
+        h1r = F.relu(h1)
+
+        h21 = self.fc21(h1r)
+        h22 = self.fc22(h1r)
         return h21, h22
 
-    def reparameterize(self, mu, logvar):
+    @staticmethod
+    def reparameterize(mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
 
     def decode(self, z):
-        h3 = F.relu(self.fc3(z))
-        h4 = self.fc4(h3)
-        return torch.sigmoid(h4)
+        h3 = self.fc3(z)
+        h3r = F.relu(h3)
+        h4 = self.fc4(h3r)
+        o = torch.sigmoid(h4)
+        return o
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, x.shape[1] * x.shape[2]))
+        x_flat = x.view(-1, x.shape[1] * x.shape[2])
+        mu, logvar = self.encode(x_flat)
         z = self.reparameterize(mu, logvar)
         sample = self.decode(z)
         return sample, mu, logvar
