@@ -54,26 +54,27 @@ def main():
     # the object with variable definitions based on the specified configuration file. It includes data description,
     # definitions of run parameters (independent of deep definitions vs not)
     # parameters = config.populate_study_parameters("CTS_UbiComp2020.toml")
-    parameters = config.populate_study_parameters("CTS_4Electrodes.toml")
+    # parameters = config.populate_study_parameters("CTS_4Electrodes.toml")
+    parameters = config.populate_study_parameters("CTS_EICS2018.toml")
     print(parameters)
 
     # generating the data from files
     data = DataConstructor(parameters)
     cv_subject_dict = data.cv_subj_dataset
-    # wv_trans = WaveletTransform()
+    wv_trans = WaveletTransform()
     # filtered cv dataset
     # cv_subject_dict = wv_trans.filter_dataset(cv_subject_dict)
 
     test_subject_dict = data.test_subj_dataset
     # filtered test dataset
-    # test_subject_dict = wv_trans.filter_dataset(test_subject_dict)
+    test_subject_dict = wv_trans.filter_dataset(test_subject_dict)
 
     category_balancer = WithinSubjectOversampler()
     # define a data splitter object (to be used for setting aside a testing set, as well as train/validation split
     data_splitter = AcrossSubjectSplitter(cv_subject_dict)
-    # data_splitter = WithinSubjectSplitter(cv_subject_dict)
     cv_descriptor_computer = DescriptorComputer(DescType.RawData, cv_subject_dict, parameters,
-                                                seq_len=SeqLen.ExtendEdge, extra_name="_4electrodes_lstm_unfiltered")
+                                                # seq_len=SeqLen.ExtendEdge, extra_name="_4electrodes_unfiltered")
+                                                seq_len = SeqLen.ExtendEdge, extra_name = "_4electrodes_final")
     feature_constructor = KeypointFeatureConstructor(parameters, cv_descriptor_computer)
 
     # estimating number of resulting features based on the shape of the dataset, to be passed later to the feature
@@ -89,7 +90,7 @@ def main():
     assert parameters.neural_net is True
     analyser = NNAnalyser(data_splitter, feature_constructor, category_balancer, parameters,
                           button_learning_def, dataset_categories, cv_descriptor_computer.dataset_desc_name)
-    analyser.perform_cross_validation(cv_subject_dict)
+    # analyser.perform_cross_validation(cv_subject_dict)
     analyser.evaluate_all_models(test_subject_dict)
     analyser.close_logger()
     # """

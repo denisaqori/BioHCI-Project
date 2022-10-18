@@ -406,7 +406,7 @@ class Analyser(ABC):
                                    self.cv_confusion_matrix_path)
         self.compute_cm_stats(self.cv_confusion_matrix)
 
-    def evaluate_all_models(self, test_subject_dict):
+    def evaluate_all_models(self, test_subject_dict, model_paths: Optional[List] = None):
         self.result_logger.debug(
             "\n********************************************************************************************************"
             "\n********************************************************************************************************"
@@ -419,7 +419,10 @@ class Analyser(ABC):
         for i in range(1, self.num_folds + 1):
             current_cm = np.zeros((len(self.all_categories), len(self.all_categories)))
             model_name = self._produce_model_name(i=i)
-            model_path = join(self.__saved_model_dir, model_name)
+            if model_paths is None:
+                model_path = join(self.__saved_model_dir, model_name)
+            else:
+                model_path = model_paths[i]
 
             self.result_logger.info(
                 "\n***********************************************************************************************")

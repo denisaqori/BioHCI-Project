@@ -27,8 +27,9 @@ from BioHCI.data_processing.keypoint_description.sequence_length import SeqLen
 
 
 class DescriptorEvaluator:
-    def __init__(self, descriptor_computer: DescriptorComputer, all_dataset_categories: List[str], heatmap_global:
-    np.ndarray) -> None:
+    def __init__(self, descriptor_computer: DescriptorComputer, dataset_descriptors: types.subj_dataset,
+                 all_dataset_categories: List[str], heatmap_global: np.ndarray,
+                 heatmap_alt_lables: Optional[List[str]] = None) -> None:
 
         # always use heatmap_global, not self.__heatmap in the parallelized section when writing to the array. Each
         # process has its own copy of a class and its variables, so self.__heatmap would not reflect all changes if
@@ -57,7 +58,7 @@ class DescriptorEvaluator:
         utils.cleanup(self.results_eval_dir, "_test")
 
         self.__num_processes = multiprocessing.cpu_count() * 2
-        self.compute_heatmap(all_dataset_categories)
+        self.compute_heatmap(dataset_descriptors, all_dataset_categories, heatmap_alt_lables)
 
         # defining the logger before the multiprocessing task causes a "cannot pickle RLock error" since
         # the logger holds a lock to the file.
@@ -119,20 +120,22 @@ class DescriptorEvaluator:
     def results_eval_dir(self) -> str:
         return self.__results_eval_dir
 
-    @property
-    def dataset_descriptors(self) -> types.subj_dataset:
-        return self.descriptor_computer.dataset_descriptors
+    # @property
+    # def dataset_descriptors(self) -> types.subj_dataset:
+    #     return self.descriptor_computer.dataset_descriptors
 
     @property
     def heatmap(self) -> Optional[np.ndarray]:
         return self.__heatmap
 
-    def compute_heatmap(self, all_dataset_categories: List[str]) -> None:
+    def compute_heatmap(self, dataset_descriptors: types.subj_dataset, all_dataset_categories: List[str],
+                        labels: List [str] = None) -> None:
         """
         Computes pairwise distances of all tensors in the descriptors (internal to the class) and accumulates the sum
         of the distances among pairs of all categories into a heatmap.
 
         Args:
+            dataset_descriptors: descriptors of the dataset to be evaluated
             all_dataset_categories (list): a list of all categories of the subject dataset.
 
         Returns: None
@@ -142,17 +145,16 @@ class DescriptorEvaluator:
 
         if not os.path.exists(self.get_heatmap_obj_path()):
             start_time = time.time()
-            for subj_name, subj in self.dataset_descriptors.items():
+            for subj_name, subj in dataset_descriptors.items():
                 subj_data = subj.data
                 subj_cat = subj.categories
                 cat_map = utils.map_categories(all_dataset_categories)
                 subj_int_cat = utils.convert_categories(cat_map, subj_cat)
+                print(f"Category to Integer Mapping: {cat_map}")
 
                 tuple_list = []
                 for i in range(0, len(subj_data)):
                     for j in range(0, len(subj_data)):
-                # for i in range(4, 7):
-                #     for j in range(4, 7):
                         keypress1 = subj_data[i]
                         cat1 = subj_int_cat[i]
 
@@ -181,9 +183,14 @@ class DescriptorEvaluator:
                 self.__heatmap = pickle.load(openfile)
 
         if self.heatmap is not None:
-            plt.figure(figsize=(14, 10))
-            sns.set(font_scale=1.4)
-            heatmap_fig = sns.heatmap(self.heatmap, xticklabels=5, yticklabels=5)
+            plt.figure(figsize=(18, 15))
+            sns.set(font_scale=2.5)
+            if labels:
+                heatmap_fig = sns.heatmap(self.heatmap, xticklabels=labels, yticklabels=labels)
+                plt.yticks(rotation=45)
+                plt.xticks(rotation=45)
+            else:
+                heatmap_fig = sns.heatmap(self.heatmap, xticklabels=1, yticklabels=1)
             self.save(heatmap_fig, ".png")
 
         print(f"\nEnd of descriptor evaluator {self.dataset_eval_name}!\n")
@@ -201,10 +208,8 @@ class DescriptorEvaluator:
             l2 = []
 
             tuple_list = []
-            # for i in range(0, len(subj_data)):
-            #     for j in range(0, len(subj_data)):
-            for i in range(4, 17):
-                for j in range(4, 17):
+            for i in range(0, len(subj_data)):
+                for j in range(0, len(subj_data)):
                     keypress1 = subj_data[i]
                     cat1 = subj_int_cat[i]
 
@@ -231,7 +236,7 @@ class DescriptorEvaluator:
         not self.heatmap or self.__heatmap.
 
         Args:
-            args (tuple): a touple containing the first tensor, its category, the second tensor, its category
+            args (tuple): a tuple containing the first tensor, its category, the second tensor, its category
 
         Returns: None
 
@@ -389,8 +394,9 @@ class DescriptorEvaluator:
 
         """
         plt.figure(figsize=(14, 10))
-        sns.set(font_scale=1.4)
-        heatmap_fig = sns.heatmap(heatmap, xticklabels=5, yticklabels=5)
+        sns.set(font_scale=2)
+        # heatmap_fig = sns.heatmap(heatmap, xticklabels=1, yticklabels=1)
+        heatmap_fig = sns.heatmap(heatmap)
 
         self.save(heatmap_fig, ".pdf")
 
@@ -418,11 +424,12 @@ if __name__ == "__main__":
     # create a template of a configuration file with all the fields initialized to None
     config.create_config_file_template()
     # parameters = config.populate_study_parameters("CTS_5taps_per_button.toml")
-    parameters = config.populate_study_parameters("CTS_EICS2020.toml")
+    # parameters = config.populate_study_parameters("CTS_volume_swipe.toml")
+    parameters = config.populate_study_parameters("CTS_4Electrodes.toml")
 
     # generating the data from files
     data = DataConstructor(parameters)
-    subject_dataset = data.get_subject_dataset()
+    subject_dataset = data.cv_subj_dataset
 
     # get all the categories of the dataset
     all_dataset_categories = data.get_all_dataset_categories()
@@ -459,12 +466,16 @@ if __name__ == "__main__":
     heatmap_global = shared_array.reshape(heatmap_shape)
 
     # create descriptor computer
-    desc_computer = DescriptorComputer(DescType.MSD, subject_dataset, parameters, seq_len=SeqLen.Existing,
-                                       extra_name="_eics2020")
+    desc_computer = DescriptorComputer(DescType.RawData, subject_dataset, parameters, seq_len=SeqLen.Existing,
+                                       extra_name="_chi2021_final")
+    descriptors = desc_computer.produce_dataset_descriptors(subject_dataset)
+
+    heatmap_alt_lables = ["Double", "Single", "Half", "Random"]
     # evaluate distances between tensors and compute statistics on them
-    desc_eval = DescriptorEvaluator(desc_computer, all_dataset_categories, heatmap_global)
-    desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
-    # desc_eval.log_statistics()
+    desc_eval = DescriptorEvaluator(desc_computer, descriptors, all_dataset_categories, heatmap_global,
+                                    heatmap_alt_lables)
+    # desc_eval.generate_heatmap_fig_from_obj_name(desc_eval.dataset_eval_name + ".pkl")
+    desc_eval.log_statistics()
 
     print("")
     # """

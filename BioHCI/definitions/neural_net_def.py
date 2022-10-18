@@ -12,7 +12,7 @@ class NeuralNetworkDefinition(LearningDefinition):
         self.__dropout_rate = 0.6 # dropout rate: if 0, no dropout - to be passed to the architectures learning
         self.__num_layers = 3  # number of layers of LSTM
         self.__batch_first = True
-        self.__nn_name = "LSTM"
+        self.__nn_name = "CNN_LSTM_cl"
 
         self.__use_cuda = use_cuda
         self.__input_size = input_size

@@ -41,11 +41,11 @@ class ELD:
                     lev_matrix[i, j] = max(k1_i_norm, k2_j_norm)
 
                 else:
-                    left = lev_matrix[i - 1, j]
-                    min_clause_1 = left + k1_i_norm
+                    up = lev_matrix[i - 1, j]
+                    min_clause_1 = up + k1_i_norm
 
-                    up = lev_matrix[i, j - 1]
-                    min_clause_2 = up + k2_j_norm
+                    left = lev_matrix[i, j - 1]
+                    min_clause_2 = left + k2_j_norm
 
                     diag = lev_matrix[i - 1, j - 1]
                     min_clause_3 = diag + diff_norm
@@ -55,3 +55,17 @@ class ELD:
         # return the last element of the diagonal
         minimal_cost = lev_matrix[keypress1.shape[0] - 1, keypress2.shape[0] - 1]
         return minimal_cost
+
+if __name__ == "__main__":
+    print("Running ELD module...")
+
+    a = np.array([[1, 3, 0, 2], [4, 11, 2, 3], [7, 1, 10, 0], [5, 2, 6, 8]])
+    b = np.array([[2, 1, 5, 12], [3, 4, 9, 1], [19, 7, 2, 6]])
+    print (f"ELD (a, b) = {ELD.compute_distance(a, b)}")
+
+    c = np.array([[0, 0, 0], [1, 2, 0]])
+    d = np.array([[0, 0, 0], [0, 0, 0]])
+    e = np.array([[0, 0, 0], [2, 3, 3]])
+
+    print (f"ELD (c, e) = {ELD.compute_distance(c, e)}\n"
+           f"ELD (c, d) + ELD (d, e) = {ELD.compute_distance(c, d) + ELD.compute_distance(d, e)}")
