@@ -16,7 +16,6 @@ from BioHCI.helpers.study_config import StudyConfig
 # this data is supposed to not have been processed for machine definitions by chunking or feature construction yet.
 class RawDataVisualizer:
     """
-
     """
 
     def __init__(self, subject_dict, parameters, saveplot_dir_path, verbose=False):

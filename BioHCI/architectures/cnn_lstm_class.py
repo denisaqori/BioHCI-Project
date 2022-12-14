@@ -28,18 +28,18 @@ class CNN_LSTM_C(AbstractNeuralNetwork):
             # so in our case it needs to be (batch_size x input_size x samples_per_chunk)
             nn.Conv1d(
                 in_channels=self.input_size,
-                out_channels=self.input_size*8,  # number of filters
-                kernel_size=5,  # size of filter
-                stride=1,  # filter movement/step
+                out_channels=self.input_size*8,  # number of filters - it's arbitrary and separately applied to input
+                kernel_size=5,  # size of filter - convolves along time dimension
+                stride=1,  # filter movement/step - default 1
                 padding=2  # padding=(kernel_size-1)/2 if stride=1 -> added to both sides of input
                 ),
             nn.ReLU(),
             nn.BatchNorm1d(self.input_size*8),
             nn.Dropout(p=self.dropout_rate),
             nn.Conv1d(
-                 in_channels=self.input_size*8,
+                 in_channels=self.input_size*8, # depending on the output size of previous layer
                  out_channels=32,  # number of filters
-                 kernel_size=5,  # size of filter
+                 kernel_size=5,  # size of filter - potentially change
                  stride=1,  # filter movement/step
                  padding=2  # padding=(kernel_size-1)/2 if willstride=1 -> added to both sides of input
                 ),

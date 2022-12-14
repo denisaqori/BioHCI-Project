@@ -77,57 +77,6 @@ class Subject:
 
         return subj_category_data, subj_category_names
 
-    def __read_files_old(self, data_dirpath: str, baseline_dirpath=None, label=None) -> labeled_dataset:
-        """
-        Given a directory, find files
-
-        Args:
-            dirpath:
-            label:
-
-        Returns:
-
-        """
-        all_baseline_fnames = []
-        if baseline_dirpath is not None:
-            for baseline_fname in os.listdir(baseline_dirpath):
-                if baseline_fname.endswith(self.__parameter.file_format) and "trial" in baseline_fname:
-                    all_baseline_fnames.append(baseline_fname)
-
-        data = []
-        labels = []
-
-        for filename in os.listdir(data_dirpath):
-            if filename.endswith(self.__parameter.file_format):
-
-                # split the filename into the name part and the extension part
-                name, extension = os.path.splitext(filename)
-                filepath = os.path.join(data_dirpath, filename)
-                filedata = self.__get_file_data(filepath)
-
-                if baseline_dirpath is not None:
-                    # find the baseline file corresponding to the trial number of the data
-                    trial_num_str = name[name.find("_trial"): name.find("_button") + 1]
-                    baseline_fname = None
-                    for fname in all_baseline_fnames:
-                        if trial_num_str in fname:
-                            baseline_fname = fname
-                            break
-                    # get the baseline data
-                    baseline_filepath = os.path.join(baseline_dirpath, baseline_fname)
-                    baseline_data = self.__get_file_data(baseline_filepath)
-
-                    assert baseline_data.shape == filedata.shape
-                    filedata = filedata - baseline_data
-
-                data.append(filedata)
-                if label is None:
-                    labels.append(name)
-                else:
-                    labels.append(label)
-
-        return data, labels
-
     def __read_files(self, data_dirpath: str, baseline_dirpath=None, label=None) -> labeled_dataset:
         """
         Given a directory, find files
@@ -148,40 +97,66 @@ class Subject:
             if filename.endswith(self.__parameter.file_format) and "baseline" not in filename:
 
                 # split the filename into the name part and the extension part
-                name, extension = os.path.splitext(filename)
+                fname, extension = os.path.splitext(filename)
                 filepath = os.path.join(data_dirpath, filename)
                 filedata = self.__get_file_data(filepath)
 
                 if baseline_dirpath is not None:
-                    baseline_data = self.__get_baseline_data(structure="dir", baseline_dirpath=baseline_dirpath,
-                                                             name=name)
+                    baseline_dict = self.__get_baseline_data(structure="dir", baseline_dirpath=baseline_dirpath,
+                                                             name=fname)
                 else:
-                    baseline_data = self.__get_baseline_data(structure="file", data_dirpath=data_dirpath)
+                    baseline_dict = self.__get_baseline_data(structure="file", data_dirpath=data_dirpath)
 
-                if baseline_data is not None:
-                    # assert baseline_data.shape == filedata.shape
-                    # filedata = filedata - baseline_data
-                    if baseline_data.shape == filedata.shape:
-                        filedata = filedata - baseline_data
-                        data.append(filedata)
-                        if label is None:
-                            labels.append(name)
-                        else:
-                            labels.append(label)
-                    else:
-                        print(f"There is a problem with the number of rows or columns of either {filename} or its "
-                              f"baseline data. Removing file from processing.")
+                if baseline_dict is not None:
+                    file_collection_num = self.__get_number_index(fname, "_collection", 3)
 
-                # data.append(filedata)
-                # if label is None:
-                #     labels.append(name)
-                # else:
-                #     labels.append(label)
+                    # find the right baseline file for the current data file (depending on "collection")
+                    for baseline_name, baseline_data in baseline_dict.items():
+                        baseline_collection_name = self.__get_number_index(baseline_name, "_collection", 3)
+
+                        if file_collection_num == baseline_collection_name:
+
+                            # subtract the baseline data from the event data
+                            if baseline_data.shape == filedata.shape:
+                                filedata = filedata - baseline_data
+                                data.append(filedata)
+                                if label is None:
+                                    labels.append(fname)
+                                else:
+                                    labels.append(label)
+                                break
+                            else:
+                                print(
+                                    f"There is a problem with the number of rows or columns of either {filename} or its "
+                                    f"baseline data. Removing file from processing.")
 
         return data, labels
 
+    @staticmethod
+    def __get_number_index(main_string: str, sub_string: str, num_len: int = 3) -> str:
+        """
+        Finds a number in the string that is situated immediately after a particular substring. Useful for selecting
+        conditions by number in a filename.
+
+        Args:
+            main_string: The string to search (typically the filename)
+            sub_string: The substring after which the number is located (typically condition we are looking for)
+            num_len: The length of the number, the number of digits.
+
+        Returns: The string version of the number that should be situated right after the substring in a string.
+
+        """
+        idx = main_string.find(sub_string)
+        assert idx != -1, f"String {main_string} does not contain substring {sub_string}"
+        start_idx = idx + len(sub_string)
+        num_str = main_string[start_idx: start_idx + num_len]
+
+        assert int(num_str), f"The string {num_str} is not a number - something is off with the number of " \
+                             f"digits being searched or the substring after which this number is found."
+        return num_str
+
     def __get_baseline_data(self, structure: Optional[str] = None, baseline_dirpath: Optional[str] = None,
-                            name: Optional[str] = None, data_dirpath: Optional[str] = None) -> Optional[np.ndarray]:
+                            name: Optional[str] = None, data_dirpath: Optional[str] = None) -> Optional[dict]:
         """
         Returns the data from a baseline file.
 
@@ -198,11 +173,29 @@ class Subject:
         Returns:
             baseline_data: the baseline data
         """
-        baseline_data = None
+        # baseline_dict = None
         assert structure == "dir" or structure == "file" or structure is None, \
             "Potential typo, or unimplemented baseline organization."
 
-        if structure == "dir":
+        baseline_dict = {}
+        if structure == "file":
+            assert baseline_dirpath is None and name is None, "They are only need for 'dir' structure."
+            assert data_dirpath is not None
+            for filename in os.listdir(data_dirpath):
+                if filename.endswith(self.__parameter.file_format):
+                    if "baseline" in filename:
+                        b_filepath = os.path.join(data_dirpath, filename)
+                        baseline_data = self.__get_file_data(b_filepath)
+                        baseline_dict[filename] = baseline_data
+                        # break
+        else:
+            assert structure is None
+            print(f"No baseline found. Returning None. Might be \"dir\" structure commented out currently for "
+                  f"compatibility issues.")
+
+            # need to double-check it works with folder structure when necessary
+            """"
+        elif structure == "dir":
             all_baseline_fnames = []
             assert baseline_dirpath is not None and name is not None, \
                 "If all baselines are found in one directory, that directory needs to be passed as an argument."
@@ -220,22 +213,10 @@ class Subject:
             # get the baseline data
             baseline_filepath = os.path.join(baseline_dirpath, baseline_fname)
             baseline_data = self.__get_file_data(baseline_filepath)
+            """
 
-        elif structure == "file":
-            assert baseline_dirpath is None and name is None, "They are only need for 'dir' structure."
-            assert data_dirpath is not None
-            for filename in os.listdir(data_dirpath):
-                if filename.endswith(self.__parameter.file_format):
-                    if "baseline" in filename:
-                        b_filepath = os.path.join(data_dirpath, filename)
-                        baseline_data = self.__get_file_data(b_filepath)
-                        break
-
-        else:
-            assert structure is None
-            print(f"No baseline found. Returning None.")
-
-        return baseline_data
+        # return baseline_data
+        return baseline_dict
 
     def __get_file_data(self, filepath: str) -> np.ndarray:
         """

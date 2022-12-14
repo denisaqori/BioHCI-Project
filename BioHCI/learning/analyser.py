@@ -8,6 +8,7 @@ from datetime import datetime
 from os.path import join
 from typing import List, Optional, Tuple
 
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -21,6 +22,7 @@ from BioHCI.architectures.cnn_lstm_class import CNN_LSTM_C
 from BioHCI.architectures.lstm import LSTM
 from BioHCI.architectures.mlp import MLP
 from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_augmentation.vae_generator import VAE_Generator
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.definitions.learning_def import LearningDefinition
@@ -251,12 +253,34 @@ class Analyser(ABC):
 
         return neural_net
 
+    # @staticmethod
+    # def standardize(dataset):
+    #     dataset = dataset
+    #     means = dataset.mean(dim=1, keepdim=True)
+    #     std_dev = dataset.std(dim=1, keepdim=True)
+    #     standardized_data = (dataset - means) / std_dev
+    #     return standardized_data
+
+    def normalize_all_samples(self, dataset):
+        standardized_list = []
+        for sample in dataset:
+            standardized_sample = self.normalize_sample(sample)
+            standardized_list.append(standardized_sample)
+        return standardized_list
+
     @staticmethod
-    def standardize(dataset):
-        dataset = dataset
-        means = dataset.mean(dim=1, keepdim=True)
-        std_dev = dataset.std(dim=1, keepdim=True)
-        standardized_data = (dataset - means) / std_dev
+    def normalize_sample(sample):
+        means = np.mean(sample, axis=0)
+        std_dev = np.std(sample, axis=0)
+        standardized_data = (sample - means) / std_dev
+
+        # x = np.arange(0, 250)
+        # original = sample[:,2]
+        stadardized = standardized_data[:, 2]
+        # plt.plot(x, original, label="original")
+        # plt.plot(x, stadardized, label="standardized")
+        # plt.legend()
+        # plt.show()
         return standardized_data
 
     @staticmethod
@@ -382,7 +406,7 @@ class Analyser(ABC):
                                    self.cv_confusion_matrix_path)
         self.compute_cm_stats(self.cv_confusion_matrix)
 
-    def evaluate_all_models(self, test_subject_dict):
+    def evaluate_all_models(self, test_subject_dict, model_paths: Optional[List] = None):
         self.result_logger.debug(
             "\n********************************************************************************************************"
             "\n********************************************************************************************************"
@@ -395,7 +419,10 @@ class Analyser(ABC):
         for i in range(1, self.num_folds + 1):
             current_cm = np.zeros((len(self.all_categories), len(self.all_categories)))
             model_name = self._produce_model_name(i=i)
-            model_path = join(self.__saved_model_dir, model_name)
+            if model_paths is None:
+                model_path = join(self.__saved_model_dir, model_name)
+            else:
+                model_path = model_paths[i]
 
             self.result_logger.info(
                 "\n***********************************************************************************************")
@@ -457,7 +484,6 @@ class Analyser(ABC):
 
         return val_accuracy
 
-
     def log_general_info(self):
         self.result_logger.debug(
             "\n********************************************************************************************************"
@@ -490,7 +516,7 @@ class Analyser(ABC):
         print(f"Saved confusion matrix object (.pkl) to : {cm_path}")
 
         # draw and save figure
-        self.draw_confusion_matrix(matrix, fig_path)
+        self.draw_confusion_matrix(matrix, fig_path, labels=True)
 
     def compute_cm_stats(self, confusion_matrix: np.ndarray):
 
@@ -541,11 +567,19 @@ class Analyser(ABC):
                 confusion_matrix = pickle.load(openfile)
                 self.draw_confusion_matrix(confusion_matrix, fig_path)
 
-    def draw_confusion_matrix(self, confusion_matrix: np.ndarray, fig_path: str):
+    def draw_confusion_matrix(self, confusion_matrix: np.ndarray, fig_path: str, labels: bool = False):
         plt.figure(figsize=(55, 40))
-        cmap = sns.cubehelix_palette(8)
+        cmap = "magma_r"
         sns.set(font_scale=6)
-        confusion_matrix_fig = sns.heatmap(confusion_matrix, xticklabels=3, yticklabels=3, cmap=cmap)
+
+        # if labels is set to true, get the categories from the internal category map, and convert confusion matrix to
+        # a dataframe to be able to plot with them.
+        if labels is True:
+            cat_list = sorted(self.category_map.keys())
+            cat_list[-1] = '?'
+            confusion_matrix = pd.DataFrame(confusion_matrix, columns=cat_list, index=cat_list)
+
+        confusion_matrix_fig = sns.heatmap(confusion_matrix, xticklabels=1, yticklabels=1, cmap=cmap)
         plt.show()
 
         confusion_matrix_fig.figure.savefig(fig_path, dpi=500)

@@ -8,6 +8,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 import BioHCI.helpers.type_aliases as types
 from BioHCI.data.data_splitter import DataSplitter
+from BioHCI.data_augmentation.vae_all_categories import VAE_Categories
+from BioHCI.data_augmentation.vae_generator import VAE_Generator
 from BioHCI.data_processing.category_balancer import CategoryBalancer
 from BioHCI.data_processing.feature_constructor import FeatureConstructor
 from BioHCI.data_processing.keypoint_description.desc_type import DescType
@@ -19,7 +21,9 @@ from BioHCI.helpers import utilities as utils
 from BioHCI.learning.analyser import Analyser
 from BioHCI.learning.evaluator import Evaluator
 from BioHCI.learning.trainer import Trainer
+import matplotlib.pyplot as plt
 
+import seaborn as sns
 
 class NNAnalyser(Analyser):
 
@@ -66,13 +70,17 @@ class NNAnalyser(Analyser):
 
     # implement the abstract method from the parent class CrossValidator; returns a dataset with labels wrapped in
     # the PyTorch DataLoader format
-    def _get_data_and_labels(self, subj_dataset):
+    def _get_data_and_labels(self, subj_dataset, normalize=False):
+
         if self.learning_def.nn_name == "MLP":
             data, cat = self.get_all_subj_data(subj_dataset, seq=False)
         else:
             data, cat = self.get_all_subj_data(subj_dataset)
 
         # convert numpy ndarray to PyTorch tensor
+        if normalize:
+            data = self.normalize_all_samples(data)
+
         np_data = np.asarray(data, dtype=np.float32)
         data = torch.from_numpy(np_data)
 
@@ -86,7 +94,7 @@ class NNAnalyser(Analyser):
         # standardized_data = self.standardize(data)
         tensor_dataset = TensorDataset(data, labels)
         data_loader = DataLoader(tensor_dataset, batch_size=self.learning_def.batch_size,
-                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=False)
+                                 num_workers=self.parameters.num_threads, shuffle=False, pin_memory=True)
         return data_loader
 
     def compute_label_msd_dict(self, subject_dict: types.subj_dataset, fold):
@@ -157,6 +165,8 @@ class NNAnalyser(Analyser):
         all_epoch_train_loss = []
         all_epoch_val_loss = []
 
+        # vae_all = VAE_Categories(balanced_train, balanced_val, self.category_map, self.learning_def)
+
         # self.__msd_train_dict = self.compute_label_msd_dict(balanced_train, fold+1)
         for epoch in range(1, self.learning_def.num_epochs + 1):
 
@@ -198,6 +208,19 @@ class NNAnalyser(Analyser):
         avg_train_accuracy = sum(all_epoch_train_acc[-num_last_epochs:]) / len(all_epoch_train_acc[-num_last_epochs:])
         avg_val_loss = sum(all_epoch_val_loss[-num_last_epochs:]) / len(all_epoch_val_loss[-num_last_epochs:])
         avg_val_accuracy = sum(all_epoch_val_acc[-num_last_epochs:]) / len(all_epoch_val_acc[-num_last_epochs:])
+
+        # plot train and validation losses over time
+        sns.set(context='notebook', style='darkgrid', palette='pastel', font='sans-serif', font_scale=1,
+                color_codes=True, rc=None)
+        all_epochs = [i for i in range(1, self.learning_def.num_epochs+1)]
+        plt.plot(all_epochs, all_epoch_train_loss, label="Train Losses")
+        plt.plot(all_epochs, all_epoch_val_loss, label="Val Losses")
+
+        plt.title("Fold: " + str(fold))
+        plt.xlabel("Epochs")
+        plt.ylabel("Average Epoch Losses")
+        plt.legend()
+        plt.show()
 
         return avg_train_loss, avg_train_accuracy, avg_val_loss, avg_val_accuracy
 
