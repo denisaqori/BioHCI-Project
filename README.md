@@ -291,6 +291,25 @@ This repository does not currently include a packaged installation file such as 
   $env:PYTHONPATH = "$env:PYTHONPATH;."
   ```
 
+---
+
+## Running an Experiment
+
+From the repository root:
+```
+python BioHCI/main.py
+```
+To disable CUDA:
+```
+python BioHCI/main.py --disable-cuda
+```
+To enable visualization and verbose output:
+```
+python BioHCI/main.py --visualization --verbose
+```
+### Important Note
+
+The main script currently expects a specific configuration file to be selected in code, so you may need to edit `main.py` and update the configuration filename manually.
 
 
 
