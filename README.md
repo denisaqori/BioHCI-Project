@@ -183,6 +183,8 @@ Configurations are stored in `config_files/` and are used to populate a `StudyPa
 ### Example configuration
 
 ```text
+</> TOML
+
 resource_path = "CTS_CHI2020/tmp/tmp_train"
 study_name = "CTS_CHI2020"
 sensor_name = "Capacitor"
