@@ -376,8 +376,8 @@ As a research-oriented codebase, the repository currently reflects an experiment
 
 Potential improvements for future development include:
 
-- adding a requirements.txt or environment.yml
-- adding a setup.py or pyproject.toml
+- adding a `requirements.txt` or `environment.yml`
+- adding a `setup.py` or `pyproject.toml`
 - exposing configuration selection through command-line arguments
 - documenting the expected dataset structure in more detail
 - including a minimal example dataset
@@ -395,6 +395,6 @@ Denisa Qori McDonald
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ---
