@@ -242,7 +242,51 @@ Resources/
 
 Depending on the study, categories may be derived from directory names or filenames.
 
+---
 
+## Installation
+
+This repository does not currently include a packaged installation file such as requirements.txt, setup.py, or pyproject.toml, so setup is manual.
+
+1. Clone the Repository
+  ```
+  git clone https://github.com/denisaqori/BioHCI-Project.git
+  cd BioHCI-Project
+  ```
+2. Create a Python Environment
+
+  Using `conda`:
+  ```
+  conda create -n biohci python=3.10
+  conda activate biohci
+  ```
+
+  Or using `venv`:
+  ```
+  python -m venv .venv
+  source .venv/bin/activate
+  ```
+  On Windows:
+
+  `.venv\Scripts\activate`
+  
+3. Install Dependencies
+
+Based on the current codebase, you will likely need:
+
+pip install numpy scipy matplotlib seaborn toml torch scikit-learn
+
+Additional packages may be required depending on the specific modules or experiments you use.
+
+4. Ensure the Repository Root Is on PYTHONPATH
+
+From the repository root:
+
+export PYTHONPATH=$PYTHONPATH:.
+
+On Windows PowerShell:
+
+$env:PYTHONPATH = "$env:PYTHONPATH;."
 
 
 
