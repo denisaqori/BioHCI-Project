@@ -223,7 +223,7 @@ To define a new study:
 
 BioHCI is organized around subject-level datasets.
 
-The data loader expects data to be arranged so that each subject has its own subdirectory within a configured dataset root. These are then loaded into `Subject` objects and stored in dictionaries keyed by subject name. This organization decision is based on the knowledge that there are likely going to be similarities in the data generated from the same subject, and typically we cannot those signal measurements as independent.
+The data loader expects data to be arranged so that each subject has its own subdirectory within a configured dataset root. These are then loaded into `Subject` objects and stored in dictionaries keyed by subject name. This organization decision is based on the knowledge that there are likely going to be similarities in the data generated from the same subject, and typically we cannot treat those signal measurements as independent.
 
 A typical layout may look like:
 
