@@ -155,5 +155,23 @@ At a high level, a BioHCI experiment follows this workflow:
 
 ---
 
+## Entry Points
+`BioHCI/main.py`
+
+This is the primary experiment script. It supports the overall experiment workflow, including:
+
+- parsing command-line options
+- loading a study configuration
+- constructing train / validation / test datasets
+- preprocessing and feature construction
+- defining the learning setup
+- running evaluation
+- logging and visualization
+
+`BioHCI/single_sample_main.py`
+
+This script is intended for single-sample inference or lightweight evaluation. It loads a configured dataset and saved model, then performs prediction on individual samples.
+
+---
 
 
