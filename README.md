@@ -128,7 +128,7 @@ At a high level, a BioHCI experiment follows this workflow:
     
 **3. Preprocess the data**
 
-    Depending on the study and configuration, preprocessing may include:
+  Depending on the study and configuration, preprocessing may include:
 
    - selecting relevant columns
    - standardization
