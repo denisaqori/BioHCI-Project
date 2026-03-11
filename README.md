@@ -174,4 +174,52 @@ This script is intended for single-sample inference or lightweight evaluation. I
 
 ---
 
+## Configuration System
+
+One of the core design features of BioHCI is its use of study-specific TOML configuration files.
+
+Configurations are stored in `config_files/` and are used to populate a `StudyParameters` object that controls experiment behavior.
+
+### Example configuration
+
+resource_path = "CTS_CHI2020/tmp/tmp_train"
+study_name = "CTS_CHI2020"
+sensor_name = "Capacitor"
+file_format = ".csv"
+relevant_columns = "[0:192]"
+start_row = 0
+cat_names = "dir"
+num_subj = 24
+plot_labels = ["Voltage Frequency Gain", "Time"]
+standardize = false
+compute_fft = false
+chunk_instances = true
+samples_per_chunk = 250
+interval_overlap = false
+construct_features = true
+feature_window = 250
+feature_overlap = false
+num_folds = 3
+num_threads = 12
+neural_net = true
+classification = true
+
+### Adding a New Study
+
+To define a new study:
+1. create a new TOML file in config_files/
+2. specify the dataset path and study metadata
+3. define relevant columns, labels, and chunking parameters
+4. configure feature construction and model settings
+5. point the entry script to the new configuration file
+
+---
+
+
+
+
+
+
+
+
 
