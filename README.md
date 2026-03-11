@@ -361,4 +361,40 @@ These provide examples of how the framework can be adapted to different datasets
 
 --- 
 
+## Current Limitations
 
+As a research-oriented codebase, the repository currently reflects an experimentation framework rather than a fully packaged software library. In particular:
+
+- some experiment choices are hardcoded in entry scripts
+- dependency management is not yet formalized
+- data paths may depend on local directory conventions
+- some workflows assume prior saved artifacts or study-specific filesystem layouts
+
+---
+
+## Suggested Future Improvements
+
+Potential improvements for future development include:
+
+- adding a requirements.txt or environment.yml
+- adding a setup.py or pyproject.toml
+- exposing configuration selection through command-line arguments
+- documenting the expected dataset structure in more detail
+- including a minimal example dataset
+- automated tests
+- documenting each configuration field more thoroughly
+- adding reproducible example commands for at least one included study
+
+---
+
+## Author
+
+Denisa Qori McDonald
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+---
