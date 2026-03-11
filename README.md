@@ -342,7 +342,7 @@ These are typically written under saved_objects/ and related study-specific dire
 
 ---
 
-### Included Study Configurations
+## Included Study Configurations
 
 The repository contains multiple study-specific configuration files, including examples such as:
 
