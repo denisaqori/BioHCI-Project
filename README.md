@@ -71,3 +71,41 @@ BioHCI-Project/
 ├── config_files/               # Study-specific TOML configuration files
 ├── TestBioHCI/                 # Test scaffolding and related files
 └── README.md
+```
+
+## Core Components
+'BioHCI/architectures'
+
+Contains implemented learning architectures and model wrappers, including modules such as:
+
+- CNN
+- LSTM
+- CNN-LSTM
+- 2D CNN-LSTM
+- MLP
+- RNN
+- SVC wrapper
+- VAE-based models
+- Attention encoder-decoder variants
+
+This structure supports experimentation across a broad range of sequence-modeling and classification approaches.
+
+'BioHCI/data'
+
+Handles subject-oriented dataset construction. Data are loaded into subject-level representations, which are then used for training, validation, and testing workflows.
+
+BioHCI/data_processing
+
+Contains preprocessing and feature engineering utilities, including balancing, statistical feature construction, wavelet-based processing, and within-subject oversampling.
+
+BioHCI/learning
+
+Implements analyzers, trainers, and evaluators used to run experiments and compare performance across settings.
+
+BioHCI/visualizers
+
+Provides utilities for plotting raw data, training behavior, and evaluation outputs.
+
+config_files
+
+Contains study-specific TOML files that define dataset locations, sensor metadata, relevant columns, chunk sizes, folds, and modeling settings.
