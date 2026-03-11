@@ -219,6 +219,28 @@ To define a new study:
 
 ---
 
+## Data Organization
+
+BioHCI is organized around subject-level datasets.
+
+The data loader expects data to be arranged so that each subject has its own subdirectory within a configured dataset root. These are then loaded into `Subject` objects and stored in dictionaries keyed by subject name.
+
+A typical layout may look like:
+
+```text
+Resources/
+└── <study_name>/
+    ├── train/
+    │   ├── subj1/
+    │   ├── subj2/
+    │   └── ...
+    └── test/
+        ├── subj1/
+        ├── subj2/
+        └── ...
+```
+
+Depending on the study, categories may be derived from directory names or filenames.
 
 
 
