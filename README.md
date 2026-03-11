@@ -74,7 +74,7 @@ BioHCI-Project/
 ```
 
 ## Core Components
-'BioHCI/architectures'
+'''BioHCI/architectures'''
 
 Contains implemented learning architectures and model wrappers, including modules such as:
 
