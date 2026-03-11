@@ -74,7 +74,7 @@ BioHCI-Project/
 ```
 
 ## Core Components
-'''BioHCI/architectures'''
+`BioHCI/architectures`
 
 Contains implemented learning architectures and model wrappers, including modules such as:
 
@@ -90,22 +90,22 @@ Contains implemented learning architectures and model wrappers, including module
 
 This structure supports experimentation across a broad range of sequence-modeling and classification approaches.
 
-'BioHCI/data'
+`BioHCI/data`
 
 Handles subject-oriented dataset construction. Data are loaded into subject-level representations, which are then used for training, validation, and testing workflows.
 
-BioHCI/data_processing
+`BioHCI/data_processing`
 
 Contains preprocessing and feature engineering utilities, including balancing, statistical feature construction, wavelet-based processing, and within-subject oversampling.
 
-BioHCI/learning
+`BioHCI/learning`
 
 Implements analyzers, trainers, and evaluators used to run experiments and compare performance across settings.
 
-BioHCI/visualizers
+`BioHCI/visualizers`
 
 Provides utilities for plotting raw data, training behavior, and evaluation outputs.
 
-config_files
+`config_files`
 
 Contains study-specific TOML files that define dataset locations, sensor metadata, relevant columns, chunk sizes, folds, and modeling settings.
