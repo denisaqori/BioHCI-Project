@@ -311,6 +311,54 @@ python BioHCI/main.py --visualization --verbose
 
 The main script currently expects a specific configuration file to be selected in code, so you may need to edit `main.py` and update the configuration filename manually.
 
+---
 
+## Running Single-Sample Evaluation
+
+To run single-sample inference or evaluation:
+```
+python BioHCI/single_sample_main.py
+```
+This script expects:
+
+- a valid study configuration
+- a compatible dataset layout
+- an existing saved model in the appropriate saved_objects/... directory
+
+You may need to update the hardcoded configuration name and model path before use.
+
+---
+
+## Outputs
+
+The framework supports saving and visualizing experiment artifacts such as:
+
+- trained model checkpoints
+- confusion matrices
+- plots and visualizations
+- logged evaluation outputs
+
+These are typically written under saved_objects/ and related study-specific directories.
+
+---
+
+### Included Study Configurations
+
+The repository contains multiple study-specific configuration files, including examples such as:
+
+- `CTS_4Electrodes.toml`
+- `CTS_5taps_per_button.toml`
+- `CTS_CHI2020_train.toml`
+- `CTS_EICS2020.toml`
+- `CTS_Keyboard.toml`
+- `CTS_Keyboard_simple.toml`
+- `CTS_UbiComp2020.toml`
+- `CTS_UbiComp2020_1sample.toml`
+- `EEG_Workload.toml`
+- `Solid_Pad_Gestures.toml`
+
+These provide examples of how the framework can be adapted to different datasets and tasks.
+
+--- 
 
 
