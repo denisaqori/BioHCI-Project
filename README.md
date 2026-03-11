@@ -182,6 +182,7 @@ Configurations are stored in `config_files/` and are used to populate a `StudyPa
 
 ### Example configuration
 
+```text
 resource_path = "CTS_CHI2020/tmp/tmp_train"
 study_name = "CTS_CHI2020"
 sensor_name = "Capacitor"
@@ -203,6 +204,8 @@ num_folds = 3
 num_threads = 12
 neural_net = true
 classification = true
+
+```
 
 ### Adding a New Study
 
