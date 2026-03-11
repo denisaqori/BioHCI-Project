@@ -267,27 +267,29 @@ This repository does not currently include a packaged installation file such as 
   source .venv/bin/activate
   ```
   On Windows:
+  ```
+  .venv\Scripts\activate`
+  ```
 
-  `.venv\Scripts\activate`
-  
 3. Install Dependencies
 
-Based on the current codebase, you will likely need:
+  Based on the current codebase, you will likely need:
+  ```
+  pip install numpy scipy matplotlib seaborn toml torch scikit-learn
+  ```
 
-pip install numpy scipy matplotlib seaborn toml torch scikit-learn
+  Additional packages may be required depending on the specific modules or experiments you use.
 
-Additional packages may be required depending on the specific modules or experiments you use.
+4. Ensure the Repository Root Is on `PYTHONPATH`
 
-4. Ensure the Repository Root Is on PYTHONPATH
-
-From the repository root:
-
-export PYTHONPATH=$PYTHONPATH:.
-
-On Windows PowerShell:
-
-$env:PYTHONPATH = "$env:PYTHONPATH;."
-
+  From the repository root:
+  ```
+  export PYTHONPATH=$PYTHONPATH:.
+  ```
+  On Windows PowerShell:
+  ```
+  $env:PYTHONPATH = "$env:PYTHONPATH;."
+  ```
 
 
 
