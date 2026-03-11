@@ -49,7 +49,6 @@ The repository is organized as a general experimentation framework for structure
 
 ## Repository Structure
 
-```text
 BioHCI-Project/
 ├── BioHCI/
 │   ├── architectures/          # Neural network architectures and model wrappers
