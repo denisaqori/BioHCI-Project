@@ -118,29 +118,16 @@ Contains study-specific TOML files that define dataset locations, sensor metadat
 
 At a high level, a BioHCI experiment follows this workflow:
 
-1. **Load a study configuration**
+**1. Load a study configuration**
+
   A TOML file defines dataset and experiment parameters.
-3. **Construct the dataset**
-4. **Preprocess the data**
-5. **Split the data**
-6. **Define the model and training setup**
-7. **Train and evaluate**
-8. **Save artifacts and visualize results**
 
-
-
-
-
-
-
-
-
-
-    
 **2. Construct the dataset**
 
     Data are loaded and organized into subject-based structures.
+    
 **3. Preprocess the data**
+
     Depending on the study and configuration, preprocessing may include:
 
    - selecting relevant columns
