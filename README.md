@@ -147,11 +147,11 @@ At a high level, a BioHCI experiment follows this workflow:
 
 **6. Train and evaluate**
 
-  The analyzer coordinates training, validation, and testing.
+  The analyzer coordinates training, validation, and testing, and performs extensive statistical analysis on the results.
 
 **7. Save artifacts and visualize results**
 
-  Outputs may include trained models, plots, and confusion matrices.
+  Outputs may include trained models, log files, plots, and confusion matrices.
 
 ---
 
