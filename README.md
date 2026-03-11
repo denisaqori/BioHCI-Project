@@ -130,12 +130,12 @@ At a high level, a BioHCI experiment follows this workflow:
 
   Depending on the study and configuration, preprocessing may include:
 
-    - selecting relevant columns
-    - standardization
-    - chunking/windowing
-    - feature construction
-    - transforms such as wavelets
-    - class balancing
+   - selecting relevant columns
+   - standardization
+   - chunking/windowing
+   - feature construction
+   - transforms such as wavelets
+   - class balancing
   
 **4. Split the data**
 
