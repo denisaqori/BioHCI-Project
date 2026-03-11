@@ -1,4 +1,4 @@
-# BioHCI: A Python Framework for BioHCI Signal Processing and Modeling
+# BioHCI: A Python Framework for Physiological Signal Processing and Modeling
 
 A Python framework for configuring, preprocessing, modeling, and evaluating human-generated sequential data across BioHCI studies.
 
